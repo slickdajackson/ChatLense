@@ -7,8 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Transcriber fuer Sprachnachrichten: Bytes -> Dekoder (erst Concentus, dann optional ein Rueckfall wie MediaCodec) -> Spracherkennung.
- * Die Engine wird beim ersten Aufruf erzeugt und mit [close] wieder freigegeben (Arbeitsspeicher fuer das LLM).
+ * Transcriber for voice messages: bytes, then a decoder (Concentus first, then an optional fallback such as MediaCodec), then speech recognition.
+ * The engine is created on the first call and released again with [close] (memory for the LLM).
  */
 class ParakeetTranscriber(
     private val engineFactory: () -> AsrEngine,
@@ -18,13 +18,13 @@ class ParakeetTranscriber(
     override val name: String = "Parakeet TDT 0.6B v3 (lokal)"
     override val available: Boolean = true
 
-    /** Zuletzt benutzter Dekoder und Dauer der letzten Erkennung, fuer das Log. */
+    /** Last decoder used and duration of the last recognition, for the log. */
     @Volatile var lastDecoder: String = ""
     @Volatile var lastDecodeMs: Long = 0
     @Volatile var lastRecognizeMs: Long = 0
     @Volatile var lastAudioSec: Double = 0.0
 
-    /** Dauer des Modellladens in Millisekunden, 0 solange nicht geladen. */
+    /** Model load time in milliseconds, 0 until it has been loaded. */
     @Volatile var loadMs: Long = 0
 
     fun decode(bytes: ByteArray): DecodedAudio {

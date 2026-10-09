@@ -9,7 +9,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Verschluesselt den API-Key mit einem Android-Keystore-Schluessel (AES-GCM), Ablage in SharedPreferences. */
+/** Encrypts the API key with an Android Keystore key (AES-GCM), stored in SharedPreferences. */
 object SecretStore {
     private const val ALIAS = "chatlens_api_key"
 

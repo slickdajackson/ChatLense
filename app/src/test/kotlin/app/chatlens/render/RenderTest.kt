@@ -54,9 +54,9 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Rendert die Oberflaeche ohne Emulator (Robolectric, nativer Grafikmodus) in PNG-Dateien unter app/build/renders.
- * Das ist eine Vorschau mit Testdaten, kein Beleg fuer das Verhalten auf dem Geraet. Echte Unschaerfe (Modifier.blur, API 31+)
- * wird hier nicht gezeichnet; die Vorschau zeigt die Variante ohne Blur.
+ * Renders the UI without an emulator (Robolectric, native graphics mode) to PNG files under app/build/renders.
+ * This is a preview with test data, not evidence of behavior on the device. Real blur (Modifier.blur, API 31+)
+ * is not drawn here; the preview shows the variant without blur.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -147,7 +147,7 @@ class RenderTest {
         snap("overlay-ring")
     }
 
-    /** Kontrast-Muster: Text OHNE explizite Farbe im Scaffold (der Fehler aus 0.2.2 zeigte hier schwarzen Text). */
+    /** Contrast sample: text WITHOUT an explicit color in the scaffold (the bug from 0.2.2 showed black text here). */
     @Test
     fun renderContrastSampler() {
         rule.setContent {
@@ -182,7 +182,7 @@ class RenderTest {
                                 }
                                 Section("Hervorgehobene Karte", highlight = true) { Text("Standardtext in der Setup-Karte.") }
                                 WarningCard("Warnhinweis auf der Karte.")
-                                // Dialogflaeche (AlertDialog nutzt surfaceContainerHigh, onSurface und onSurfaceVariant)
+                                // Dialog surface (AlertDialog uses surfaceContainerHigh, onSurface, and onSurfaceVariant)
                                 Surface(Modifier.padding(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)) {
                                     Column(Modifier.padding(16.dp)) {
                                         Text("Dialogtitel", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
@@ -200,15 +200,15 @@ class RenderTest {
     }
 
     /**
-     * Belegt die Ursache des schwarzen Textes im gerenderten Bild: Ohne gesetztes LocalContentColor (Theme von 0.2.2) wird ein Text ohne
-     * Farbe im Scaffold dunkel gezeichnet, mit dem Theme von 0.2.3 hell. Gemessen wird die hellste Pixelfarbe je Haelfte.
+     * Shows the cause of the black text in the rendered image: without LocalContentColor set (the 0.2.2 theme), text without
+     * a color is drawn dark in the scaffold; with the 0.2.3 theme it is light. The brightest pixel color of each half is measured.
      */
     @Test
     fun plainTextIsDarkWithOldThemeAndLightWithNewTheme() {
         rule.setContent {
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxSize().androidx_background(GlassColors.BgTop)) {
-                    // altes Verhalten: Farbschema ohne LocalContentColor
+                    // old behavior: color scheme without LocalContentColor
                     MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme()) {
                         Scaffold(containerColor = Color.Transparent) { pad -> Text("Alt ohne Farbe", Modifier.padding(pad).padding(20.dp)) }
                     }
@@ -234,7 +234,7 @@ class RenderTest {
             return best
         }
         val w = bmp.width
-        // Hintergrund ist sehr dunkel (Helligkeit etwa 20): der alte Text bleibt in der Naehe davon oder darunter, der neue ist deutlich heller
+        // The background is very dark (luminance about 20): the old text stays near that or below it, the new text is clearly lighter
         val old = brightest(0, w / 2)
         val new = brightest(w / 2, w)
         org.junit.Assert.assertTrue("neuer Text muss hell sein (hellster Pixel $new)", new > 200)

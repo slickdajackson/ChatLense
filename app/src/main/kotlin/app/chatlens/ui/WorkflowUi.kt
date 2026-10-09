@@ -23,7 +23,7 @@ import app.chatlens.data.AppSettings
 import app.chatlens.memory.SelfAnalysis
 import app.chatlens.service.ChatAccessibilityService
 
-/** Erster Schritt sichtbar: Assistent 1. Berechtigungen, 2. Checkup der obersten 50, 3. Auswahl, 4. Setup. */
+/** First step shown: wizard. 1. Permissions, 2. Checkup of the top 50, 3. Selection, 4. Setup. */
 @Composable
 fun SetupWizardSection(settings: AppSettings, hasBackend: Boolean, memoryCount: Int, onCheckup: () -> Unit) {
     val a11y by ChatAccessibilityService.connected.collectAsState()
@@ -52,8 +52,8 @@ private fun hint(s: WfStep) = when (s) {
 }
 
 /**
- * Selbstanalyse: Anzahl Chats und Nachrichten je Chat, oder frei formuliert ("Scanne 20 Chats, je letzte 200 Nachrichten, analysiere meine Persönlichkeit ...").
- * Die Chats kommen ausschliesslich aus der Checkup-Liste. Ergebnis ist ein Vorschlag fuers Ich-Profil, uebernommen erst nach Bestaetigung.
+ * Self-analysis: number of chats and messages per chat, or free text ("Scanne 20 Chats, je letzte 200 Nachrichten, analysiere meine Persönlichkeit ...").
+ * Chats come only from the checkup list. The result is a proposal for the self profile, applied only after confirmation.
  */
 @Composable
 fun SelfAnalysisSection(settings: AppSettings, hasBackend: Boolean, onStart: (List<String>, Int, String) -> Unit) {

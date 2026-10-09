@@ -36,9 +36,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Logik der Version 0.2.7 ohne Android: Punkt entfernen, Prompt-Auswahl, Fortschritt, Stimme, Reihenfolge, Modellbewertung, Logo-Ressourcen. */
+/** Logic of version 0.2.7 without Android: remove the dot, prompt choice, progress, voice, order, model ratings, logo resources. */
 class V027LogicTest {
-    // ---------- Punkt entfernen ----------
+    // ---------- Remove the dot ----------
 
     @Test fun removalIdleRemovesAtOnce() {
         assertEquals(OverlayRemoval.Step.REMOVE_NOW, OverlayRemoval.decide(false, 0, 1_000))
@@ -48,7 +48,7 @@ class V027LogicTest {
     @Test fun removalWhileRunningWarnsThenCancels() {
         assertEquals(OverlayRemoval.Step.WARN_FIRST, OverlayRemoval.decide(true, 0, 10_000))
         assertEquals(OverlayRemoval.Step.CANCEL_AND_REMOVE, OverlayRemoval.decide(true, 10_000, 14_000))
-        // Fenster abgelaufen: wieder zuerst warnen
+        // window expired: warn first again
         assertEquals(OverlayRemoval.Step.WARN_FIRST, OverlayRemoval.decide(true, 10_000, 10_000 + OverlayRemoval.CONFIRM_WINDOW_MS + 1))
         assertTrue(OverlayRemoval.message(OverlayRemoval.Step.WARN_FIRST).contains("bricht ihn ab"))
     }
@@ -56,13 +56,13 @@ class V027LogicTest {
     @Test fun ringHasRemoveAndSelfAnalysisButNoMoreThanSevenItems() {
         assertTrue(RingAction.entries.any { it.label == "Entfernen" })
         assertTrue(RingAction.entries.any { it.label == "Selbst" })
-        // 7 Eintraege bei Radius 88: Sehnenabstand muss groesser als die 64 dp grosse Schaltflaeche sein
+        // 7 entries at radius 88: the chord spacing must be larger than the 64 dp button area
         val n = RingAction.entries.size
         assertTrue(n <= 7)
         assertTrue(2 * 88 * Math.sin(Math.PI / n) > 64)
     }
 
-    // ---------- Prompt-Auswahl ----------
+    // ---------- Prompt choice ----------
 
     @Test fun promptBookKeepsRecentWithoutDuplicatesAndCap() {
         var b = PromptBook()
@@ -111,7 +111,7 @@ class V027LogicTest {
         var guard = 0
         while (req == null && guard++ < 200) { delay(10); req = PromptChoiceBroker.pending.value }
         assertTrue(req != null)
-        PromptChoiceBroker.answer(req!!.id + 99, PromptChoice.Standard)   // falsche Id wird ignoriert
+        PromptChoiceBroker.answer(req!!.id + 99, PromptChoice.Standard)   // a wrong id is ignored
         assertTrue(PromptChoiceBroker.pending.value != null)
         PromptChoiceBroker.answer(req.id, PromptChoice.Custom("Nur Termine"))
         val got = a.await()
@@ -119,7 +119,7 @@ class V027LogicTest {
         assertNull(PromptChoiceBroker.pending.value)
     }
 
-    // ---------- Fortschritt ----------
+    // ---------- Progress ----------
 
     @Test fun planContainsStepsPerTask() {
         val p = RunProgress.plan(TaskMode.ANALYSE, chatAlreadyOpen = true, askPrompt = true, voiceEnabled = true, localModel = true)
@@ -138,7 +138,7 @@ class V027LogicTest {
         p = RunProgress.drop(p, StepKind.TRANSCRIBE)
         assertEquals(5, p.steps.size)
         assertEquals(StepKind.COLLECT, p.steps[p.index])
-        // Schritt ausserhalb des Plans aendert nichts
+        // a step outside the plan changes nothing
         assertEquals(p, RunProgress.advance(p, StepKind.SAVE, 3_000))
         assertEquals("5/5 erledigt", RunProgress.counter(p, RunProgress.End.DONE))
         assertEquals("Fertig", RunProgress.headline(p, RunProgress.End.DONE))
@@ -176,7 +176,7 @@ class V027LogicTest {
         assertEquals("Gemma analysiert deinen Stil", RunProgress.llmLabel(TaskMode.SELF, "Gemma 4", true))
     }
 
-    // ---------- Stimme: automatischer Download ----------
+    // ---------- Voice: automatic download ----------
 
     @Test fun voiceDecide() {
         assertEquals(VoiceAutoDownload.Action.NOTHING, VoiceAutoDownload.decide(true, DlStatus.IDLE, true))
@@ -221,7 +221,7 @@ class V027LogicTest {
         assertTrue(VoiceAutoDownload.failedText("").contains("unbekannter Fehler"))
     }
 
-    // ---------- Reihenfolge: Checkup zuerst ----------
+    // ---------- Order: checkup first ----------
 
     @Test fun workflowStepsFollowOrder() {
         assertEquals(WfStep.PERMISSIONS, Workflow.state(false, true, true, 50, 5, 0).step)
@@ -253,12 +253,12 @@ class V027LogicTest {
         val w = Workflow.state(true, true, true, 50, 0, 0)
         val s = Workflow.stepsText(w)
         assertEquals(4, s.size)
-        assertTrue(s[0].second)          // Berechtigungen erledigt
-        assertTrue(s[1].second)          // Checkup erledigt
-        assertFalse(s[2].second)         // Auswahl offen
+        assertTrue(s[0].second)          // permissions done
+        assertTrue(s[1].second)          // checkup done
+        assertFalse(s[2].second)         // selection still open
     }
 
-    // ---------- Status des Punkts ----------
+    // ---------- Dot status ----------
 
     @Test fun dotStatusFixes() {
         val ok = DotStatus.of(true, true, true)
@@ -268,7 +268,7 @@ class V027LogicTest {
         assertFalse(DotStatus.of(false, false, true).ok)
     }
 
-    // ---------- Modellbewertung ----------
+    // ---------- Model ratings ----------
 
     private val cat by lazy { ModelCatalog.parse(File("src/main/assets/model-catalog.json").readText()) }
 
@@ -292,7 +292,7 @@ class V027LogicTest {
         val scores = byGerman.map { it.ratings[RatingArea.GERMAN]?.score ?: -1 }
         assertEquals(scores.sortedDescending(), scores)
         assertEquals(rec.size, byGerman.size)
-        // Gleichstand: Reihenfolge der Empfehlung bleibt
+        // tie: the recommendation order stays
         val tied = byGerman.filter { it.ratings[RatingArea.GERMAN]?.score == scores.first() }
         assertEquals(rec.filter { it in tied }, tied)
     }
@@ -323,34 +323,34 @@ class V027LogicTest {
 
     @Test fun logoFilesExistAndNoOldVariantsRemain() {
         for (f in listOf("ic_logo_mark", "ic_launcher_fg", "ic_launcher_mono", "ic_launcher_bg", "ic_stat")) {
-            val t = File(res, "drawable/$f.xml").also { assertTrue("fehlt: $it", it.isFile) }.readText()
+            val t = File(res, "drawable/$f.xml").also { assertTrue("missing: $it", it.isFile) }.readText()
             assertTrue(t.contains("<vector"))
             assertFalse("kein Text im Logo", t.contains("<text") || t.contains("\"CL\""))
         }
-        // Entwurf 2a ist das einzige Logo: keine Varianten a/b/c mehr, keine Lupen-Dateien
+        // Draft 2a is the only logo: no more variants a/b/c, no magnifier files
         assertTrue(File(res, "drawable").listFiles()!!.none { it.name.startsWith("logo_") })
         assertTrue(File(res, "drawable").listFiles()!!.none { it.name.contains("lupe", true) || it.name.contains("lens", true) })
     }
 
     @Test fun logoIsGradientBubbleWithThreeCutOutSparklesAndHasNoMagnifier() {
         val t = File(res, "drawable/ic_logo_mark.xml").readText()
-        // drei vierzackige Sterne: je 4 quadratische Kurven
+        // three four-point stars: 4 quadratic curves each
         assertEquals("12 Kurven fuer 3 Sterne", 12, Regex("Q").findAll(t).count())
-        assertTrue("Sprechblase vorhanden", t.contains("M13,6H35A9,9 0 0 1 44,15V27"))
+        assertTrue("bubble present", t.contains("M13,6H35A9,9 0 0 1 44,15V27"))
         assertTrue("Sterne ausgespart (evenOdd)", t.contains("android:fillType=\"evenOdd\""))
         assertTrue("Verlauf Tuerkis nach Violett", t.contains("#4DE3D0") && t.contains("#8B7CFF") && t.contains("gradient"))
         assertFalse("keine Lupe (Ring)", t.contains("a15,15"))
         assertFalse("kein Lupengriff", t.contains("M31,31L42,42"))
-        // Vordergrund, Einfarb-Ebene und Statussymbol: gleiche Form, keine Lupe
+        // foreground, monochrome layer, and status icon: same shape, no magnifier
         for (f in listOf("ic_launcher_fg", "ic_launcher_mono", "ic_stat")) {
             val x = File(res, "drawable/$f.xml").readText()
             assertEquals("$f: 12 Kurven", 12, Regex("Q").findAll(x).count())
             assertFalse(x.contains("M31,31L42,42"))
         }
-        // Einfarbig: keine Verlaufsfarben, damit das Themed Icon das System einfaerbt
+        // monochrome: no gradient colors, so the themed icon can be tinted by the system
         assertFalse(File(res, "drawable/ic_launcher_mono.xml").readText().contains("gradient"))
         assertFalse(File(res, "drawable/ic_stat.xml").readText().contains("gradient"))
-        // Die Vorlage der Zeichnung und das Skript nennen nur noch Entwurf 2a
+        // The drawing template and the script now name only draft 2a
         val script = File("tools/make_logo.py").takeIf { it.isFile } ?: File("../tools/make_logo.py")
         val py = script.readText()
         assertTrue(py.contains("Entwurf 2a") && !py.contains("--default") && !py.contains("def mark(v"))

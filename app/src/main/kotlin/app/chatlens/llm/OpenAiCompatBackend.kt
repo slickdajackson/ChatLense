@@ -12,8 +12,8 @@ import java.net.HttpURLConnection
 import java.net.URI
 
 /**
- * OpenAI-kompatibler Chat-Completions-Endpunkt: POST {baseUrl}/chat/completions.
- * Base-URL, Key und Modellname kommen aus den Einstellungen; es gibt keine Voreinstellung fuer das Modell.
+ * OpenAI-compatible chat completions endpoint: POST {baseUrl}/chat/completions.
+ * Base URL, key, and model name come from the settings. There is no default for the model.
  */
 class OpenAiCompatBackend(
     private val baseUrl: String,
@@ -36,7 +36,7 @@ class OpenAiCompatBackend(
         val body = buildBody(request)
         return withContext(Dispatchers.IO) { coroutineScope {
             val conn = (URI(url).toURL().openConnection() as HttpURLConnection)
-            // Beobachter: trennt die Verbindung bei Abbruch (Notaus), weil Socket-IO nicht abbrechbar ist
+            // Watcher: disconnects on cancellation (emergency stop), because socket IO cannot be cancelled
             val watcher = launch(Dispatchers.IO) { try { awaitCancellation() } finally { conn.disconnect() } }
             try {
                 conn.requestMethod = "POST"

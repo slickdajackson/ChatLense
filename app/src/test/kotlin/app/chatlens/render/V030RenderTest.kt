@@ -41,7 +41,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** Renderbilder der Einrichtungsseiten und des Overlay-Panels (0.3.0). Testdaten, Robolectric ohne Blur, kein Beleg fuer das Geraet. */
+/** Renders of the setup pages and the overlay panel (0.3.0). Test data, Robolectric without blur, not evidence for the device. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")

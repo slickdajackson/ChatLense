@@ -8,9 +8,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 class ConfirmRequest(val id: Long, val title: String, val body: String)
 
 /**
- * Ja/Nein-Rueckfragen an den Nutzer waehrend eines Laufs (z. B. "Diesen Chat nehmen?").
- * Es wird nie stillschweigend bejaht: ohne Antwort in [timeoutMs] gilt Nein. Angezeigt wird die Frage als Dialog in der App,
- * als Overlay-Karte (wenn die Berechtigung da ist) und als Benachrichtigung mit Ja/Nein; jede dieser Stellen ruft [answer].
+ * Yes/no questions to the user during a run (for example "Diesen Chat nehmen?").
+ * Nothing is ever confirmed silently: with no answer within [timeoutMs], the answer is no. The question is shown as a dialog in the app,
+ * as an overlay card (when the permission is granted), and as a notification with yes/no; each of those places calls [answer].
  */
 object ConfirmBroker {
     private val _pending = MutableStateFlow<ConfirmRequest?>(null)
@@ -46,7 +46,7 @@ object ConfirmBroker {
         }
     }
 
-    /** Fuer Benachrichtigungsknoepfe, die nur "die aktuelle Frage" kennen. */
+    /** For notification buttons that only know the current question. */
     fun answerCurrent(yes: Boolean) {
         val id = _pending.value?.id ?: return
         answer(id, yes)

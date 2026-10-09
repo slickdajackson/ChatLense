@@ -11,7 +11,7 @@ import org.json.JSONObject
 import java.time.LocalDateTime
 import kotlin.coroutines.coroutineContext
 
-/** Warum der Checkup-Scan endete. */
+/** Why the checkup scan ended. */
 enum class StopReason(val text: String) {
     LIMIT("gewuenschte Anzahl erreicht"),
     END("Listenende erreicht oder kein weiteres Scrollen moeglich"),
@@ -19,7 +19,7 @@ enum class StopReason(val text: String) {
     SCROLL_FAILED("Scrollen nicht moeglich"),
 }
 
-/** Ergebnis eines Scrollschritts. DONE: Geste oder Aktion wurde ausgefuehrt. END_SIGNAL: Android lehnt das Weiterscrollen ab (Ende). NO_WAY: es gab keinen Weg zu scrollen (keine Liste, Geste verweigert, keine Aktion). */
+/** Result of one scroll step. DONE: a gesture or action was performed. END_SIGNAL: Android refuses to scroll further (end). NO_WAY: there was no way to scroll (no list, gesture refused, no action). */
 enum class ScrollTry { DONE, END_SIGNAL, NO_WAY }
 
 class CheckupScan(
@@ -29,13 +29,13 @@ class CheckupScan(
     val gaps: Int,
     val duplicates: Int,
     val archiveSeen: Boolean,
-    /** Zahl der Scrollversuche, die ausgefuehrt wurden (Geste oder Knotenaktion). */
+    /** Number of scroll attempts that were performed (gesture or node action). */
     val scrollAttempts: Int = 0,
 ) {
-    /** Das Listenende gilt nur als erwiesen, wenn gescrollt wurde und der Inhalt danach gleich blieb (oder Android das Ende meldet). */
+    /** The end of the list counts as proven only if a scroll happened and the content then stayed the same (or Android reports the end). */
     val endProven: Boolean get() = reason == StopReason.LIMIT || (reason == StopReason.END && scrollAttempts >= 1)
 
-    /** Warnung fuer die Oberflaeche: Scrollen unmoeglich, oder weniger als [MIN_PLAUSIBLE] Zeilen ohne belegtes Ende. */
+    /** Warning for the UI: scrolling impossible, or fewer than [MIN_PLAUSIBLE] rows without a proven end. */
     fun warning(limit: Int): String? = when {
         reason == StopReason.SCROLL_FAILED -> "Scrollen nicht moeglich: nur ${entries.size} Zeilen von der ersten Seite gelesen. Die Liste ist wahrscheinlich laenger. Debug-Baum der Chatliste exportieren und den Checkup wiederholen."
         entries.size < MIN_PLAUSIBLE && entries.size < limit && !endProven -> "Nur ${entries.size} Zeilen gelesen und das Listenende ist nicht erwiesen (kein Scrollversuch mit unveraendertem Inhalt). Bitte pruefen."
@@ -46,29 +46,29 @@ class CheckupScan(
     companion object { const val MIN_PLAUSIBLE = 15 }
 }
 
-/** Was der Scan vom Geraet braucht. Auf dem Geraet der Navigator, in Tests ein Fake. */
+/** What the scan needs from the device. On the device, the navigator. In tests, a fake. */
 interface CheckupDevice {
-    /** Waechter, Chatliste erreichen (Tab Chats), nach oben scrollen. */
+    /** Guard, reach the chat list (Chats tab), scroll to the top. */
     suspend fun prepare()
 
-    /** Sichtbare Zeilen der Chatliste jetzt. */
+    /** Visible rows of the chat list right now. */
     suspend fun readVisible(): List<ChatListEntry>
 
-    /** Ein Schritt abwaerts. [precise]: seitenweise per Knotenaktion statt Wischgeste. false: nicht moeglich. */
+    /** One step downward. [precise]: page by page via a node action instead of a swipe. false: not possible. */
     suspend fun scrollForward(precise: Boolean): Boolean
 
-    /** Wie [scrollForward], aber mit Unterscheidung zwischen "Ende gemeldet" und "es gibt keinen Weg zu scrollen". Standard: false heisst Ende. */
+    /** Like [scrollForward], but distinguishing "end reported" from "there is no way to scroll". Default: false means end. */
     suspend fun scrollStep(precise: Boolean): ScrollTry = if (scrollForward(precise)) ScrollTry.DONE else ScrollTry.END_SIGNAL
 
-    /** Ein Schritt aufwaerts (nach erkannter Luecke). */
+    /** One step upward (after a detected gap). */
     suspend fun scrollBackward(): Boolean
 
-    /** Ist der Tab Chats gewaehlt (nach Korrekturversuch)? true auch, wenn die Leiste nicht erkannt wird. */
+    /** Is the Chats tab selected (after a correction attempt)? True also when the bar is not recognized. */
     suspend fun chatsTabOk(): Boolean
     fun log(msg: String)
 }
 
-/** Namen im Log verkuerzen: zwei Zeichen und Laenge, damit das Log keine vollen Namen traegt. */
+/** Shorten names in the log: two characters and the length, so the log does not carry full names. */
 object NameMask {
     fun short(name: String): String {
         val t = name.trim()
@@ -78,11 +78,11 @@ object NameMask {
 }
 
 /**
- * Checkup-Scan der Chatliste: liest nur Zeilen (kein Chat wird geoeffnet), scrollt nur abwaerts, dedupliziert ueber die Seiten
- * (normalisierter Name), stoppt bei [limit] Eintraegen oder am Listenende. Reine Logik; Gesten und Fensterpruefung liegen im Geraet.
+ * Checkup scan of the chat list: reads rows only (no chat is opened), scrolls only downward, deduplicates across pages
+ * (normalized name), stops at [limit] entries or at the end of the list. Pure logic. Gestures and the window check live in the device.
  *
- * Luecken-Schutz: Beim Wischen kann ein Nachschwung Zeilen ueberspringen. Hat eine neue Seite keine einzige Zeile mit der Vorseite
- * gemeinsam, wird sie verworfen, einen Schritt zurueckgescrollt und ab dann seitenweise per Knotenaktion gescrollt.
+ * Gap protection: a swipe can fling and skip rows. If a new page shares no row with the previous page,
+ * it is discarded, one step is scrolled back, and from then on scrolling is page by page via a node action.
  */
 class CheckupScanner(private val dev: CheckupDevice, private val maxPages: Int = 80, private val maxGapRetries: Int = 3) {
     suspend fun scan(limit: Int): CheckupScan {
@@ -113,7 +113,7 @@ class CheckupScanner(private val dev: CheckupDevice, private val maxPages: Int =
             val keys = rows.map { NameMatcher.normalize(it.title) }.filter { it.isNotEmpty() }
             val fresh = keys.filter { it !in seen }
             val overlap = keys.any { it in prevKeys }
-            // Luecke: nach einem Wisch keine gemeinsame Zeile mit der Vorseite, aber neue Zeilen. Nicht bei der ersten Seite und nicht seitenweise.
+            // Gap: after a swipe, no shared row with the previous page, but new rows. Not on the first page and not when paging.
             if (overlap) recovering = false
             if (page > 0 && (!precise || recovering) && fresh.isNotEmpty() && !overlap && prevKeys.isNotEmpty()) {
                 if (!recovering) gaps++
@@ -165,10 +165,10 @@ class CheckupScanner(private val dev: CheckupDevice, private val maxPages: Int =
     }
 }
 
-/** Ein Eintrag im Auswahlmenue. [selected] = fuers Setup gewaehlt, [isNew] = in der Liste, aber bei keinem frueheren Checkup gesehen. */
+/** One entry in the selection menu. [selected] = chosen for setup, [isNew] = in the list, but not seen in any earlier checkup. */
 data class CheckupItem(val entry: ChatListEntry, val selected: Boolean, val isNew: Boolean)
 
-/** Lokal gespeicherte Auswahl: nur Namen, keine Chatinhalte (keine Vorschau, keine Nachrichten). */
+/** Locally stored selection: names only, no chat contents (no preview, no messages). */
 data class CheckupStored(val savedAt: Long, val selected: List<String>, val known: List<String>, val order: List<String>)
 
 object CheckupCodec {
@@ -190,7 +190,7 @@ object CheckupCodec {
     }
 }
 
-/** Namensabgleich wie in 0.2.0: normalisierter Text gleich, sonst bester Treffer ab [MIN_PERCENT] Prozent, aber nur wenn eindeutig. */
+/** Name matching as in 0.2.0: equal normalized text, otherwise the best hit from [MIN_PERCENT] percent, but only when it is unique. */
 class NameIndex(names: Collection<String>) {
     private val list = names.toList()
     private val exact = list.associateBy { NameMatcher.normalize(it) }
@@ -215,7 +215,7 @@ class NameIndex(names: Collection<String>) {
 object CheckupSelection {
     private const val KNOWN_CAP = 1000
 
-    /** Baut die Menueeintraege: fruehere Auswahl vorauswaehlen, bisher unbekannte Chats als neu markieren (erst ab dem zweiten Checkup). */
+    /** Builds the menu entries: preselect the earlier selection, mark chats not seen before as new (only from the second checkup on). */
     fun reconcile(entries: List<ChatListEntry>, stored: CheckupStored?): List<CheckupItem> {
         val sel = NameIndex(stored?.selected.orEmpty())
         val known = NameIndex(stored?.known.orEmpty())
@@ -225,7 +225,7 @@ object CheckupSelection {
         }
     }
 
-    /** Schnellwahl: die obersten [n] Chats (neueste zuerst, wie das Setup bisher) werden angehakt, alle anderen abgehakt. */
+    /** Quick pick: the top [n] chats (newest first, as setup did before) are checked, all others unchecked. */
     fun quickPick(items: List<CheckupItem>, n: Int, includeGroups: Boolean, pinnedCounts: Boolean, now: LocalDateTime): List<CheckupItem> {
         val chosen = ChatListSelector.select(items.map { it.entry }, n, includeGroups, if (pinnedCounts) PinnedMode.COUNT_NORMALLY else PinnedMode.EXCLUDE, now)
         val keys = chosen.map { NameMatcher.normalize(it.title) }.toSet()
@@ -238,17 +238,17 @@ object CheckupSelection {
     fun toggle(items: List<CheckupItem>, title: String): List<CheckupItem> =
         items.map { if (it.entry.title == title) it.copy(selected = !it.selected) else it }
 
-    /** Suchfeld: Teilstring im normalisierten Namen. Leere Suche zeigt alles. */
+    /** Search field: substring of the normalized name. An empty search shows everything. */
     fun filter(items: List<CheckupItem>, query: String): List<CheckupItem> {
         val q = NameMatcher.normalize(query)
         if (q.isEmpty()) return items
         return items.filter { NameMatcher.normalize(it.entry.title).contains(q) }
     }
 
-    /** Gewaehlte Namen in Listenreihenfolge. */
+    /** Selected names in list order. */
     fun selectedTitles(items: List<CheckupItem>): List<String> = items.filter { it.selected }.map { it.entry.title }
 
-    /** Zu speichern: gewaehlte Namen, alle je gesehenen Namen (begrenzt) und die Reihenfolge. */
+    /** To store: selected names, every name ever seen (capped), and the order. */
     fun toStored(items: List<CheckupItem>, prev: CheckupStored?, now: Long): CheckupStored {
         val names = items.map { it.entry.title }
         val known = LinkedHashSet<String>()
@@ -258,7 +258,7 @@ object CheckupSelection {
         return CheckupStored(now, selectedTitles(items), known.toList().takeLast(KNOWN_CAP), names)
     }
 
-    /** Menue aus dem Gespeicherten allein (vor dem ersten Checkup dieser Sitzung): nur Namen, keine Vorschau. */
+    /** Menu from the stored data alone (before the first checkup of this session): names only, no preview. */
     fun fromStoredOnly(stored: CheckupStored): List<CheckupItem> {
         val sel = NameIndex(stored.selected)
         return stored.order.mapIndexed { i, n ->

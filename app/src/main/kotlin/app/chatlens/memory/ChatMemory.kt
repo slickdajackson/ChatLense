@@ -3,7 +3,7 @@ package app.chatlens.memory
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Abschnitte des Steckbriefs. Gewicht = Anteil am Zeichenbudget, Prioritaet = Reihenfolge, wenn der Prompt nur Teile aufnehmen kann. */
+/** Sections of the profile card. Weight is the share of the character budget, priority is the order when the prompt can take only parts. */
 enum class MemSection(val key: String, val label: String, val weight: Int) {
     PROFILE("STECKBRIEF", "Steckbrief", 12),
     RELATIONSHIP("BEZIEHUNG", "Beziehung", 8),
@@ -16,15 +16,15 @@ enum class MemSection(val key: String, val label: String, val weight: Int) {
     MOOD_HISTORY("VERLAUF", "Verlauf der Stimmung", 12),
 }
 
-/** Wofuer der Block gebraucht wird: Antworten und Beraten (Beziehung, Ton, Offenes zuerst) oder Fortschreiben (alles, Reihenfolge wie im Steckbrief). */
+/** What the block is for: replies and advice (relationship, tone, open items first) or updating (everything, in profile-card order). */
 enum class MemFocus(val order: List<MemSection>) {
     REPLY(listOf(MemSection.OPEN, MemSection.RELATIONSHIP, MemSection.TONE, MemSection.FACTS, MemSection.PREFS, MemSection.PROFILE, MemSection.MOOD, MemSection.TOPICS, MemSection.MOOD_HISTORY)),
     UPDATE(MemSection.entries.toList()),
 }
 
 /**
- * Gedaechtnis zu einem Chat. Alle generierten Abschnitte zusammen hoechstens das einstellbare Budget ([DEFAULT_MAX], einstellbar 1500 bis 12000 Zeichen),
- * damit ein Modell spaeter ohne den ganzen Verlauf arbeiten kann. [userNote] schreibt nur der Nutzer. [disc] ist die vorsichtige DISC-Einschaetzung des Gegenuebers.
+ * Memory for one chat. All generated sections together stay within the configurable budget ([DEFAULT_MAX], configurable from 1500 to 12000 characters),
+ * so a model can later work without the whole transcript. [userNote] is written only by the user. [disc] is the cautious DISC estimate of the other person.
  */
 data class ChatMemory(
     val chatKey: String,
@@ -35,9 +35,9 @@ data class ChatMemory(
     val mood: String = "",
     val userNote: String = "",
     val updatedAt: Long = 0L,
-    /** Fingerabdruecke der zuletzt gelesenen Nachrichten (aelteste zuerst, hoechstens 3). */
+    /** Fingerprints of the last messages read (oldest first, at most 3). */
     val anchor: List<String> = emptyList(),
-    /** Zeitangabe der letzten gelesenen Nachricht, nur zur Anzeige. */
+    /** Time of the last message read, for display only. */
     val anchorTime: String = "",
     val messagesSeen: Int = 0,
     val version: Int = 2,
@@ -77,9 +77,9 @@ data class ChatMemory(
     fun isEmpty(): Boolean = generatedLength == 0
 
     /**
-     * Block fuer Prompts. Ohne [budget] komplett. Mit Budget kommen nur so viele Abschnitte hinein, wie passen, in der Reihenfolge von [focus]
-     * (ein zu langer Abschnitt wird am Wortende gekuerzt). Die Zusatzinfo des Nutzers steht immer zuerst, die DISC-Zeile (kurz) danach.
-     * Die Reihenfolge im Text bleibt die des Steckbriefs.
+     * Block for prompts. Without [budget], complete. With a budget, only as many sections as fit, in the order of [focus]
+     * (a section that is too long is cut at a word boundary). The user's extra note always comes first, the short DISC line after it.
+     * The order in the text stays that of the profile card.
      */
     fun toPromptBlock(budget: Int = Int.MAX_VALUE, focus: MemFocus = MemFocus.REPLY, includeDisc: Boolean = true): String {
         val head = StringBuilder()
@@ -104,7 +104,7 @@ data class ChatMemory(
     }
 
     companion object {
-        /** Standard-Obergrenze aller generierten Abschnitte (vorher 1500). Einstellbar in den Einstellungen. */
+        /** Default cap of all generated sections (previously 1500). Configurable in the settings. */
         const val DEFAULT_MAX = 6000
         const val MIN_MAX = 1500
         const val MAX_MAX = 12000

@@ -4,26 +4,26 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/** Ein Eintrag der WhatsApp-Chatliste (aus dem Accessibility-Baum gelesen). */
+/** One entry of the WhatsApp chat list (read from the accessibility tree). */
 data class ChatListEntry(
     val title: String,
     val preview: String,
     val timeText: String,
     val pinned: Boolean,
-    /** Zeile "Archiviert": kein Chat, sondern der Einstieg ins Archiv. */
+    /** Row "Archiviert": not a chat, but the entry into the archive. */
     val archiveRow: Boolean,
-    /** Heuristik: Vorschau beginnt mit "Name: " (typisch fuer Gruppen). Ungeprueft am Geraet. */
+    /** Heuristic: the preview starts with "Name: " (typical of groups). Not checked on a device. */
     val likelyGroup: Boolean,
     val order: Int,
-    /** Hinweis auf ungelesene Nachrichten (Badge, Beschreibung). false heisst: kein Hinweis erkannt, nicht "sicher gelesen". Ungeprueft am Geraet. */
+    /** Hint of unread messages (badge, description). false means no hint was recognized, not "certainly read". Not checked on a device. */
     val unread: Boolean = false,
-    /** Zahl auf dem Badge, 0 wenn unbekannt. */
+    /** Number on the badge, 0 if unknown. */
     val unreadCount: Int = 0,
 )
 
 enum class PinnedMode { COUNT_NORMALLY, EXCLUDE }
 
-/** Aus Zeitangaben der Chatliste ("14:32", "Gestern", "Montag", "01.10.2026") eine vergleichbare Zahl machen (groesser = neuer). */
+/** Turn chat-list time labels ("14:32", "Gestern", "Montag", "01.10.2026") into a comparable number (larger = newer). */
 object ChatTimeRank {
     private val weekdays = mapOf(
         "montag" to DayOfWeek.MONDAY, "dienstag" to DayOfWeek.TUESDAY, "mittwoch" to DayOfWeek.WEDNESDAY,
@@ -52,7 +52,7 @@ object ChatTimeRank {
         if (t == "gestern" || t == "yesterday") return day(today.minusDays(1), 720)
         if (t == "heute" || t == "today") return day(today, 720)
         weekdays[t]?.let { wd ->
-            // WhatsApp zeigt Wochentage ab vorgestern; "Gestern" steht fuer gestern
+            // WhatsApp shows weekdays from the day before yesterday; "Gestern" means yesterday
             var d = today.minusDays(2)
             repeat(7) { if (d.dayOfWeek != wd) d = d.minusDays(1) }
             return day(d, 720)
@@ -68,7 +68,7 @@ object ChatTimeRank {
     }
 }
 
-/** Waehlt aus der gelesenen Chatliste die neuesten N Chats. */
+/** Picks the newest N chats from the chat list that was read. */
 object ChatListSelector {
     private val archiveTitles = setOf("archiviert", "archived")
 
@@ -87,7 +87,7 @@ object ChatListSelector {
             .filter { includeGroups || !it.likelyGroup }
             .filter { pinnedMode == PinnedMode.COUNT_NORMALLY || !it.pinned }
             .filter { seen.add(NameMatcher.normalize(it.title)) }
-        // stabil nach Zeit absteigend; Eintraege ohne lesbare Zeit behalten ihre Listenposition relativ zueinander am Ende
+        // stable, descending by time; entries without a readable time keep their list position relative to each other at the end
         val ranked = filtered.sortedWith(
             compareByDescending<ChatListEntry> { ChatTimeRank.rank(it.timeText, now) }.thenBy { it.order },
         )

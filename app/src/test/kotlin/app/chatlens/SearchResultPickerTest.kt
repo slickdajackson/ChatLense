@@ -14,8 +14,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Tests der Treffer-Auswahl auf synthetischen Suchergebnis-Baeumen (Bildschirm 1080 x 2400).
- * Sie pruefen die Auswahllogik, nicht das echte WhatsApp-Layout.
+ * Tests of hit selection on synthetic search-result trees (screen 1080 x 2400).
+ * They check the selection logic, not the real WhatsApp layout.
  */
 class SearchResultPickerTest {
 
@@ -27,7 +27,7 @@ class SearchResultPickerTest {
 
     private fun header(text: String, top: Int) = tv(text, 40, top, 600, top + 60)
 
-    /** Klickbare Zeile mit Namen und Vorschau, 160 px hoch. */
+    /** Clickable row with a name and a preview, 160 px tall. */
     private fun chatRow(name: String, preview: String, top: Int) = UiNode(
         "android.view.ViewGroup", "com.whatsapp:id/row", null, null, Bounds(0, top, 1080, top + 160), clickable = true,
         children = listOf(tv(name, 160, top + 20, 800, top + 70), tv(preview, 160, top + 85, 900, top + 140)),
@@ -110,7 +110,7 @@ class SearchResultPickerTest {
 
     @Test
     fun hitWithoutHeaderAboveIsRejectedWhenOtherHeadersAreVisible() {
-        // Ueberschrift "Chats" ist weggescrollt, sichtbar ist nur noch der Abschnitt darunter
+        // The "Chats" header has scrolled away; only the section below it is still visible
         val root = screen(chatRow("Terry Benedikt", "Hallo", 300), header("Gemeinsame Gruppen", 520), chatRow("Familie", "x", 590))
         val res = SearchResultPicker.pick(root, "Terry Benedikt", profile)
         assertNull(res.summary(), res.hit)
@@ -130,7 +130,7 @@ class SearchResultPickerTest {
 
     @Test
     fun searchFieldAndInvisibleNodesAreIgnored() {
-        // Das Suchfeld enthaelt den Titel (editierbar, oben) und darf nie als Treffer zaehlen
+        // The search field contains the title (editable, at the top) and must never count as a hit
         val root = screen(header("Chats", 270))
         assertNull(SearchResultPicker.pick(root, "Terry Benedikt", profile).hit)
         val hidden = screen(header("Chats", 270), UiNode(
@@ -142,7 +142,7 @@ class SearchResultPickerTest {
 
     @Test
     fun hugeOrHeaderContainingClickableAncestorIsNotUsedAsClickTarget() {
-        // Die ganze Liste ist als klickbar markiert und enthaelt Ueberschriften: kein Klickziel (Aufrufer nimmt dann die Geste)
+        // The whole list is marked clickable and contains headers: not a click target (the caller then uses the gesture)
         val root = screen(header("Chats", 270), UiNode(
             "android.view.ViewGroup", null, null, null, Bounds(0, 340, 1080, 500),
             children = listOf(tv("Terry Benedikt", 160, 360, 800, 410)),
@@ -169,7 +169,7 @@ class SearchResultPickerTest {
 
     @Test
     fun hitHighUpOnTallDisplayIsFoundBelowSearchField() {
-        // 1440 x 3200 Pixel: 25 Prozent der Hoehe sind 800 px. Der Treffer liegt bei y=480 und muss trotzdem gefunden werden.
+        // 1440 x 3200 pixels: 25 percent of the height is 800 px. The hit is at y=480 and must still be found.
         val field = UiNode("android.widget.EditText", null, "Terry Benedikt", null, Bounds(100, 100, 1300, 250), editable = true)
         val row = UiNode(
             "android.view.ViewGroup", null, null, null, Bounds(0, 400, 1440, 560), clickable = true,
@@ -188,7 +188,7 @@ class SearchResultPickerTest {
 
     @Test
     fun editableFieldWithTitleNeverCountsAsHeaderMatchSource() {
-        // Ohne Treffer in der Liste darf das Suchfeld (Text = Titel) nicht als Treffer gelten
+        // With no hit in the list, the search field (text equals the title) must not count as a hit
         val root = screen(header("Chats", 270))
         val res = SearchResultPicker.pick(root, "Terry Benedikt", profile)
         assertNull(res.hit)

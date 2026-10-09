@@ -3,13 +3,13 @@ package app.chatlens.models
 import java.io.File
 
 /**
- * Laedt ein mehrteiliges Modell (Spracherkennung) nacheinander in einen Ordner `<modelle>/<id>/`.
- * Jede Datei hat eigene Groesse und SHA-256 und wird wie bei einteiligen Modellen mit Fortsetzen geladen.
- * Bereits vollstaendige Dateien (richtige Groesse) werden uebersprungen; eine Pruefsumme wird dann nur beim Laden berechnet,
- * nicht erneut (Hinweis: ein Nachpruefen gibt es ueber [verifyAll]).
+ * Downloads a multi-file model (speech recognition) one file after another into a folder `<models>/<id>/`.
+ * Each file has its own size and SHA-256 and is downloaded with resume, as for single-file models.
+ * Files that are already complete (correct size) are skipped. A checksum is then computed only while downloading,
+ * not again (a later check is available through [verifyAll]).
  */
 object MultiFileDownload {
-    /** Funktion, die eine Datei laedt. Austauschbar, damit der Ablauf ohne Netz getestet werden kann. */
+    /** Function that downloads one file. Replaceable so the flow can be tested without a network. */
     fun interface FileFetcher {
         fun fetch(url: String, target: File, size: Long, sha256: String, cancel: () -> Boolean, onProgress: (DlProgress) -> Unit): DownloadResult
     }
@@ -22,7 +22,7 @@ object MultiFileDownload {
 
     fun dirFor(base: File, e: ModelEntry) = File(base, e.id)
 
-    /** Bytes, die schon vorhanden sind: vollstaendige Dateien plus Teildateien. */
+    /** Bytes already present: complete files plus partial files. */
     fun haveBytes(dir: File, e: ModelEntry): Long = e.files.sumOf { f ->
         val t = File(dir, f.name)
         if (t.isFile && t.length() == f.sizeBytes) f.sizeBytes else File(dir, f.name + ".part").takeIf { it.isFile }?.length()?.coerceAtMost(f.sizeBytes) ?: 0L
@@ -62,7 +62,7 @@ object MultiFileDownload {
         return Result(dir, downloaded, skipped, verified)
     }
 
-    /** Berechnet die SHA-256 aller Dateien neu und nennt die Namen, die nicht stimmen (leer = alles in Ordnung). */
+    /** Recomputes the SHA-256 of every file and names the ones that do not match (empty = all good). */
     fun verifyAll(dir: File, e: ModelEntry, cancel: () -> Boolean = { false }): List<String> =
         e.files.filter { f -> val t = File(dir, f.name); !t.isFile || !Sha256.of(t, cancel).equals(f.sha256, ignoreCase = true) }.map { it.name }
 

@@ -13,7 +13,7 @@ import kotlin.math.sqrt
 class OggOpusTest {
     private fun res(n: String) = javaClass.getResourceAsStream("/asr/$n")!!.readBytes()
 
-    /** Schaetzt die Frequenz eines Tons ueber die Nulldurchgaenge. */
+    /** Estimates the frequency of a tone from its zero crossings. */
     private fun freq(x: FloatArray, rate: Int): Double {
         var z = 0
         for (i in 1 until x.size) if (x[i - 1] < 0 && x[i] >= 0) z++
@@ -34,7 +34,7 @@ class OggOpusTest {
         assertTrue("Vorlauf ${st.preSkip48}", st.preSkip48 in 1..2000)
         assertTrue(st.packets.size > 100)
         assertEquals(6.0, st.durationSec!!, 0.05)
-        // mehrere Ogg-Seiten
+        // several Ogg pages
         val pages = (0 until d.size - 3).count { d[it] == 'O'.code.toByte() && d[it + 1] == 'g'.code.toByte() && d[it + 2] == 'g'.code.toByte() && d[it + 3] == 'S'.code.toByte() }
         assertTrue("Seiten $pages", pages >= 3)
         assertEquals(st.durationSec!!, OggOpusReader.durationSec(d)!!, 1e-9)
@@ -62,7 +62,7 @@ class OggOpusTest {
     fun garbageAndTruncationAreReportedOrHandled() {
         try { ConcentusOpusDecoder.decode(ByteArray(500) { it.toByte() }); fail("Muell darf nicht dekodieren") } catch (e: AudioDecodeException) { assertTrue(e.message!!.isNotBlank()) }
         try { ConcentusOpusDecoder.decode(ByteArray(0)); fail() } catch (e: AudioDecodeException) { }
-        // abgeschnittene Datei: ganze Seiten davor werden gelesen, kein Absturz
+        // truncated file: complete pages before the cut are read, no crash
         val d = res("tone-mono-6s.opus")
         val a = ConcentusOpusDecoder.decode(d.copyOf(d.size / 2))
         assertTrue(a.durationSec in 1.0..5.0)
@@ -99,7 +99,7 @@ class OggOpusTest {
         val f = ByteArrayOutputStream()
         f.write(page(2, 0, 7, 0, intArrayOf(head.size), head))
         f.write(page(0, 0, 7, 1, intArrayOf(tags.size), tags))
-        // Paket mit 300 Byte: 255 auf Seite 1 (Fortsetzung offen), 45 auf Seite 2
+        // packet of 300 bytes: 255 on page 1 (continuation open), 45 on page 2
         f.write(page(0, -1, 7, 2, intArrayOf(255), big.copyOfRange(0, 255)))
         f.write(page(1, 960, 7, 3, intArrayOf(45, 3), big.copyOfRange(255, 300) + small))
         val st = OggOpusReader.parse(f.toByteArray())

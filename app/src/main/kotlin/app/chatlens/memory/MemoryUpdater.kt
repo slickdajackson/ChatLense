@@ -6,7 +6,7 @@ import app.chatlens.core.Kind
 import app.chatlens.llm.PromptBuilder
 import app.chatlens.match.NameMatcher
 
-/** Ankerlogik, Prompt und Auswertung fuer das Fortschreiben des Gedaechtnisses. */
+/** Anchor logic, prompt, and parsing for updating the memory. */
 object MemoryUpdater {
 
     fun fingerprint(m: ChatMessage): String =
@@ -14,15 +14,15 @@ object MemoryUpdater {
 
     private fun anchorable(m: ChatMessage) = (m.kind == Kind.TEXT || m.kind == Kind.IMAGE || m.kind == Kind.VOICE) && !m.incomplete
 
-    /** Die letzten (neuesten) bis zu drei vollstaendigen Nachrichten als Anker, aelteste zuerst. */
+    /** The last (newest) up to three complete messages as the anchor, oldest first. */
     fun anchorOf(messages: List<ChatMessage>): List<String> =
         messages.filter(::anchorable).takeLast(3).map(::fingerprint)
 
     class Since(val found: Boolean, val newer: List<ChatMessage>)
 
     /**
-     * Nachrichten nach dem Anker. [messages] ist aelteste zuerst. Gesucht wird von hinten der neueste Treffer der letzten
-     * Ankerzeile, ersatzweise der davor. Nicht gefunden: alle Nachrichten, found=false.
+     * Messages after the anchor. [messages] is oldest first. Search from the back for the newest hit of the last
+     * anchor line, or the one before it. Not found: all messages, found=false.
      */
     fun messagesSince(messages: List<ChatMessage>, anchor: List<String>): Since {
         if (anchor.isEmpty()) return Since(false, messages)
@@ -33,7 +33,7 @@ object MemoryUpdater {
         return Since(false, messages)
     }
 
-    /** true, wenn der letzte Anker (oder ein frueherer) im bisher gelesenen Verlauf steht: dann reicht das Scrollen. */
+    /** True when the last anchor (or an earlier one) is in the transcript read so far: then scrolling is enough. */
     fun anchorReached(messages: List<ChatMessage>, anchor: List<String>): Boolean =
         anchor.isNotEmpty() && anchor.any { a -> messages.any { anchorable(it) && fingerprint(it) == a } }
 
@@ -63,7 +63,7 @@ STRENG VERBOTEN in diesen ICH-Zeilen: Namen von Personen oder Orten, Zahlen, Dat
     fun system(disc: Boolean = false, ich: Boolean = false): String = SYSTEM + (if (disc) DISC_RULES else "") + (if (ich) ICH_RULES else "")
 
     /**
-     * [budget]: Zeichenbudget fuer das bisherige Gedaechtnis im Prompt. Beim Fortschreiben (Standard) komplett, damit nichts beim Zusammenfuehren verloren geht.
+     * [budget]: character budget for the existing memory in the prompt. When updating (the default) it is complete, so nothing is lost in the merge.
      */
     fun user(existing: ChatMemory?, transcript: String, incremental: Boolean, title: String, budget: Int = Int.MAX_VALUE): String = buildString {
         append("Chat mit: ").append(title).append("\n\n")
@@ -84,7 +84,7 @@ STRENG VERBOTEN in diesen ICH-Zeilen: Namen von Personen oder Orten, Zahlen, Dat
 
     private val labelRe = Regex("""^\s*[*#\-\s]*(STECKBRIEF|BEZIEHUNG|THEMEN|TON|OFFEN|FAKTEN|VORLIEBEN|STIMMUNG|VERLAUF|DISC|ICH[- ][A-ZÄÖÜ]+)\s*[:*]+\s*(.*)$""", RegexOption.IGNORE_CASE)
 
-    /** Zerlegt die Antwort in Kopfzeile zu Text. ICH-Zeilen und DISC bleiben unter ihrem Stichwort ("ICH-STIL", "DISC"). */
+    /** Splits the reply into heading and text. ICH lines and DISC stay under their keyword ("ICH-STIL", "DISC"). */
     fun sections(text: String): Map<String, String> {
         val found = LinkedHashMap<String, String>()
         var current: String? = null
@@ -104,7 +104,7 @@ STRENG VERBOTEN in diesen ICH-Zeilen: Namen von Personen oder Orten, Zahlen, Dat
         return found
     }
 
-    /** Stimmung an den Verlauf haengen ("03.10.: Gut gelaunt | ..."), aelteste Eintraege fallen bei Platzmangel weg. */
+    /** Append mood to the history ("03.10.: Gut gelaunt | ..."). The oldest entries drop when space runs out. */
     fun appendMood(history: String, dateLabel: String, mood: String, maxLen: Int): String {
         if (mood.isBlank()) return history
         val entry = "$dateLabel: ${mood.trim().trimEnd('.')}"
@@ -119,10 +119,10 @@ STRENG VERBOTEN in diesen ICH-Zeilen: Namen von Personen oder Orten, Zahlen, Dat
         java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.of("Europe/Berlin")).format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yy"))
 
     /**
-     * Wertet die Modellantwort aus. Fehlt eine Kopfzeile, bleibt der bisherige Wert dieses Abschnitts erhalten (Zusammenfuehrung).
-     * Ohne jede Kopfzeile wird der Text (gekuerzt) als Steckbrief genommen. Leere Antwort: bisheriges Gedaechtnis unveraendert.
-     * Abschnitte teilen sich [maxChars] nach Gewicht ([MemSection.weight]). [partnerMessages] = Nachrichten des Gegenuebers (Grundlage der DISC-Konfidenz),
-     * [discEnabled] schaltet die DISC-Fortschreibung. Fehlt der Verlauf, wird die Stimmung mit Datum angehaengt.
+     * Parses the model reply. If a heading is missing, the previous value of that section stays (merge).
+     * With no heading at all, the text (trimmed) is taken as the profile card. Empty reply: existing memory unchanged.
+     * Sections share [maxChars] by weight ([MemSection.weight]). [partnerMessages] = the other person's messages (basis of the DISC confidence),
+     * [discEnabled] turns DISC updating on. If the history is missing, the mood is appended with a date.
      */
     fun apply(
         existing: ChatMemory?,

@@ -44,7 +44,7 @@ class ParakeetCatalogAndDownloadTest {
         )
         assertTrue(e.license.contains("CC-BY-4.0"))
         assertEquals("acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247", e.files[0].sha256)
-        assertEquals(null, e.downloadUrl) // einteilige Anzeige gilt nicht
+        assertEquals(null, e.downloadUrl) // the single-file display does not apply
     }
 
     @Test
@@ -85,11 +85,11 @@ class ParakeetCatalogAndDownloadTest {
         assertEquals(180L, prog.last().bytesDone); assertEquals(4, prog.last().fileIndex)
         assertTrue(prog.zipWithNext().all { (a, b) -> b.bytesDone >= a.bytesDone })
         assertTrue(AsrModelFiles.complete(dir))
-        // zweiter Lauf: alles vorhanden
+        // second run: everything is already present
         log.clear()
         val r2 = MultiFileDownload.download(e, dir, { false }, {}, fakeFetcher(log))
         assertTrue(log.isEmpty()); assertEquals(4, r2.skipped.size)
-        // eine Datei fehlt: nur diese wird geladen
+        // one file is missing: only that file is downloaded
         File(dir, "joiner.int8.onnx").delete()
         MultiFileDownload.download(e, dir, { false }, {}, fakeFetcher(log))
         assertEquals(listOf("joiner.int8.onnx"), log)

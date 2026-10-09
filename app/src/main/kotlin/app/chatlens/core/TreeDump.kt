@@ -2,12 +2,12 @@ package app.chatlens.core
 
 import app.chatlens.profile.SelectorProfile
 
-/** Text-Export des Accessibility-Baums zum Kalibrieren der Selektoren. */
+/** Text export of the accessibility tree for calibrating the selectors. */
 object TreeDump {
 
     /**
-     * Maskiert Text: Buchstaben werden zu x/X, Ziffern zu 9, Satzzeichen bleiben.
-     * Uhrzeiten, Datumsangaben und Abschnittsueberschriften der Suche (laut Profil) bleiben im Klartext, weil sie fuer die Kalibrierung noetig sind.
+     * Masks text: letters become x/X, digits become 9, punctuation stays.
+     * Times, dates, and search section headings (according to the profile) stay in clear text, because calibration needs them.
      */
     fun mask(s: String?, profile: SelectorProfile?): String? {
         if (s == null) return null

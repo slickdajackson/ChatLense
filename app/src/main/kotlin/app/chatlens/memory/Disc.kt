@@ -2,12 +2,12 @@ package app.chatlens.memory
 
 import org.json.JSONObject
 
-/** Wie belastbar eine DISC-Einschaetzung ist. ZU_WENIG: nicht genug Text, es werden keine Anteile gezeigt. */
+/** How reliable a DISC estimate is. ZU_WENIG: not enough text, no shares are shown. */
 enum class DiscLevel(val label: String) { ZU_WENIG("zu wenig Daten"), NIEDRIG("niedrig"), MITTEL("mittel"), HOCH("hoch") }
 
 /**
- * Vorsichtige DISC-Einschaetzung aus Chattext (D Dominanz, I Initiative, S Stetigkeit, C Gewissenhaftigkeit), Anteile in Prozent (Summe 100).
- * Keine Diagnose und kein Test: nur eine Lesart des Schreibstils in diesem Chat. [basis] ist die Zahl der Nachrichten, auf der sie beruht.
+ * Cautious DISC estimate from chat text (D dominance, I influence, S steadiness, C conscientiousness), shares in percent (sum 100).
+ * Not a diagnosis and not a test: only one reading of the writing style in this chat. [basis] is the number of messages it rests on.
  */
 data class DiscProfile(
     val d: Int = 0, val i: Int = 0, val s: Int = 0, val c: Int = 0,
@@ -18,7 +18,7 @@ data class DiscProfile(
 ) {
     val insufficient: Boolean get() = confidence == DiscLevel.ZU_WENIG || d + i + s + c == 0
 
-    /** Kompakte Zeile fuer Leiste und Prompt. */
+    /** Compact line for the bar and the prompt. */
     fun line(): String = if (insufficient) "DISC: zu wenig Daten" else "DISC: D $d, I $i, S $s, C $c (Konfidenz ${confidence.label})"
 }
 
@@ -26,7 +26,7 @@ object Disc {
     const val MIN_MESSAGES = 20
     const val DISCLAIMER = "Vorsichtige Einschätzung aus Chattext, keine Diagnose und kein Persönlichkeitstest. Sie sagt nichts Gesichertes über die Person."
 
-    /** Konfidenz-Obergrenze nach Datenmenge (Nachrichten der Person). */
+    /** Confidence cap by amount of data (the person's messages). */
     fun levelFor(messages: Int): DiscLevel = when {
         messages < MIN_MESSAGES -> DiscLevel.ZU_WENIG
         messages < 60 -> DiscLevel.NIEDRIG
@@ -34,7 +34,7 @@ object Disc {
         else -> DiscLevel.HOCH
     }
 
-    /** Auf Summe 100 normieren (Verfahren der groessten Reste). Negative Werte zaehlen als 0; Summe 0 ergibt null. */
+    /** Normalize to a sum of 100 (largest remainder method). Negative values count as 0. A sum of 0 yields null. */
     fun normalize(d: Int, i: Int, s: Int, c: Int): IntArray? {
         val raw = intArrayOf(d.coerceAtLeast(0), i.coerceAtLeast(0), s.coerceAtLeast(0), c.coerceAtLeast(0))
         val sum = raw.sum()
@@ -54,9 +54,9 @@ object Disc {
     }
 
     /**
-     * Wertet eine DISC-Zeile der Modellantwort aus, zum Beispiel
-     * "D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: ..." oder "zu wenig Daten". [basis] = Nachrichten der Person.
-     * Die Konfidenz ist hoechstens die der Datenmenge. Unlesbares ergibt "zu wenig Daten", nie erfundene Werte.
+     * Parses a DISC line from the model reply, for example
+     * "D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: ..." or "zu wenig Daten". [basis] = the person's messages.
+     * Confidence is at most that of the amount of data. Unreadable input yields "zu wenig Daten", never invented values.
      */
     fun parse(value: String, basis: Int, now: Long): DiscProfile {
         val v = value.trim()
@@ -73,8 +73,8 @@ object Disc {
     }
 
     /**
-     * Fortschreibung bei neuen Laeufen: gewichtetes Mittel nach Datenmenge. Neu zu wenig: alt bleibt. Alt zu wenig: neu gilt.
-     * Die Konfidenz richtet sich nach der Summe der Nachrichten (nicht hoeher als die schwaechere Aussage, wenn beide vorliegen? nein: Summe zaehlt).
+     * Update on new runs: weighted mean by amount of data. New one insufficient: the old one stays. Old one insufficient: the new one applies.
+     * Confidence follows the sum of the messages (not capped at the weaker statement when both exist: the sum counts).
      */
     fun merge(old: DiscProfile?, new: DiscProfile): DiscProfile {
         if (old == null || old.insufficient) return if (new.insufficient && old != null) old.copy(basis = maxOf(old.basis, new.basis)) else new

@@ -25,7 +25,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Gedaechtnis, DISC, Ich-Profil und Selbstanalyse (0.2.7). Rein JVM. */
+/** Memory, DISC, self profile, and self-analysis (0.2.7). JVM only. */
 class MemoryV27Test {
     // ---------- DISC ----------
 
@@ -50,7 +50,7 @@ class MemoryV27Test {
     @Test fun discParseReadsLineAndCapsConfidence() {
         val p = Disc.parse("D=40 I=30 S=20 C=10; Konfidenz: hoch; Begründung: knappe, direkte Sätze", 40, 5L)
         assertEquals(listOf(40, 30, 20, 10), listOf(p.d, p.i, p.s, p.c))
-        assertEquals(DiscLevel.NIEDRIG, p.confidence)       // 40 Nachrichten: hoechstens niedrig
+        assertEquals(DiscLevel.NIEDRIG, p.confidence)       // 40 messages: at most low
         assertTrue(p.reason.contains("direkte"))
         assertFalse(p.insufficient)
         assertEquals(DiscLevel.HOCH, Disc.parse("D=40 I=30 S=20 C=10; Konfidenz: hoch", 400, 0).confidence)
@@ -73,10 +73,10 @@ class MemoryV27Test {
         assertEquals(100, m.d + m.i + m.s + m.c)
         val heavy = Disc.merge(a.copy(basis = 300), b)
         assertTrue(heavy.d > heavy.i)
-        // zu wenig neu: alt bleibt
+        // too little new data: the old value stays
         val keep = Disc.merge(a, DiscProfile(basis = 5))
         assertEquals(60, keep.d)
-        // alt zu wenig: neu gilt
+        // too little old data: the new value applies
         assertEquals(20, Disc.merge(DiscProfile(basis = 5), b).d)
     }
 
@@ -86,7 +86,7 @@ class MemoryV27Test {
         assertNull(Disc.fromJson(null))
     }
 
-    // ---------- Steckbrief ----------
+    // ---------- Profile ----------
 
     private val fullOutput = """
 STECKBRIEF: Kollegin aus dem Vertrieb
@@ -124,11 +124,11 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         val first = MemoryUpdater.apply(null, fullOutput, "Anna", 1L, emptyList(), "", 10)
         val second = MemoryUpdater.apply(first.copy(userNote = "Meine Notiz"), "OFFEN: Rückruf\nSTIMMUNG: müde", "Anna", 2L, emptyList(), "", 5)
         assertEquals("Rückruf", second.openTopics)
-        assertEquals("Kollegin aus dem Vertrieb", second.profile)   // blieb
+        assertEquals("Kollegin aus dem Vertrieb", second.profile)   // stayed
         assertEquals("mag Kaffee", second.preferences)
-        assertEquals("Meine Notiz", second.userNote)                 // Nutzertext wird nie vom Modell ueberschrieben
+        assertEquals("Meine Notiz", second.userNote)                 // user text is never overwritten by the model
         assertEquals(15, second.messagesSeen)
-        assertTrue(second.moodHistory.contains("müde"))              // Verlauf fehlte, Stimmung wird mit Datum angehaengt
+        assertTrue(second.moodHistory.contains("müde"))              // history was missing; the mood is appended with a date
         assertTrue(second.moodHistory.contains("vorher angespannt"))
     }
 
@@ -142,9 +142,9 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         assertTrue(small.generatedLength <= 1500)
         val big = MemoryUpdater.apply(null, out, "A", 0L, emptyList(), "", 1, maxChars = 12000)
         assertTrue(big.generatedLength in 6001..12000)
-        // Obergrenze wird auf 1500..12000 geklemmt
+        // the upper bound is clamped to 1500..12000
         assertTrue(MemoryUpdater.apply(null, out, "A", 0L, emptyList(), "", 1, maxChars = 99999).generatedLength <= 12000)
-        // groessere Abschnitte (Fakten) bekommen mehr Platz als Stimmung
+        // larger sections (facts) get more room than mood
         assertTrue(m.facts.length > m.mood.length)
     }
 
@@ -178,7 +178,7 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         assertEquals(h, MemoryUpdater.appendMood(h, "31.01.", "Stimmung Nummer 30", 200))
     }
 
-    // ---------- Ich-Profil ----------
+    // ---------- Self profile ----------
 
     private val blocked = IchLogic.blockedFrom(listOf("Anna Müller", "Dr. Weber", "Familie Schmidt"))
 
@@ -201,7 +201,7 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         for (bad in listOf("Anna", "Müller", "Weber", "Schmidt", "12.03", "15 Uhr", "http", "Hamburg", "Umzug", "Wohnungssuche", "Kaution", "@"))
             assertFalse("Durchgesickert: $bad in [$all]", all.contains(bad, ignoreCase = true))
         assertEquals(setOf("schreibt kurze Sätze", "mag Fahrradtouren", "direkt und freundlich"), p.entries.map { it.text }.toSet())
-        // auch der Prompt-Block enthaelt nichts davon
+        // the prompt block contains none of it either
         val block = p.toPromptBlock()
         assertFalse(block.contains("Hamburg")); assertFalse(block.contains("Anna"))
     }
@@ -282,7 +282,7 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         p = p.copy(entries = emptyList()); assertTrue(p.isEmpty())
     }
 
-    // ---------- Selbstanalyse ----------
+    // ---------- Self-analysis ----------
 
     private fun msg(dir: Direction, text: String, kind: Kind = Kind.TEXT, sender: String? = null, time: String? = "12:00") = ChatMessage(kind, dir, sender, text, time)
 
@@ -339,9 +339,9 @@ DISC: D=40 I=30 S=20 C=10; Konfidenz: mittel; Begründung: direkte Wortwahl
         assertEquals(listOf("kurze Sätze"), p.entries.map { it.text })
         assertEquals(2, p.chatCount)
         assertEquals(40, p.disc!!.d)
-        // ein einzelner Chat: alle Eintraege
+        // a single chat: all entries
         assertEquals(2, SelfAnalysis.proposal(listOf(a), null, blocked, 5L).entries.size)
-        // mit Modellantwort fuer das Zusammenfuehren
+        // with a model reply for the merge
         val m = SelfAnalysis.proposal(listOf(a, b), "ICH-STIL: knapp\nICH-DISC: zu wenig Daten", blocked, 5L)
         assertEquals(listOf("knapp"), m.entries.map { it.text })
     }

@@ -21,12 +21,12 @@ import kotlin.coroutines.coroutineContext
 
 open class AgentException(message: String) : Exception(message)
 
-/** Der Chat wurde in Suche und sichtbarer Liste nicht (eindeutig) gefunden. Ursache liegt beim Namen, nicht bei der Navigation. */
+/** The chat was not found (unambiguously) in search or in the visible list. The cause is the name, not navigation. */
 class ChatNotFoundException(message: String) : AgentException(message), app.chatlens.auto.KindedFailure {
     override val kindName: String get() = "Chat nicht gefunden"
 }
 
-/** WhatsApp war nicht vorn oder liess sich nicht lesen (Systemoberflaeche, Launcher, eigene App). Ursache liegt bei der Navigation. */
+/** WhatsApp was not in front, or could not be read (system UI, launcher, this app). The cause is navigation. */
 class NavigationException(message: String) : AgentException(message), app.chatlens.auto.KindedFailure {
     override val kindName: String get() = "Navigationsfehler (WhatsApp nicht vorn oder nicht lesbar)"
 }
@@ -34,9 +34,9 @@ class NavigationException(message: String) : AgentException(message), app.chatle
 enum class ScreenState { CHAT, SEARCH_ACTIVE, OTHER, NOT_WHATSAPP, LIST }
 
 /**
- * Oeffnet einen Chat ueber die WhatsApp-Suche. Alle Annahmen stehen im Selektor-Profil und sind
- * unkalibriert (siehe PLAN.md). Die Klasse schreibt nie in das Nachrichtenfeld: Text wird nur in ein
- * Feld im oberen Bildschirmbereich (Suchfeld) gesetzt.
+ * Opens a chat through WhatsApp search. All assumptions live in the selector profile and are
+ * uncalibrated (see PLAN.md). This class never writes into the message field: text is set only in a
+ * field in the upper screen area (the search field).
  */
 class WhatsAppNavigator(
     private val svc: ChatAccessibilityService,
@@ -44,18 +44,18 @@ class WhatsAppNavigator(
     private val parser: ChatParser,
     private val searchWaitMs: Long = 4_000,
     private val diagDump: () -> String? = { null },
-    /** Vordergrundwaechter. Auf dem Geraet mit dem Dienst als Messpunkt, in Tests ein Fake. */
+    /** Foreground guard. On the device the service is the probe, in tests a fake. */
     val guard: ForegroundGuard = ForegroundGuard(ServiceForegroundProbe(svc, profile.launchPackage), profile.packageName),
 ) {
     init {
-        // Nur Fenster dieses Pakets werden gelesen oder bedient (siehe ChatAccessibilityService.liveRoot).
+        // Only windows of this package are read or operated (see ChatAccessibilityService.liveRoot).
         svc.expectedPackage = profile.packageName
     }
 
     private val titleIds get() = profile.chatListRowNameIds
     private val containerIds get() = profile.chatListRowContainerIds
 
-    /** Tippt den Tab Chats in der unteren Leiste (Knoten mit der Beschriftung im unteren Bereich, per ACTION_CLICK auf den klickbaren Vorfahren). */
+    /** Taps the Chats tab in the bottom bar (the node with that label in the lower area, via ACTION_CLICK on the clickable ancestor). */
     private fun clickChatsTab(): Boolean {
         val root = svc.liveRoot() ?: return false
         val h = svc.boundsOf(root).b.coerceAtLeast(1)
@@ -69,10 +69,10 @@ class WhatsAppNavigator(
         return clickWithAncestors(node, h)
     }
 
-    /** Zeilen der Chatliste, bevorzugt ueber Knoten-IDs. */
+    /** Rows of the chat list, preferably via node ids. */
     private fun listRows(snap: UiNode) = ChatListParser.parse(snap, titleIds = titleIds, containerIds = containerIds, unreadIds = profile.chatListUnreadIds)
 
-    /** Zustand fuer das reine Listenlesen, siehe [ListScreen.classify]. */
+    /** State for list-only reading, see [ListScreen.classify]. */
     fun classifyList(root: UiNode?, imeVisible: Boolean): ScreenState = ListScreen.classify(root, profile, imeVisible)
 
     fun classify(root: UiNode?): ScreenState {
@@ -98,7 +98,7 @@ class WhatsAppNavigator(
 
     private fun nav(msg: String) = AppLog.i("NAV: $msg")
 
-    /** Tipp-Geste nur, wenn WhatsApp wirklich vorn ist. Sonst wird nichts angetippt. */
+    /** Tap gesture only when WhatsApp is really in front. Otherwise nothing is tapped. */
     private suspend fun safeTap(x: Int, y: Int): Boolean {
         if (!guard.isForeground()) {
             nav("Tipp-Geste verweigert: Vordergrund ist nicht ${profile.packageName} (${guard.describe()}).")
@@ -107,7 +107,7 @@ class WhatsAppNavigator(
         return svc.tap(x, y)
     }
 
-    /** Zurueck nur, wenn WhatsApp wirklich vorn ist (Zurueck in einem fremden Fenster koennte dort etwas schliessen). */
+    /** Back only when WhatsApp is really in front (back in a foreign window could close something there). */
     private fun guardedBack(): Boolean {
         if (!guard.isForeground()) {
             nav("Zurueck verweigert: Vordergrund ist nicht ${profile.packageName} (${guard.describe()}).")
@@ -117,14 +117,14 @@ class WhatsAppNavigator(
         return svc.goBack()
     }
 
-    /** Speichert (falls moeglich) einen maskierten Diagnose-Baum und bricht dann mit [msg] ab. */
+    /** Saves a masked diagnostic tree when possible, then aborts with [msg]. */
     private fun fail(msg: String): Nothing {
         val name = runCatching { diagDump() }.getOrNull()
         nav("Abbruch: $msg" + if (name != null) " (Diagnose-Baum: $name)" else "")
         throw AgentException(msg + if (name != null) " Diagnose-Baum (maskiert) gespeichert: $name (Tab Debug)." else "")
     }
 
-    /** Zeitstempel fuer Phasenzeilen im Log: keine stillen Luecken, jede Phase meldet Beginn, Ende und Dauer. */
+    /** Timestamps for phase lines in the log: no silent gaps, every phase reports start, end, and duration. */
     private var phaseStart = 0L
     private fun lap(msg: String, log: ((String) -> Unit)? = null) {
         val now = System.currentTimeMillis()
@@ -134,8 +134,8 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Liest den Baum von WhatsApp. Ist er nicht lesbar (anderes Fenster vorn), wird bis zu [TREE_RETRIES] Mal kurz gewartet und neu gelesen,
-     * danach greift der Vordergrundwaechter (holt WhatsApp zurueck oder bricht mit Navigationsfehler ab).
+     * Reads WhatsApp's tree. If it is not readable (another window is in front), it waits briefly and reads again up to [TREE_RETRIES] times,
+     * then the foreground guard takes over (brings WhatsApp back, or aborts with a navigation error).
      */
     private suspend fun readTree(what: String): UiNode? {
         for (i in 1..TREE_RETRIES) {
@@ -148,7 +148,7 @@ class WhatsAppNavigator(
         return svc.snapshot()
     }
 
-    /** "Chat nicht gefunden": Debug-Baum der Suchseite wird automatisch gespeichert (Debug-Verzeichnis), dann Abbruch mit Grund. */
+    /** "Chat nicht gefunden": the debug tree of the search page is saved automatically (debug directory), then abort with the reason. */
     private fun failNotFound(msg: String): Nothing {
         val name = runCatching { diagDump() }.getOrNull()
         nav("Abbruch (Chat nicht gefunden): $msg" + if (name != null) " (Diagnose-Baum der Suchseite: $name)" else " (Diagnose-Baum nicht gespeichert)")
@@ -163,7 +163,7 @@ class WhatsAppNavigator(
         guard.ensure(true, "Namenssuche")
         delay(800)
 
-        // 1) Zum Zustand "Suche aktiv" kommen
+        // 1) Reach the "Suche aktiv" state
         var attempts = 0
         while (true) {
             coroutineContext.ensureActive()
@@ -194,7 +194,7 @@ class WhatsAppNavigator(
             }
         }
 
-        // 2) Suchtext eintragen
+        // 2) Enter the search text
         val field = findSearchField() ?: fail("Suchfeld nicht gefunden.")
         val args = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, title)
@@ -205,7 +205,7 @@ class WhatsAppNavigator(
         lap("Suchtext gesetzt (${title.trim().length} Zeichen)", log)
         delay(900)
 
-        // 3) Treffer im Abschnitt "Chats" waehlen: warten, bis Ergebnisse da sind, notfalls Liste scrollen
+        // 3) Choose the hit in the "Chats" section: wait until results are there, scroll the list if needed
         lap("Suche den Treffer im Abschnitt Chats", log)
         val deadline = System.currentTimeMillis() + searchWaitMs
         var scrolls = 0
@@ -246,7 +246,7 @@ class WhatsAppNavigator(
             break
         }
         if (hit == null) {
-            // Kein exakter Treffer: aehnlichsten Chat suchen und den Nutzer fragen (nie stillschweigend nehmen)
+            // No exact hit: find the most similar chat and ask the user (never take it silently)
             var fz = lastSnap?.let { SearchResultPicker.pickFuzzy(it, title, profile) }
             if (fz == null) {
                 val shorter = NameMatcher.shorterQuery(title)
@@ -288,7 +288,7 @@ class WhatsAppNavigator(
                 "Klickziel=" + (h.clickTarget?.let { "${it.shortClass} id=${it.viewId} b=${it.bounds}" } ?: "keines"),
         )
 
-        // 4a) ACTION_CLICK auf den klickbaren Elternknoten
+        // 4a) ACTION_CLICK on the clickable parent node
         val live = svc.findLive { n ->
             NameMatcher.normalize(n.text?.toString().orEmpty()) == NameMatcher.normalize(h.title.text.orEmpty()) && svc.boundsOf(n) == h.title.bounds
         }
@@ -304,13 +304,13 @@ class WhatsAppNavigator(
         lap(if (clicked) "Klick auf den Treffer ausgefuehrt" else "Klick auf den Treffer nicht moeglich", log)
         var state = if (clicked) awaitChat(2_800) else ScreenState.SEARCH_ACTIVE
         if (state != ScreenState.CHAT && conversationSince(clickAt)) {
-            // Kein zweiter Tipp, wenn die Unterhaltung gerade aufgeht
+            // No second tap when the conversation is just opening
             nav("Schritt 4a: Aktivitaet ${guard.activity()} meldet die Unterhaltung, warte weiter statt zu tippen.")
             state = awaitOpened(clickAt, 4_000)
         }
         nav("Schritt 4a: Zustand nach ACTION_CLICK: $state")
 
-        // 4b) Rueckfall: Tipp-Geste auf die Mitte der Zeile bzw. des Titelknotens
+        // 4b) Fallback: tap gesture on the middle of the row or of the title node
         var tapInfo = "Tipp-Geste nicht versucht"
         if (state != ScreenState.CHAT) {
             val r = tapFallback(title, log)
@@ -318,7 +318,7 @@ class WhatsAppNavigator(
             tapInfo = r.second
         }
 
-        // 5) Erfolg pruefen: Chat offen und Kopfzeile zeigt den Titel
+        // 5) Check success: chat is open and the header shows the title
         if (state != ScreenState.CHAT) {
             fail(
                 "Treffer im Abschnitt Chats wurde gefunden, aber das Antippen blieb wirkungslos (Bildschirmzustand danach: $state). " +
@@ -337,9 +337,9 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Einstieg fuer Setup, Auto und "Chat per Namen starten". Primaer die WhatsApp-Suche ([openChat]). Scheitert sie am Namen
-     * (nicht gefunden oder mehrdeutig, nicht bei Navigationsfehlern), folgt der Rueckfall: sichtbare Zeile der Chatliste ohne langes Scrollen
-     * ([openFromList], hoechstens [LIST_PAGES] Seiten je Richtung). Ist der Name mehrdeutig, gibt es keinen Rueckfall: lieber Fehler als raten.
+     * Entry point for setup, auto, and "Chat per Namen starten". Primarily WhatsApp search ([openChat]). If it fails because of the name
+     * (not found or ambiguous, not on navigation errors), the fallback follows: a visible row of the chat list without long scrolling
+     * ([openFromList], at most [LIST_PAGES] pages in each direction). If the name is ambiguous, there is no fallback: an error is better than guessing.
      */
     suspend fun openChatForRun(title: String, log: (String) -> Unit, confirm: (suspend (String, Int) -> Boolean)? = null) {
         try {
@@ -350,7 +350,7 @@ class WhatsAppNavigator(
             log("Suche ohne Treffer, versuche die sichtbare Chatliste.")
             openFromList(title, log)
         } catch (e: AgentException) {
-            // Suchfeld/Suchsymbol nicht erreichbar o.ae. (kein Navigationsfehler): dieselbe Rueckfallstufe
+            // Search field or search icon not reachable, or similar (not a navigation error): the same fallback step
             if (e is NavigationException) throw e
             nav("SUCHE: Suche gescheitert (${e.message?.take(160)}), Rueckfall auf die sichtbare Chatliste.")
             log("Suche gescheitert, versuche die sichtbare Chatliste.")
@@ -358,7 +358,7 @@ class WhatsAppNavigator(
         }
     }
 
-    /** Nach einem Chat sauber zurueck: Zurueck bis zur Chatliste, Tab Chats, Suchfeld ist damit geschlossen. Fehler werden nur geloggt. */
+    /** After a chat, return cleanly: back until the chat list and the Chats tab, so the search field is closed. Errors are only logged. */
     suspend fun returnToList(log: (String) -> Unit) {
         try {
             nav("SUCHE: Zurueck zur Chatliste (Zurueck, Tab Chats pruefen, Suche schliessen).")
@@ -370,7 +370,7 @@ class WhatsAppNavigator(
         }
     }
 
-    /** Wartet, bis ein Chat (Nachrichtenfeld unten) erkannt wird, oder bis die Zeit um ist. Gibt den letzten Zustand zurueck. */
+    /** Waits until a chat (message field at the bottom) is recognized, or until time runs out. Returns the last state. */
     private suspend fun awaitChat(timeoutMs: Long): ScreenState {
         val end = System.currentTimeMillis() + timeoutMs
         var last = ScreenState.OTHER
@@ -385,9 +385,9 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Rueckfall per Tipp-Geste (dispatchGesture) nach kurzer Verzoegerung. Zielpunkte in dieser Reihenfolge:
-     * Mitte der klickbaren Zeile, Mitte des Titelknotens. Jeder Punkt muss im Listenbereich liegen
-     * (unter dem Suchfeld, ueber der Tastatur). Gibt Zustand und eine Beschreibung fuer die Fehlermeldung zurueck.
+     * Fallback via tap gesture (dispatchGesture) after a short delay. Target points in this order:
+     * middle of the clickable row, middle of the title node. Each point must lie in the list area
+     * (below the search field, above the keyboard). Returns the state and a description for the error message.
      */
     private suspend fun tapFallback(title: String, log: (String) -> Unit): Pair<ScreenState, String> {
         delay(400)
@@ -407,7 +407,7 @@ class WhatsAppNavigator(
         val screenH = snap.bounds.b
         val screenW = snap.bounds.r
         val ime = svc.imeTop()
-        // Ohne erkennbare Tastatur (Fensterliste evtl. auf WhatsApp beschraenkt) vorsichtig nur die obere Haelfte antippen
+        // Without a recognizable keyboard (the window list may be limited to WhatsApp), cautiously tap only the upper half
         val limit = ime ?: (screenH * 0.5).toInt()
         val points = listOfNotNull(
             hit.clickTarget?.let { it.bounds.centerX to it.bounds.centerY },
@@ -431,14 +431,14 @@ class WhatsAppNavigator(
             nav("Schritt 4b: Zustand nach Tipp-Geste: $lastState")
             notes.add("Tipp-Geste bei ($x,$y) ${if (ok) "ausgefuehrt" else "vom System abgelehnt oder abgebrochen"}, Seite wechselte" + (if (lastState == ScreenState.CHAT) "" else " nicht"))
             if (lastState == ScreenState.CHAT) break
-            // vor dem naechsten Versuch sicherstellen, dass die Suche noch aktiv ist
+            // before the next attempt, make sure search is still active
             if (classify(svc.snapshot()) != ScreenState.SEARCH_ACTIVE) break
         }
         if (tried == 0) notes.add("keine Tipp-Geste ausgefuehrt")
         return lastState to notes.joinToString("; ")
     }
 
-    /** Scrollt die groesste sichtbare scrollbare Liste unterhalb des Suchfelds einen Schritt vorwaerts. */
+    /** Scrolls the largest visible scrollable list below the search field one step forward. */
     private fun scrollResultsForward(): Boolean {
         val root = svc.liveRoot() ?: return false
         val h = svc.boundsOf(root).b.coerceAtLeast(1)
@@ -475,7 +475,7 @@ class WhatsAppNavigator(
             if (b.centerY > h * profile.searchFieldTopFraction) return@findLive false
             val byId = profile.useKnownIds && n.viewIdResourceName in profile.searchButtonIds
             if (n.isEditable) return@findLive false
-            // Beschreibung oder Text enthaelt "Suchen"/"Search" (auch Suchleiste mit Platzhaltertext)
+            // Description or text contains "Suchen"/"Search" (including a search bar with placeholder text)
             val labels = listOfNotNull(n.contentDescription?.toString(), n.text?.toString())
             val byDesc = labels.any { l -> profile.searchButtonDescriptions.any { l.contains(it, ignoreCase = true) } }
             byId || byDesc
@@ -492,8 +492,8 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Klickt den naechsten klickbaren Knoten ab [start] aufwaerts. Ein Vorfahr, der mehr als 60 Prozent der
-     * Bildschirmhoehe einnimmt, gilt nicht als Zeile und wird nicht geklickt. Gesperrte IDs werden nie geklickt.
+     * Clicks the nearest clickable node from [start] upward. An ancestor that takes more than 60 percent of the
+     * screen height does not count as a row and is not clicked. Denied ids are never clicked.
      */
     private fun clickWithAncestors(start: AccessibilityNodeInfo, screenH: Int = 0): Boolean {
         if (!guard.isForeground()) {
@@ -523,14 +523,14 @@ class WhatsAppNavigator(
         return false
     }
 
-    // ---------- Chatliste (Setup, Auto aus Liste) ----------
+    // ---------- Chat list (setup, auto from the list) ----------
 
     private val listScroller by lazy { AndroidScrollDevice(svc, guard) }
     private var lastHow: ListHow? = null
 
     /**
-     * Die senkrecht scrollbare Chatliste, gewaehlt aus dem Schnappschuss und den erkannten Chatzeilen ([ListLocator]).
-     * Seitenwechsler und waagerechte Listen werden nie gewaehlt. Ohne scrollbaren Knoten bleibt die Geometrie der Zeilen fuer die Wischgeste.
+     * The vertically scrollable chat list, chosen from the snapshot and the recognized chat rows ([ListLocator]).
+     * Page switchers and horizontal lists are never chosen. Without a scrollable node, the row geometry remains for the swipe gesture.
      */
     private fun locateList(): ListChoice? {
         val snap = svc.snapshot() ?: return null
@@ -543,7 +543,7 @@ class WhatsAppNavigator(
         return ch
     }
 
-    /** Alle scrollbaren Knoten mit Klasse, ID, Bounds, Aktionen und Elternkette ins Log (bei Misserfolg). */
+    /** Logs every scrollable node with class, id, bounds, actions, and parent chain (on failure). */
     private fun logScrollables(why: String) {
         val snap = svc.snapshot()
         nav("Liste: $why. Scrollbare Knoten im Baum:")
@@ -558,8 +558,8 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Knotenaktion auf dem gewaehlten Listenknoten. Nur senkrecht: ACTION_SCROLL_DOWN/UP; allgemein FORWARD/BACKWARD nur, wenn [ListChoice.allowGeneric]
-     * (naechster scrollbarer Vorfahr der Zeilen, nie ein Seitenwechsler). END_SIGNAL: Android meldet, dass es nicht weiter geht.
+     * Node action on the chosen list node. Vertical only: ACTION_SCROLL_DOWN/UP; generic FORWARD/BACKWARD only when [ListChoice.allowGeneric]
+     * (nearest scrollable ancestor of the rows, never a page switcher). END_SIGNAL: Android reports that it cannot go further.
      */
     private fun listAction(ch: ListChoice, forward: Boolean): ScrollTry {
         val node = ch.node ?: return ScrollTry.NO_WAY
@@ -582,7 +582,7 @@ class WhatsAppNavigator(
         return if (live.performAction(act)) ScrollTry.DONE else ScrollTry.END_SIGNAL
     }
 
-    /** Ein Scrollschritt aufwaerts oder abwaerts in der Chatliste; bei NO_WAY nach unten zusaetzlich die Wischgeste im Bereich der Zeilen. */
+    /** One scroll step up or down in the chat list; on NO_WAY while going down, also the swipe gesture in the row area. */
     private suspend fun listStep(forward: Boolean): ScrollTry {
         val ch = locateList()
         if (ch == null || ch.how == ListHow.NONE) { logScrollables("keine Liste und keine Zeilen erkannt"); return ScrollTry.NO_WAY }
@@ -595,7 +595,7 @@ class WhatsAppNavigator(
         return if (swipeIn(b, ch.how.text)) ScrollTry.DONE else { logScrollables("weder Knotenaktion noch Wischgeste moeglich"); ScrollTry.NO_WAY }
     }
 
-    /** Wischgeste im Sicherheitsfenster; Verweigerungsgrund ins Log. */
+    /** Swipe gesture inside the safe window; the refusal reason goes to the log. */
     private suspend fun swipeIn(list: Bounds, via: String): Boolean {
         val ins = svc.screenInsets()
         val (wt, wb) = SwipeSafety.window(list, ins)
@@ -610,10 +610,10 @@ class WhatsAppNavigator(
         return ok
     }
 
-    /** Scrollt nur senkrecht (ACTION_SCROLL_DOWN / ACTION_SCROLL_UP, bzw. FORWARD/BACKWARD am naechsten Vorfahr der Zeilen), nie waagerecht. */
+    /** Scrolls only vertically (ACTION_SCROLL_DOWN / ACTION_SCROLL_UP, or FORWARD/BACKWARD on the nearest ancestor of the rows), never horizontally. */
     private suspend fun scrollMainList(forward: Boolean): Boolean = listStep(forward) == ScrollTry.DONE
 
-    /** Bringt WhatsApp zur Chatliste, siehe [ChatListEnsurer]. */
+    /** Brings WhatsApp to the chat list, see [ChatListEnsurer]. */
     suspend fun ensureChatList(log: (String) -> Unit) {
         val device = object : ListDevice {
             override suspend fun ensureForeground() = guard.ensure(true, "Chatliste")
@@ -630,10 +630,10 @@ class WhatsAppNavigator(
         ChatListEnsurer(device, profile).run(log)
     }
 
-    /** Liest die Chatliste von oben her, scrollt bis genug Eintraege da sind (mindestens [want]) oder die Liste endet. */
+    /** Reads the chat list from the top, scrolling until enough entries are present (at least [want]) or the list ends. */
     suspend fun readChatList(want: Int, log: (String) -> Unit): List<ChatListEntry> {
         ensureChatList(log)
-        // Der Baum der Chatliste wird einmal je Lesevorgang automatisch gespeichert (maskiert); im Tab Debug exportierbar.
+        // The chat list tree is saved automatically once per read (masked); it can be exported in the Debug tab.
         val dumped = runCatching { diagDump() }.getOrNull()
         nav("Chatliste erkannt, Debug-Baum " + (dumped?.let { "gespeichert: $it" } ?: "nicht gespeichert"))
         var scrolls = 0
@@ -668,9 +668,9 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Checkup: liest nur die Chatliste (Name, Vorschau, Zeit, Ungelesen-Hinweis, Gruppen-Heuristik), oeffnet keinen Chat, bleibt im Tab Chats.
-     * Scrollt abwaerts per Wischgeste im Sicherheitsfenster ([SwipeSafety], rein senkrecht, Fensterpruefung nach jedem Wischer) und
-     * faellt bei Verweigerung oder erkannter Luecke auf die senkrechte Knotenaktion ACTION_SCROLL_DOWN zurueck.
+     * Checkup: reads only the chat list (name, preview, time, unread hint, group heuristic), opens no chat, and stays on the Chats tab.
+     * Scrolls downward by swipe gesture inside the safe window ([SwipeSafety], strictly vertical, window check after every swipe) and
+     * falls back to the vertical node action ACTION_SCROLL_DOWN when the swipe is refused or a gap is detected.
      */
     suspend fun checkupScan(limit: Int, sink: (String) -> Unit): CheckupScan {
         val shorts = HashSet<String>()
@@ -746,10 +746,10 @@ class WhatsAppNavigator(
     }
 
     /**
-     * Rueckfall: oeffnet einen Chat aus der sichtbaren Chatliste (Zeile antippen), ohne Namenssuche. Kein langes Abscrollen:
-     * erst die sichtbaren Zeilen, dann hoechstens [LIST_PAGES] Seiten abwaerts und, wenn die Liste weiter unten steht, hoechstens
-     * [LIST_PAGES] Seiten aufwaerts, jeweils nur solange sich die Zeilen aendern, und nie laenger als [LIST_DEADLINE_MS]. Jeder Schritt steht im Log.
-     * Der Namensabgleich ignoriert Umlaute und Gross/Klein ([NameMatcher.normalize]). Gleichnamige Zeilen: Fehler statt Raten. Prueft die Kopfzeile.
+     * Fallback: opens a chat from the visible chat list (tap the row), without name search. No long scrolling:
+     * first the visible rows, then at most [LIST_PAGES] pages downward and, if the list is further down, at most
+     * [LIST_PAGES] pages upward, each only while the rows keep changing, and never longer than [LIST_DEADLINE_MS]. Every step is in the log.
+     * Name matching ignores umlauts and case ([NameMatcher.normalize]). Rows with the same name: an error instead of guessing. Checks the header.
      */
     suspend fun openFromList(title: String, log: (String) -> Unit) {
         ensureChatList(log)
@@ -786,7 +786,7 @@ class WhatsAppNavigator(
         if (row == null) {
             throw ChatNotFoundException("Chat nicht gefunden: weder in der Suche noch in der sichtbaren Chatliste (hoechstens $LIST_PAGES Seiten, Name hat ${title.length} Zeichen). Evtl. archiviert, umbenannt oder die Liste hat sich verschoben.")
         }
-        // Zeile in den sicheren Bereich bringen: nicht unter der Tab-Leiste oder in der Gestenzone, nicht unter der Statusleiste
+        // Bring the row into the safe area: not under the tab bar or in the gesture zone, and not under the status bar
         val ins = svc.screenInsets()
         var adj = 0
         while (!SwipeSafety.pointSafe(row!!.bounds.centerX, row.bounds.centerY, ins) && adj++ < 3) {
@@ -804,7 +804,7 @@ class WhatsAppNavigator(
         nav("Liste: Zeile bei y=${r0.bounds.centerY} (sicher=$safe), ACTION_CLICK=$clicked, ${guard.describe()}")
         var state = if (clicked) awaitOpened(clickAt, 5_000) else ScreenState.OTHER
         if (state != ScreenState.CHAT) {
-            // Kein zusaetzliches Antippen, wenn die Unterhaltung schon erreicht ist oder gerade aufgeht
+            // No extra tap when the conversation is already reached or is just opening
             if (conversationSince(clickAt)) {
                 nav("Liste: Aktivitaet ${guard.activity()} meldet die Unterhaltung, warte weiter statt zu tippen.")
                 state = awaitOpened(clickAt, 4_000)
@@ -829,13 +829,13 @@ class WhatsAppNavigator(
         delay(500)
     }
 
-    /** true, wenn seit [since] ein Fensterwechsel zu einer Unterhaltungs-Aktivitaet gemeldet wurde. */
+    /** true when a window change to a conversation activity has been reported since [since]. */
     private fun conversationSince(since: Long): Boolean {
         val act = guard.activity() ?: return false
         return act.contains("Conversation", ignoreCase = true) && guard.eventAgeMs() < System.currentTimeMillis() - since
     }
 
-    /** Wartet auf einen offenen Chat (Nachrichtenfeld unten); prueft dabei den Vordergrund. Gibt den letzten Zustand zurueck. */
+    /** Waits for an open chat (message field at the bottom); checks the foreground while waiting. Returns the last state. */
     private suspend fun awaitOpened(since: Long, timeoutMs: Long): ScreenState {
         val end = System.currentTimeMillis() + timeoutMs
         var last = ScreenState.OTHER

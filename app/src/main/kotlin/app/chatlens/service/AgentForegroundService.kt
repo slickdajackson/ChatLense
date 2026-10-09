@@ -35,7 +35,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/** Haelt den Lauf im Vordergrund (sichtbare Benachrichtigung mit Notaus-Knopf). */
+/** Keeps the run in the foreground (a visible notification with a NOTAUS button). */
 class AgentForegroundService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

@@ -8,15 +8,15 @@ import java.time.ZonedDateTime
 import java.util.Locale
 import kotlin.math.abs
 
-/** Eine Audiodatei im freigegebenen Ordner. [id] ist eine quellenspezifische Kennung (bei SAF die Dokument-URI). */
+/** An audio file in the granted folder. [id] is a source-specific id (for SAF, the document URI). */
 data class VoiceFile(val id: String, val name: String, val lastModified: Long, val size: Long)
 
-/** Eine Sprachnachricht aus dem Chat: Datum aus dem letzten Datumstrenner (falls bekannt), Uhrzeit und angezeigte Dauer. */
+/** A voice message from the chat: date from the latest date separator (if known), time, and displayed duration. */
 data class VoiceQuery(val key: Int, val date: LocalDate?, val time: LocalTime?, val durationSec: Int?)
 
 class VoiceMatch(val key: Int, val file: VoiceFile?, val reason: String)
 
-/** Wandelt Datumstrenner von WhatsApp (heute, gestern, Wochentag, Datum) in ein Datum. */
+/** Converts WhatsApp date separators (today, yesterday, weekday, date) into a date. */
 object DateLabels {
     private val dow = mapOf(
         "montag" to DayOfWeek.MONDAY, "monday" to DayOfWeek.MONDAY, "dienstag" to DayOfWeek.TUESDAY, "tuesday" to DayOfWeek.TUESDAY,
@@ -50,7 +50,7 @@ object DateLabels {
         Regex("""^(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{2,4})$""").find(t)?.let { return safe(year(it.groupValues[3].toInt()), it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
         Regex("""^(\d{1,2})/(\d{1,2})/(\d{2,4})$""").find(t)?.let {
             val a = it.groupValues[1].toInt(); val b = it.groupValues[2].toInt()
-            // Tag/Monat; ist die erste Zahl kein Tag-Wert nur als Monat moeglich (Monat/Tag)
+            // Day/month. If the first number cannot be a day, only month/day is possible.
             return if (a > 12) safe(year(it.groupValues[3].toInt()), b, a) else if (b > 12) safe(year(it.groupValues[3].toInt()), a, b) else null
         }
         Regex("""^(\d{4})-(\d{2})-(\d{2})$""").find(t)?.let { return safe(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()) }
@@ -67,14 +67,14 @@ object DateLabels {
 
     private fun safe(y: Int, m: Int, d: Int): LocalDate? = runCatching { LocalDate.of(y, m, d) }.getOrNull()
 
-    /** Angezeigte Dauer einer Sprachnachricht ("0:23", "1:05", "1:02:03") in Sekunden, null wenn keine gefunden. */
+    /** Displayed duration of a voice message ("0:23", "1:05", "1:02:03") in seconds, null if none is found. */
     fun durationSec(text: String): Int? {
         val m = Regex("""(?<!\d)(\d{1,2}):(\d{2})(?::(\d{2}))?(?!\d)""").find(text) ?: return null
         val a = m.groupValues[1].toInt(); val b = m.groupValues[2].toInt(); val c = m.groupValues[3]
         return if (c.isEmpty()) a * 60 + b else a * 3600 + b * 60 + c.toInt()
     }
 
-    /** Uhrzeit "HH:mm" (auch 12-Stunden-Angabe mit AM/PM) oder null. */
+    /** Time "HH:mm" (also a 12-hour value with AM/PM), or null. */
     fun time(text: String?): LocalTime? {
         if (text == null) return null
         val m = Regex("""^\s*(\d{1,2})[:.](\d{2})\s*([AaPp])?\.?[Mm]?\.?\s*$""").find(text) ?: return null
@@ -87,9 +87,9 @@ object DateLabels {
 }
 
 /**
- * Ordnet Sprachnachrichten des Chats den Audiodateien zu. WhatsApp zeigt in der Nachricht nur Uhrzeit und Dauer, nicht den Dateinamen.
- * Eine Datei passt, wenn ihr Aenderungsdatum in der Minute der Nachricht (plus Toleranz) liegt und die Dauer (falls beide bekannt) um hoechstens
- * [durationTolSec] abweicht. Mehrdeutige oder doppelt belegte Treffer bleiben ohne Zuordnung. Das ist ein Verfahren, keine Gewissheit.
+ * Matches voice messages in the chat to audio files. WhatsApp shows only the time and duration in the message, not the file name.
+ * A file matches when its modification time falls in the message's minute (plus tolerance) and the duration (if both are known) differs by at most
+ * [durationTolSec]. Ambiguous or double-booked hits stay unmatched. This is a procedure, not a certainty.
  */
 object VoiceMatcher {
     private const val AMBIGUOUS_GAP = 0.5
@@ -143,7 +143,7 @@ object VoiceMatcher {
 
     private fun inWindow(q: VoiceQuery, f: VoiceFile, zone: ZoneId, tolMs: Long): Boolean = timeDiffMs(q, f, zone) <= tolMs
 
-    /** Abstand der Datei vom Minutenfenster der Nachricht in Millisekunden (0 innerhalb der Minute). Ohne Datum nur Tageszeit, zyklisch. */
+    /** Distance of the file from the message's minute window in milliseconds (0 inside the minute). Without a date, time of day only, wrapping around midnight. */
     private fun timeDiffMs(q: VoiceQuery, f: VoiceFile, zone: ZoneId): Long {
         val start = startMs(q, f, zone)
         if (start != null) {

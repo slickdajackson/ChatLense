@@ -14,64 +14,64 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.random.Random
 
-/** Ein gelesener und (falls ausgerichtet) eingefuegter Bildschirm. */
+/** One screen that was read and, if aligned, inserted. */
 class PageRead(val res: TranscriptMerger.Result, val page: ParsedPage, val snap: UiNode)
 
-/** Einstellungen der Scrollsteuerung. */
+/** Settings for scroll control. */
 data class ScrollConfig(
     val method: ScrollMethod = ScrollMethod.AUTO,
-    /** true: Wischstrecke wird aus dem gemessenen Scrollweg nachgeregelt. false: feste Strecke [fixedStepFraction]. */
+    /** true: the swipe distance is adjusted from the measured scroll distance. false: fixed distance [fixedStepFraction]. */
     val selfCalibrate: Boolean = true,
     val fixedStepFraction: Double = 0.30,
-    /** Gewuenschte Ueberlappung zweier Seiten in Anteil der Listenhoehe (0.30 bis 0.50). */
+    /** Desired overlap of two pages as a fraction of the list height (0.30 to 0.50). */
     val targetOverlap: Double = 0.35,
-    /** Dauer der Wischbewegung. Lang und gleichmaessig, damit kein Nachschwung entsteht. */
+    /** Duration of the swipe motion. Long and steady, so no fling builds up. */
     val swipeMs: Long = 450,
-    /** Fingerhaltezeit am Ende der Bewegung. */
+    /** How long the finger is held at the end of the motion. */
     val holdMs: Long = 80,
     val settleMaxMs: Long = 2500,
     val pollMs: Long = 40,
     val longWaitMs: Long = 3000,
     val pauseMinMs: Long = 0,
     val pauseMaxMs: Long = 0,
-    /** Nach so vielen verlorenen Ueberlappungen wechselt AUTO zum Modus Genau. */
+    /** After this many lost overlaps, AUTO switches to Genau mode. */
     val lossesForGenau: Int = 2,
-    /** Anteil der Listenhoehe pro Mikro-Wisch im Modus Genau. */
+    /** Fraction of the list height per micro-swipe in Genau mode. */
     val microFraction: Double = 0.15,
     val maxRecoverySteps: Int = 6,
-    /** Bei unveraendertem Inhalt (Ende des geladenen Verlaufs) nach Warten und Wiederholung sauber beenden. */
+    /** On unchanged content (end of the loaded history), finish cleanly after waiting and retrying. */
     val endOnStatic: Boolean = true,
-    /** Wartezeit bei sichtbarem Ladehinweis. */
+    /** Wait time when a loading hint is visible. */
     val endWaitMs: Long = 6000,
-    /** Wartezeit ohne Ladehinweis. */
+    /** Wait time when there is no loading hint. */
     val endNoHintWaitMs: Long = 2000,
     val endChunkMs: Long = 400,
-    /** So viele Wischversuche (je mit Wartezeit) bei unveraendertem Inhalt, dann Ende. */
+    /** This many swipe attempts (each with a wait) on unchanged content, then stop. */
     val staticAttempts: Int = 3,
-    /** Harte Grenze: so viele Schritte in Folge ohne neue Zeilen, dann Abbruch. */
+    /** Hard limit: this many steps in a row with no new rows, then abort. */
     val maxNoNewSteps: Int = 4,
-    /** Harte Grenze: Wiederherstellungen per Gegenschritt ohne Nettofortschritt. */
+    /** Hard limit: recoveries by counter-step with no net progress. */
     val maxRecoveriesNoProgress: Int = 6,
-    /** Verschiebung bis zu diesem Anteil der Listenhoehe gilt als "keine Bewegung". */
+    /** A shift up to this fraction of the list height counts as "no movement". */
     val staticShiftFraction: Double = 0.03,
 )
 
-/** Rueckmeldungen an den Aufrufer (Protokoll, Bilder, Vordergrundpruefung). */
+/** Callbacks to the caller (log, images, foreground check). */
 interface ScrollHooks {
     fun log(msg: String)
     fun warn(msg: String)
     suspend fun ensureForeground()
 
-    /** Nach jedem Einfuegen einer Seite (Bilder erfassen, Zaehler veroeffentlichen). */
+    /** After each page is inserted (capture images, publish counters). */
     suspend fun afterMerge(read: PageRead)
 }
 
 /**
- * Regelt das Rueckwaertsscrollen. Kernidee: Die Ausrichtung zweier Bildschirme wird nie geraten, sondern aus gemeinsamen Zeilen
- * gemessen (Bildschirmverschiebung in Pixeln). Daraus folgt der tatsaechliche Scrollweg, und die naechste Wischstrecke wird
- * so nachgeregelt, dass die Ueberlappung bei etwa [ScrollConfig.targetOverlap] liegt. Geht die Ueberlappung doch verloren,
- * wird der Schritt nicht eingefuegt, sondern per Gegenschritt zurueckgegangen, bis gemeinsame Zeilen wieder sichtbar sind.
- * Erst wenn das nicht gelingt, wird eine Luecke markiert.
+ * Controls scrolling backward. Core idea: the alignment of two screens is never guessed, but measured from shared rows
+ * (screen shift in pixels). That yields the actual scroll distance, and the next swipe distance is
+ * adjusted so the overlap stays near [ScrollConfig.targetOverlap]. If the overlap is lost anyway,
+ * the step is not inserted; a counter-step goes back until shared rows are visible again.
+ * Only when that fails is a gap marked.
  */
 class ScrollController(
     private val dev: ScrollDevice,
@@ -84,7 +84,7 @@ class ScrollController(
 ) {
     enum class Mode { ADAPTIV, GENAU, ACTION }
 
-    /** Warum der Lauf endet. */
+    /** Why the run ends. */
     enum class EndKind { CHAT_START, LOADED_END, STUCK, NO_PROGRESS }
 
     class Stats {
@@ -111,7 +111,7 @@ class ScrollController(
     var endReason: String = ""
         private set
 
-    /** Chatanfang oder Ende des in WhatsApp geladenen Verlaufs erreicht. */
+    /** Start of the chat, or the end of the history loaded in WhatsApp, has been reached. */
     val atStart: Boolean get() = endKind == EndKind.CHAT_START || endKind == EndKind.LOADED_END
     val stuck: Boolean get() = endKind == EndKind.STUCK || endKind == EndKind.NO_PROGRESS
     var mode: Mode = if (cfg.method == ScrollMethod.ACTION) Mode.ACTION else Mode.ADAPTIV
@@ -132,7 +132,7 @@ class ScrollController(
         val snap: UiNode?,
         val page: ParsedPage?,
         val commanded: Int,
-        /** Bei Genau: Summe der Mikro-Verschiebungen in Pixeln. */
+        /** In Genau: sum of the micro-shifts in pixels. */
         val chainShift: Int?,
         val polls: Int,
         val waitedMs: Long,
@@ -143,7 +143,7 @@ class ScrollController(
 
     private class Eval(val aligned: Boolean, val shiftPx: Int?, val pairs: Int)
 
-    // ---- Hilfen -------------------------------------------------------------------------------------
+    // ---- Helpers ------------------------------------------------------------------------------------
 
     private suspend fun settle(prev: ChatParser.PageSig?, maxMs: Long): Settled {
         val start = System.currentTimeMillis()
@@ -179,7 +179,7 @@ class ScrollController(
         return Smart(settle(prev, maxMs), false)
     }
 
-    /** Wartet bei unveraendertem Inhalt auf Nachladen. Gibt den geaenderten Schnappschuss zurueck oder null. Zaehlt Wartezeit in die Statistik. */
+    /** On unchanged content, waits for more history to load. Returns the changed snapshot, or null. Counts the wait time in the stats. */
     private suspend fun endWait(): UiNode? {
         val start = System.currentTimeMillis()
         val base = dev.snapshot()
@@ -230,7 +230,7 @@ class ScrollController(
         delay(if (hi > lo) Random.nextLong(lo, hi + 1) else lo)
     }
 
-    // ---- Bewegungen ---------------------------------------------------------------------------------
+    // ---- Motions ------------------------------------------------------------------------------------
 
     private suspend fun moveAdaptive(list: Bounds, prevSig: ChatParser.PageSig?, canBack: Boolean?): Move {
         val h = list.height
@@ -252,7 +252,7 @@ class ScrollController(
         return Move(true, if (page != null) sm.s.snapshot else null, page, 0, null, sm.s.polls, sm.s.waitedMs, sm.identical)
     }
 
-    /** Modus Genau: Kette kleiner Wischer, nach jedem wird gelesen und mit dem vorigen Bild abgeglichen. */
+    /** Genau mode: a chain of small swipes; after each one the screen is read and compared with the previous frame. */
     private suspend fun moveGenau(list: Bounds, prevSig0: ChatParser.PageSig?, canBack: Boolean?): Move {
         val h = list.height
         val micro = (cfg.microFraction * h).toInt().coerceAtLeast(20)
@@ -282,7 +282,7 @@ class ScrollController(
             if (snap == null || pg == null) break
             val ev = evaluate(prevPage, pg, 0.9)
             last = snap to pg
-            if (!ev.aligned) break // Verlust mitten in der Kette: der Aufrufer prueft gegen die letzte eingefuegte Seite und erholt sich
+            if (!ev.aligned) break // loss in the middle of the chain: the caller checks against the last inserted page and recovers
             total += ev.shiftPx ?: micro
             prevPage = pg
             prevSig = parser.signature(snap)
@@ -297,9 +297,9 @@ class ScrollController(
     private fun isStaticShift(sh: Int?, h: Int): Boolean = sh != null && abs(sh) <= h * cfg.staticShiftFraction
 
     /**
-     * Gegenschritt: so lange zu neueren Nachrichten zurueck, bis der Bildschirm wieder gemeinsame Zeilen mit der zuletzt
-     * eingefuegten Seite zeigt. Zeigt er dann dieselbe Seite (Verschiebung 0), hat sich der Inhalt gar nicht bewegt: Ergebnis "static",
-     * kein Erfolg. Liegt er neuer als die zuletzt eingefuegte Seite (negative Verschiebung), geht es mit einem Wisch zu aelteren Nachrichten weiter.
+     * Counter-step: go back toward newer messages until the screen again shows rows shared with the last
+     * inserted page. If it then shows the same page (shift 0), the content did not move at all: result "static",
+     * not a success. If it is newer than the last inserted page (negative shift), continue with a swipe toward older messages.
      */
     private suspend fun recover(list: Bounds, lostSnap: UiNode?): Rec {
         val h = list.height
@@ -343,7 +343,7 @@ class ScrollController(
         return Rec(null, false)
     }
 
-    // ---- Ein Schritt --------------------------------------------------------------------------------
+    // ---- One step -----------------------------------------------------------------------------------
 
     private fun clampCmd(v: Double, h: Int): Int = v.coerceIn(h * 0.05, h * ScrollPlan.MAX_COMMAND).toInt()
 
@@ -354,7 +354,7 @@ class ScrollController(
         return false
     }
 
-    /** Ein Scroll-Versuch. false: Lauf soll enden (siehe [endKind] und [endReason]). */
+    /** One scroll attempt. false: the run should end (see [endKind] and [endReason]). */
     suspend fun scrollOnce(): Boolean {
         coroutineContext.ensureActive()
         stats.attempts++
@@ -406,12 +406,12 @@ class ScrollController(
                 lost = true
             }
         } else if (mv.performed) {
-            staticStep = true // Baum unveraendert
+            staticStep = true // tree unchanged
         }
 
         if (lost) {
             hooks.warn("SCROLL: keine Ueberlappung ($modeNow, befohlen ${mv.commanded} px, Verschiebung ${ev?.shiftPx ?: -1} px, gemeinsame Zeilen ${ev?.pairs ?: 0}).")
-            // Erst nochmals lesen: der Bildschirm kann beim ersten Lesen noch in Bewegung gewesen sein.
+            // Read once more first: the screen may still have been moving on the first read.
             delay(250)
             val again = dev.snapshot()?.let { parseFrame(it) to it }
             if (again?.first != null) {
@@ -453,7 +453,7 @@ class ScrollController(
             } else {
                 stats.losses++
                 recoveriesNoProgress++
-                // Letzter Ausweg: aktuellen Bildschirm mit Luecke einfuegen
+                // Last resort: insert the current screen with a gap
                 val now = dev.snapshot()?.let { parseFrame(it)?.let { p -> p to it } }
                 if (now != null) {
                     val res = merger.add(now.first.items, allowGap = true)
@@ -465,7 +465,7 @@ class ScrollController(
                 }
             }
             if (rec.read != null || (!rec.static)) {
-                // Folgen eines echten Verlusts (Inhalt hat sich bewegt, ist aber nicht ausgerichtet): kleinerer Schritt, Moduswechsel
+                // Consequences of a real loss (the content moved, but is not aligned): smaller step, mode switch
                 gain = null
                 cmdPx = clampCmd(cmdPx * 0.5, h)
                 if (cfg.method == ScrollMethod.AUTO) {
@@ -482,7 +482,7 @@ class ScrollController(
             }
         }
 
-        // Unveraenderter Inhalt: Ende des geladenen Verlaufs oder Nachladen. Kein Verlust, kein Moduswechsel.
+        // Unchanged content: end of the loaded history, or more is loading. No loss, no mode switch.
         var endStatic: Boolean? = null
         if (staticStep) {
             stats.staticSteps++
@@ -522,9 +522,9 @@ class ScrollController(
                     if (staticStep && staticCount >= cfg.staticAttempts) endStatic = false
                 }
             }
-            // Ein zu schwacher Wisch soll beim naechsten Versuch groesser ausfallen (am echten Ende schadet das nicht)
+            // A swipe that was too weak should be larger on the next attempt (at the real end this does no harm)
             if (staticStep && modeNow == Mode.ADAPTIV && cfg.selfCalibrate && mv.performed) cmdPx = clampCmd(cmdPx * 1.3, h)
-            // Wirkungslose Wischgeste nur dann, wenn bisher noch nie ein Wisch etwas bewegt hat
+            // Treat the swipe as ineffective only when no swipe has ever moved anything yet
             if (staticStep && neverMoved) {
                 ineffectiveSwipes++
                 if (ineffectiveSwipes >= 2 && cfg.method == ScrollMethod.AUTO) {
@@ -539,7 +539,7 @@ class ScrollController(
             staticCount = 0
         }
 
-        // Regelung aus der Messung
+        // Adjustment from the measurement
         val measured: Int? = if (read != null && !lost && !recoveredByCounter && !staticStep) (ev?.shiftPx ?: mv.chainShift) else null
         if (measured != null) {
             stats.measuredSum += abs(measured)
@@ -567,7 +567,7 @@ class ScrollController(
             ineffectiveSwipes = 0
             recoveriesNoProgress = 0
         }
-        // Fehlversuch zaehlt jeder Schritt ohne neue Zeilen, auch nach Gegenschritt
+        // Every step with no new rows counts as a failed attempt, including after a counter-step
         policy.record(added > 0 || (read?.res?.inserted ?: 0) > 0)
         if (read != null) cur = read
 
@@ -606,7 +606,7 @@ class ScrollController(
         }
     }
 
-    /** Eine Zeile mit der Zusammenfassung der Regelung fuer Protokoll und Statusanzeige. */
+    /** One line with the summary of the adjustment, for the log and the status display. */
     fun summary(): String {
         val avgMeasured = if (stats.measuredCount > 0) stats.measuredSum / stats.measuredCount else -1
         return "Modus am Ende $mode, Versuche ${stats.attempts}, wirksame Schritte ${stats.effective}, Ueberlappungsverluste ${stats.losses}, " +

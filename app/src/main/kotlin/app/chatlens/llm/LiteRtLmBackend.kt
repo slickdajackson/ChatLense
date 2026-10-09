@@ -20,21 +20,21 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Lokales Modell ueber LiteRT-LM (Google AI Edge), Kotlin-API com.google.ai.edge.litertlm.
- * Vorgesehen: Gemma 4 E4B (litert-community/gemma-4-E4B-it-litert-lm, Datei gemma-4-E4B-it.litertlm).
- * Spaeterer Benchmark-Punkt: Qwen3-0.6B (litert-community/Qwen3-0.6B). Beide sind dieselbe Schnittstelle.
+ * Local model via LiteRT-LM (Google AI Edge), Kotlin API com.google.ai.edge.litertlm.
+ * Intended: Gemma 4 E4B (litert-community/gemma-4-E4B-it-litert-lm, file gemma-4-E4B-it.litertlm).
+ * Later benchmark point: Qwen3-0.6B (litert-community/Qwen3-0.6B). Both use the same interface.
  *
- * STATUS: Kompiliert gegen litertlm-android:0.17.1. Auf einem echten Geraet NICHT ausgefuehrt.
- * Bildeingabe: wird nur gesendet, wenn [vision] aktiv ist und die Modelldatei Vision-Teile enthaelt
- * (Header der Datei gemma-4-E4B-it.litertlm nennt tf_lite_vision_encoder und tf_lite_vision_adapter).
- * Der Engine bleibt zwischen Laeufen geladen, bis [release] aufgerufen wird.
+ * STATUS: Compiles against litertlm-android:0.17.1. NOT run on a real device.
+ * Image input: sent only when [vision] is on and the model file contains vision parts
+ * (the header of gemma-4-E4B-it.litertlm names tf_lite_vision_encoder and tf_lite_vision_adapter).
+ * The engine stays loaded between runs until [release] is called.
  */
 class LiteRtLmBackend(
     private val context: Context,
     private val modelPath: String,
     private val accel: LocalAccel,
     private val vision: Boolean,
-    /** 0 = automatisch (groesste Stufe, die das Telefon schafft), sonst die gewaehlte Obergrenze. Siehe [ContextPlanner]. */
+    /** 0 = "automatisch" (the largest level the phone can manage), otherwise the chosen cap. See [ContextPlanner]. */
     private val maxNumTokens: Int,
     private val maxImages: Int,
 ) : LlmBackend {
@@ -43,7 +43,7 @@ class LiteRtLmBackend(
     override val sendsDataOffDevice: Boolean = false
     override val supportsImages: Boolean = vision
 
-    /** Qwen3 kennt den Soft-Switch /no_think; Gemma braucht ihn nicht, Qwen3.5 hat ihn nicht (Denken ist dort im Modell abgeschaltet). */
+    /** Qwen3 knows the soft switch /no_think. Gemma does not need it. Qwen3.5 does not have it (thinking is switched off inside the model). */
     val wantsNoThinkSuffix: Boolean get() = noThinkSuffixFor(File(modelPath).name)
 
     override suspend fun generate(request: LlmRequest): LlmResult {
@@ -85,7 +85,7 @@ class LiteRtLmBackend(
                 } catch (e: Throwable) {
                     val lvl = activeLevel
                     if (lvl > ContextPlanner.LEVELS.last() && Regex("(?i)memory|alloc|oom|out of").containsMatchIn(e.javaClass.simpleName + " " + e.message)) {
-                        // Speichermangel bei grosser Stufe: merken und freigeben, der naechste Lauf nimmt eine kleinere Stufe
+                        // Out of memory at a large level: remember it and release, the next run takes a smaller level
                         val rem = ContextPlanner.afterFailure(RememberedLevel.decode(prefs().getString(levelKey, null)), lvl, System.currentTimeMillis())
                         prefs().edit().putString(levelKey, rem.encode()).apply()
                         AppLog.w("KONTEXT: Speichermangel bei Stufe $lvl Token in der Inferenz, die Stufe wird fuer den naechsten Lauf gesenkt.")
@@ -101,7 +101,7 @@ class LiteRtLmBackend(
         }
     }
 
-    /** Laedt das Modell (falls noetig) und liefert die tatsaechlich genutzte Kontextstufe in Token. Aufrufer: vor dem Bau des Prompts. */
+    /** Loads the model (if needed) and returns the context level actually used, in tokens. Caller: before building the prompt. */
     suspend fun ensureLoaded(): Int = withContext(Dispatchers.Default) { getEngine(); activeLevel }
 
     private fun prefs() = context.getSharedPreferences("ctx_levels", Context.MODE_PRIVATE)
@@ -125,7 +125,7 @@ class LiteRtLmBackend(
 
     private val engineKey: String get() = "$modelPath|$accel|$maxNumTokens|$vision|$maxImages"
 
-    /** Wird das Modell fuer den naechsten Aufruf erst geladen (Fortschrittsanzeige "Modell laden")? */
+    /** Will the model still be loaded for the next call (progress label "Modell laden")? */
     fun needsLoad(): Boolean = synchronized(LiteRtLmBackend::class.java) {
         !(cached != null && cachedKey == engineKey && cached!!.isInitialized())
     }
@@ -181,14 +181,14 @@ class LiteRtLmBackend(
         }
     }
 
-    /** Entfernt eventuelle Denkbloecke. */
+    /** Removes any think blocks. */
     private fun stripThink(s: String): String = s.replace(Regex("(?s)<think>.*?</think>"), "").trim()
 
     companion object {
-        /** Meldet Beginn (true) und Ende (false) des Modellladens an die Fortschrittsanzeige. */
+        /** Reports the start (true) and end (false) of model loading to the progress display. */
         @Volatile var loadListener: ((Boolean) -> Unit)? = null
 
-        /** Tatsaechlich genutzte Kontextstufe in Token (0 = nicht geladen) und wie sie zustande kam. Fuer Status und Markdown-Log. */
+        /** Context level actually used, in tokens (0 = not loaded), and how it was chosen. For status and the Markdown log. */
         @Volatile var activeLevel: Int = 0
         @Volatile var activeNote: String = ""
 

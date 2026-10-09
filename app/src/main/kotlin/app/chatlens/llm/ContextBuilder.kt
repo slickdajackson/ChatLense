@@ -6,7 +6,7 @@ import app.chatlens.core.Kind
 
 class BuiltContext(
     val transcript: String,
-    /** Bilder in der Reihenfolge ihrer Nennung ("Bild 1" ist images[0]). */
+    /** Images in the order they are mentioned ("Bild 1" is images[0]). */
     val images: List<ChatMessage>,
     val messageCount: Int,
     val droppedOldest: Int,
@@ -21,7 +21,7 @@ object ContextBuilder {
         Direction.UNKNOWN -> "?"
     }
 
-    /** Kennzeichnung gekuerzter oder am Rand angeschnittener Nachrichten (leer, wenn vollstaendig). */
+    /** Marker for truncated messages or messages cut off at the edge (empty when complete). */
     fun flags(m: ChatMessage): String = buildString {
         if (m.truncated) append(" [gekürzt: in WhatsApp mit \"Mehr lesen\" abgeschnitten, Text nur teilweise]")
         if (m.incomplete) append(" [angeschnitten: am Bildschirmrand gesehen, evtl. unvollständig]")
@@ -49,9 +49,9 @@ object ContextBuilder {
     }
 
     /**
-     * Baut den Chat-Text. Ueberschreitet er [maxChars], werden die aeltesten Zeilen verworfen
-     * (Chat endet immer mit den neuesten Nachrichten).
-     * [includeImages] bestimmt, ob Bilddateien als "Bild n" nummeriert werden (nur API mit Vision).
+     * Builds the chat text. If it exceeds [maxChars], the oldest lines are dropped
+     * (the chat always ends with the newest messages).
+     * [includeImages] decides whether image files are numbered as "Bild n" (API with vision only).
      */
     fun build(
         messages: List<ChatMessage>,
@@ -62,11 +62,11 @@ object ContextBuilder {
     ): BuiltContext {
         val lines = ArrayList<Pair<ChatMessage, String>>()
         val imgs = ArrayList<ChatMessage>()
-        // Erst ohne Nummern, dann Kuerzen, dann Nummern vergeben (Nummern beziehen sich nur auf behaltene Zeilen)
+        // First without numbers, then trim, then assign numbers (numbers refer only to kept lines)
         var start = 0
         var total = 0
         val raw = messages.map { it to line(it, chatTitle, null) }
-        // von hinten (neueste) auffuellen
+        // fill from the back (newest)
         var idx = raw.size
         while (idx > 0) {
             val len = raw[idx - 1].second.length + 1

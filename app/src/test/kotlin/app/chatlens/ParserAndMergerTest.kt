@@ -20,8 +20,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Tests auf synthetischen Baeumen. Sie pruefen die Logik, nicht das echte WhatsApp-Layout.
- * Der echte Aufbau ist unbekannt und muss auf dem Geraet kalibriert werden.
+ * Tests on synthetic trees. They check the logic, not the real WhatsApp layout.
+ * The real structure is unknown and has to be calibrated on the device.
  */
 class ParserAndMergerTest {
 
@@ -116,7 +116,7 @@ class ParserAndMergerTest {
         val r1 = m.add(p1)
         assertEquals(2, r1.added)
         assertEquals(listOf("a", "b", "c", "d", "e"), m.messages.map { it.text })
-        // kanonisches Objekt fuer c ist das erste
+        // the canonical object for c is the first one
         assertTrue(r1.canonical[2] === p0[0].message)
         val r2 = m.add(p1)
         assertEquals(0, r2.added)

@@ -46,13 +46,13 @@ import java.io.File
 import java.time.LocalDateTime
 import javax.crypto.KeyGenerator
 
-/** Tests fuer die neue Logik ab 0.2.0 (ohne Android). */
+/** Tests for the new logic from 0.2.0 (without Android). */
 class V020LogicTest {
 
     @get:Rule
     val tmp = TemporaryFolder()
 
-    // ---------- Namensabgleich ----------
+    // ---------- Name matching ----------
 
     @Test
     fun exactMatchIsIgnoringCaseAndEdgeSpaces() {
@@ -83,21 +83,21 @@ class V020LogicTest {
         assertEquals("Mutter", r.text)
         assertEquals(2, r.index)
         assertEquals(100, r.percent)
-        // Teilstring-Treffer schlaegt einen aehnlichen, kuerzeren Namen
+        // a substring hit beats a similar, shorter name
         assertEquals("Mutti Handy", NameMatcher.best("Mutti", listOf("Hans", "Mutter", "Mutti Handy"))!!.text)
         assertNull(NameMatcher.best("x", emptyList()))
     }
 
-    // ---------- Chatliste ----------
+    // ---------- Chat list ----------
 
-    private val now = LocalDateTime.of(2026, 10, 3, 17, 0) // Samstag
+    private val now = LocalDateTime.of(2026, 10, 3, 17, 0) // Saturday
 
     @Test
     fun timeRankOrdersTodayYesterdayWeekdayDate() {
         val today = ChatTimeRank.rank("14:32", now)
         val earlier = ChatTimeRank.rank("08:05", now)
         val yest = ChatTimeRank.rank("Gestern", now)
-        val fri = ChatTimeRank.rank("Freitag", now) // gestern ist Freitag, Wochentag meint die letzte Woche davor
+        val fri = ChatTimeRank.rank("Freitag", now) // yesterday is Friday; a weekday means the week before that
         val wed = ChatTimeRank.rank("Mittwoch", now)
         val date = ChatTimeRank.rank("01.09.2026", now)
         assertTrue(today > earlier)
@@ -172,7 +172,7 @@ class V020LogicTest {
         assertFalse(parsed[3].likelyGroup)
     }
 
-    // ---------- Auto-Warteschlange ----------
+    // ---------- Auto queue ----------
 
     private fun titles(vararg t: String) = AutoQueue.of(QueueKind.SETUP, t.toList(), 100, 1L, true)
 
@@ -211,7 +211,7 @@ class V020LogicTest {
         job.cancel()
         job.join()
         assertEquals(listOf(ItemStatus.FERTIG, ItemStatus.WARTET, ItemStatus.WARTET), q.items.map { it.status })
-        // speichern, laden, fortsetzen
+        // save, load, resume
         val back = AutoQueue.fromJson(q.toJson())
         val done = ArrayList<String>()
         AutoQueueRunner.run(back, { 9L }, {}) { done.add(it.title); "ok" }
@@ -262,7 +262,7 @@ class V020LogicTest {
         assertEquals(1, maxActive)
     }
 
-    // ---------- Gedaechtnis ----------
+    // ---------- Memory ----------
 
     private fun crypto(): AesGcmCrypto {
         val k = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
@@ -274,7 +274,7 @@ class V020LogicTest {
         val c = crypto()
         val blob = c.encrypt("Hallo Welt".toByteArray())
         assertEquals("Hallo Welt", String(c.decrypt(blob)))
-        assertNotEquals(blob.toList(), c.encrypt("Hallo Welt".toByteArray()).toList()) // frischer IV
+        assertNotEquals(blob.toList(), c.encrypt("Hallo Welt".toByteArray()).toList()) // fresh IV
         val bad = blob.copyOf().also { it[it.size - 1] = (it[it.size - 1].toInt() xor 1).toByte() }
         var failed = false
         try { c.decrypt(bad) } catch (e: CryptoException) { failed = true }
@@ -292,7 +292,7 @@ class V020LogicTest {
         val a = ChatMemory("anna meier", "Anna Meier", profile = "Kollegin, Marketing", userNote = "Geburtstag 5. Mai", updatedAt = 10, anchor = listOf("x|1|i"))
         val b = ChatMemory("hans", "Hans", profile = "Nachbar", updatedAt = 20)
         store.save(a); store.save(b)
-        // Klartext darf nicht in den Dateien stehen
+        // plaintext must not appear in the files
         val raw = dir.listFiles()!!.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
         assertFalse(raw.contains("Anna"))
         assertFalse(raw.contains("Kollegin"))
@@ -356,8 +356,8 @@ STIMMUNG: Gut gelaunt.
         val note = first.copy(userNote = "mag Kaffee")
         val second = MemoryUpdater.apply(note, "OFFEN: Termin bestätigt.\nSTIMMUNG: Erleichtert.", "Anna Meier", 200L, listOf("b|2|o"), "11:00", 3)
         assertEquals("Termin bestätigt.", second.openTopics)
-        assertEquals(first.profile, second.profile) // nicht genannt: bleibt
-        assertEquals("mag Kaffee", second.userNote) // Nutzerfeld unberuehrt
+        assertEquals(first.profile, second.profile) // not mentioned: it stays
+        assertEquals("mag Kaffee", second.userNote) // user field untouched
         assertEquals(15, second.messagesSeen)
         assertEquals(listOf("b|2|o"), second.anchor)
         assertEquals(200L, second.updatedAt)
@@ -385,7 +385,7 @@ STIMMUNG: Gut gelaunt.
         assertTrue(inc.contains("Neue Nachrichten seit dem letzten Stand"))
     }
 
-    // ---------- Vorschlaege und Sicherheitsregel ----------
+    // ---------- Suggestions and the safety rule ----------
 
     @Test
     fun suggestionsAreParsedFromNumberedOutput() {
@@ -420,10 +420,10 @@ STIMMUNG: Gut gelaunt.
             val files = File(srcDir, dir).listFiles().orEmpty().filter { it.extension == "kt" }
             assertTrue("$dir darf den Sender nicht kennen", files.none { it.readText().contains("ExperimentalSender") })
         }
-        // Der einzige Aufruf passiert mit dem bestaetigten Text und dem Einstellungsschalter
+        // The only call happens with the confirmed text and the settings switch
         val main = File(srcDir, "MainActivity.kt").readText()
         assertTrue(main.contains("send(text, confirmedText = text, experimentalEnabled = settings.experimentalSend)"))
-        // Der Sendeknopf-Klick existiert nur in ReplyActions hinter SendPolicy
+        // The send-button click exists only in ReplyActions, behind SendPolicy
         val clickFiles = srcDir.walkTopDown().filter { it.isFile && it.extension == "kt" }
             .filter { it.readText().contains("sendButtonDescriptions") }.map { it.name }.toSet()
         assertEquals(setOf("ReplyActions.kt", "SelectorProfile.kt"), clickFiles)
@@ -453,13 +453,13 @@ STIMMUNG: Gut gelaunt.
     fun replyActionsOnlyOffersSetTextAndNoClick() {
         val t = File(srcDir, "assist/ReplyActions.kt").readText()
         assertTrue(t.contains("ACTION_SET_TEXT"))
-        // ReplyInserter darf kein Klicken enthalten
+        // ReplyInserter must not contain a click
         val inserter = t.substringAfter("class ReplyInserter").substringBefore("class ExperimentalSender")
         assertFalse(inserter.contains("ACTION_CLICK"))
         assertFalse(inserter.contains("performClick"))
     }
 
-    // ---------- Sprachnachrichten-Vorbereitung ----------
+    // ---------- Voice-message preparation ----------
 
     @Test
     fun voiceLineMentionsMissingOrPresentTranscript() {

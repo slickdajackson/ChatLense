@@ -11,8 +11,8 @@ class SavedPrompt(val name: String, val text: String) {
 }
 
 /**
- * Prompt-Buch fuer "Analysieren": zuletzt gewaehlte Art, zuletzt genutzte eigene Prompts und eigene Vorlagen.
- * Wird wie das Gedaechtnis verschluesselt gespeichert (MemoryRepo). Unveraenderlich: jede Aenderung liefert ein neues Buch.
+ * Prompt book for "Analysieren": last chosen kind, recently used custom prompts, and custom templates.
+ * Stored encrypted like memory (MemoryRepo). Immutable: every change returns a new book.
  */
 class PromptBook(
     val lastMode: PromptMode = PromptMode.STANDARD,
@@ -20,7 +20,7 @@ class PromptBook(
     val recent: List<String> = emptyList(),
     val saved: List<SavedPrompt> = emptyList(),
 ) {
-    /** Nach einer Auswahl: Art merken und bei eigenem Prompt in die Liste "zuletzt genutzt" (neueste zuerst, ohne Doppelte). */
+    /** After a choice: remember the kind, and for a custom prompt add it to the recently used list (newest first, no duplicates). */
     fun withUsed(mode: PromptMode, text: String): PromptBook {
         if (mode == PromptMode.STANDARD) return PromptBook(PromptMode.STANDARD, lastText, recent, saved)
         val t = PromptLimits.clean(text)
@@ -29,7 +29,7 @@ class PromptBook(
         return PromptBook(PromptMode.CUSTOM, t, list, saved)
     }
 
-    /** Vorlage speichern oder unter gleichem Namen ersetzen (Name ohne Gross/Klein). Leerer Name oder Text: keine Aenderung. */
+    /** Save a template or replace one with the same name (name comparison ignores case). Empty name or text: no change. */
     fun withSaved(name: String, text: String): PromptBook {
         val n = name.trim().take(PromptLimits.MAX_NAME)
         val t = PromptLimits.clean(text)
@@ -52,7 +52,7 @@ object PromptLimits {
     fun clean(s: String): String = s.replace("\r", "").trim().take(MAX_LEN)
 }
 
-/** Schnellvorlagen, fest eingebaut (nicht gespeichert). Sie sind Aufgabenbeschreibungen, die der Chatverlauf als Daten bekommt. */
+/** Quick templates, built in (not stored). They are task descriptions that receive the chat transcript as data. */
 object QuickPrompts {
     val all: List<SavedPrompt> = listOf(
         SavedPrompt("Kurz zusammenfassen", "Fasse den Chat in höchstens fünf Stichpunkten zusammen und nenne danach, was zuletzt offen geblieben ist."),

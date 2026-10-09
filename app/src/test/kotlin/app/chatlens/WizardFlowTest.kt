@@ -72,24 +72,24 @@ class WizardFlowTest {
 
     @Test fun whatsAppOnlyAfterAnnouncementAndSecondTap() {
         val s0 = WizardState(step = WizardStep.CHECKUP)
-        // direkt bestaetigen ohne Ansage: nichts
+        // confirm directly without the announcement: nothing happens
         assertEquals(WizardEffect.NONE, step(s0, all, WizardAction.ConfirmRead).effect)
-        // Ansage zeigen: noch keine Wirkung
+        // show the announcement: still no effect
         val a = step(s0, all, WizardAction.AnnounceRead)
         assertEquals(WizardEffect.NONE, a.effect)
         assertTrue(a.state.announced)
-        // Ansage ohne Bedienungshilfe nicht moeglich
+        // the announcement is not possible without accessibility
         assertFalse(step(s0, none, WizardAction.AnnounceRead).state.announced)
-        // Abbrechen nimmt die Ansage zurueck
+        // cancel withdraws the announcement
         assertFalse(step(a.state, all, WizardAction.CancelAnnounce).state.announced)
         assertEquals(WizardEffect.NONE, step(step(a.state, all, WizardAction.CancelAnnounce).state, all, WizardAction.ConfirmRead).effect)
-        // Zweiter Tipp: jetzt (und nur jetzt) Start
+        // second tap: now, and only now, start
         val go = step(a.state, all, WizardAction.ConfirmRead)
         assertEquals(WizardEffect.LAUNCH_CHECKUP_AND_WHATSAPP, go.effect)
         assertFalse(go.state.announced)
-        // Seitenwechsel verwirft die Ansage
+        // changing page discards the announcement
         assertFalse(step(a.state, all, WizardAction.Back).state.announced)
-        // auf anderen Seiten gibt es nie einen Start
+        // other pages never start anything
         for (st in WizardStep.entries.filter { it != WizardStep.CHECKUP }) {
             assertEquals(WizardEffect.NONE, step(WizardState(step = st, announced = true), all, WizardAction.ConfirmRead).effect)
         }
@@ -129,10 +129,10 @@ class WizardFlowTest {
         val texts = Regex("(?:Title|Body|Done|Text)\\((\"[^\"]*\")").findAll(t).map { it.groupValues[1].trim('"') }.toList()
         assertTrue(texts.size > 20)
         for (x in texts) {
-            assertFalse("Gedankenstrich in: $x", x.contains('–') || x.contains('—') || x.contains(" - "))
+            assertFalse("dash in: $x", x.contains('–') || x.contains('—') || x.contains(" - "))
             assertFalse("Emoji in: $x", x.any { Character.getType(it) == Character.SURROGATE.toInt() || it.code in 0x2600..0x27BF })
         }
-        // jeder Fliesstext hoechstens zwei kurze Saetze
+        // each body text is at most two short sentences
         val bodies = Regex("Body\\(\"([^\"]*)\"").findAll(t).map { it.groupValues[1] }.toList()
         assertTrue(bodies.size >= 10)
         for (b in bodies) {
@@ -142,14 +142,14 @@ class WizardFlowTest {
     }
 
     @Test fun systemDialogForA11yNeedsItsOwnConsent() {
-        // 0.3.0 (U2): ohne die eigene Zustimmung auf Seite 2 gibt es keinen Effekt und kein Warten
+        // 0.3.0 (U2): without its own consent on page 2 there is no effect and no waiting
         val no = step(WizardState(step = WizardStep.A11Y), none, WizardAction.OpenA11y)
         assertEquals(WizardEffect.NONE, no.effect)
         assertFalse(no.state.waiting)
         val given = step(WizardState(step = WizardStep.A11Y), none, WizardAction.A11yConsent(true)).state
         assertTrue(given.a11yConsent)
         assertEquals(WizardEffect.OPEN_A11Y_SETTINGS, step(given, none, WizardAction.OpenA11y).effect)
-        // Zustimmung zurueckziehen sperrt wieder
+        // withdrawing consent locks it again
         val back = step(given, none, WizardAction.A11yConsent(false)).state
         assertEquals(WizardEffect.NONE, step(back, none, WizardAction.OpenA11y).effect)
     }

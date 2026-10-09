@@ -9,8 +9,8 @@ import app.chatlens.service.ChatAccessibilityService
 enum class InsertOutcome { OK, NO_INPUT_FIELD, REFUSED, FAILED }
 
 /**
- * Traegt einen gewaehlten Antwortentwurf in das WhatsApp-Eingabefeld ein (ACTION_SET_TEXT). Es wird NICHT gesendet:
- * diese Klasse kennt keinen Klick und keinen Senden-Knopf. Das Absenden macht der Nutzer selbst in WhatsApp.
+ * Puts a chosen reply draft into the WhatsApp input field (ACTION_SET_TEXT). It does NOT send:
+ * this class knows no click and no send button. The user sends it in WhatsApp.
  */
 class ReplyInserter(private val svc: ChatAccessibilityService, private val profile: SelectorProfile) {
 
@@ -35,9 +35,9 @@ class ReplyInserter(private val svc: ChatAccessibilityService, private val profi
 }
 
 /**
- * EXPERIMENTELL, standardmaessig deaktiviert. Kann gegen die WhatsApp-Nutzungsbedingungen verstossen.
- * Sendet nur, wenn [SendPolicy] es erlaubt: Schalter in den Einstellungen an UND der Nutzer hat genau diesen Text im
- * Bestaetigungsdialog bestaetigt. Es gibt keinen automatischen Aufruf; nur die Bedienoberflaeche ruft dies nach dem Dialog auf.
+ * EXPERIMENTAL, off by default. Can violate the WhatsApp terms of use.
+ * Sends only when [SendPolicy] allows it: the switch in the settings is on AND the user has confirmed exactly this text in the
+ * confirmation dialog. There is no automatic call. Only the UI calls this after the dialog.
  */
 class ExperimentalSender(private val svc: ChatAccessibilityService, private val profile: SelectorProfile) {
     fun send(text: String, confirmedText: String?, experimentalEnabled: Boolean): Boolean {

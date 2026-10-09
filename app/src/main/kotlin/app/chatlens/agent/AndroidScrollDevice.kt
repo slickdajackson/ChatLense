@@ -8,12 +8,12 @@ import kotlinx.coroutines.delay
 import app.chatlens.core.UiNode
 import app.chatlens.service.ChatAccessibilityService
 
-/** Echtes Geraet: Wischgeste per dispatchGesture, Seitenscroll per ACTION_SCROLL_BACKWARD/FORWARD. */
+/** Real device: swipe gesture via dispatchGesture, page scroll via ACTION_SCROLL_BACKWARD/FORWARD. */
 class AndroidScrollDevice(private val svc: ChatAccessibilityService, private val guard: ForegroundGuard? = null) : ScrollDevice {
 
     private fun listNode(want: Bounds?): AccessibilityNodeInfo? {
         val root = svc.liveRoot() ?: return null
-        // Seitenwechsler (ViewPager) und rein waagerechte Listen nie ansprechen: sie wuerden die Tabs wechseln.
+        // Never target page switchers (ViewPager) or purely horizontal lists: they would switch the tabs.
         val all = svc.findAllLive(root) { n ->
             n.isScrollable && n.className?.toString()?.contains("ViewPager", ignoreCase = true) != true &&
                 n.actionList.any { it.id == AccessibilityAction.ACTION_SCROLL_UP.id || it.id == AccessibilityAction.ACTION_SCROLL_DOWN.id }
@@ -48,7 +48,7 @@ class AndroidScrollDevice(private val svc: ChatAccessibilityService, private val
     }
 
     override suspend fun swipe(list: Bounds, older: Boolean, distancePx: Int, durationMs: Long, holdMs: Long): Boolean {
-        // Nie in einem fremden Fenster wischen: nur wenn das aktive Fenster die Ziel-App ist.
+        // Never swipe in a foreign window: only when the active window is the target app.
         if (svc.foregroundPackage() != svc.expectedPackage) return false
         val ins = svc.screenInsets()
         val segs = SwipeSafety.plan(list, ins, older, distancePx)
@@ -65,11 +65,11 @@ class AndroidScrollDevice(private val svc: ChatAccessibilityService, private val
             while (true) {
                 AppLog.i("SWIPE ${i + 1}/${segs.size}: (${sg.x},${sg.fromY}) nach (${sg.x},${sg.toY}), Liste ${list.t}..${list.b}, Fenster $wt..$wb, ${if (older) "aeltere" else "neuere"} Nachrichten, ${svc.screenState()}.")
                 if (!svc.swipe(sg.x, sg.fromY, sg.toY, durationMs, holdMs)) return false
-                // Nach jedem Wisch: ist noch WhatsApp vorn? Sonst Ausloeser loggen, Systemoberflaeche schliessen, WhatsApp zurueckholen.
+                // After every swipe: is WhatsApp still in front? Otherwise log the trigger, close the system UI, and bring WhatsApp back.
                 val intervened = guard?.recoverAfter("Wisch ${i + 1}/${segs.size} von (${sg.x},${sg.fromY}) nach (${sg.x},${sg.toY})") ?: false
                 if (svc.foregroundPackage() != svc.expectedPackage) return false
                 if (intervened && repeats++ < MAX_REPEATS) {
-                    // Die Leiste o. ae. war offen und ist geschlossen: derselbe Schritt noch einmal. Das zaehlt nicht als "Inhalt unveraendert".
+                    // The shade or similar was open and has been closed: repeat the same step. This does not count as "Inhalt unveraendert".
                     AppLog.i("SWIPE: Systemoberflaeche war nach dem Wisch vorn und wurde geschlossen. Derselbe Wisch wird wiederholt (zaehlt nicht als unveraenderter Inhalt).")
                     continue
                 }
@@ -84,13 +84,13 @@ class AndroidScrollDevice(private val svc: ChatAccessibilityService, private val
         val n = listNode(list) ?: run { AppLog.w("ACTION: kein senkrecht scrollbarer Knoten fuer ${list}."); return false }
         val id = if (older) AccessibilityAction.ACTION_SCROLL_UP.id else AccessibilityAction.ACTION_SCROLL_DOWN.id
         val ok = n.performAction(id)
-        // Diagnose: bewegt sich nichts (gemessen -1 px bei befohlen 0 px), steht hier, welcher Knoten mit welchen Aktionen angesprochen wurde
+        // Diagnosis: if nothing moves (measured -1 px when 0 px was commanded), this records which node was targeted and with which actions
         AppLog.i("ACTION: ${if (older) "SCROLL_UP" else "SCROLL_DOWN"} auf ${n.className} id=${n.viewIdResourceName ?: "-"} b=${svc.boundsOf(n)} Aktionen=${n.actionList.map { it.id }.joinToString(",")} angenommen=$ok.")
         return ok
     }
 
     companion object {
-        /** Nach geschlossener Systemoberflaeche wird derselbe Wisch hoechstens so oft wiederholt. */
+        /** After the system UI is closed, the same swipe is repeated at most this many times. */
         const val MAX_REPEATS = 1
     }
 }

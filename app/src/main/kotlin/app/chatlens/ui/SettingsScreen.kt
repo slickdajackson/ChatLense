@@ -226,7 +226,7 @@ fun SettingsScreen(
     }
 }
 
-/** Messenger-Adapter (0.3.0): WhatsApp ist aktiv, Signal und Telegram sind vorbereitet, aber noch nicht schaltbar. */
+/** Messenger adapters (0.3.0): WhatsApp is active; Signal and Telegram are prepared but not yet switchable. */
 @Composable
 private fun MessengerSection(settings: AppSettings, onSettings: (AppSettings) -> Unit, onChanged: (String) -> Unit) {
     Section("Messenger") {
@@ -243,7 +243,7 @@ private fun MessengerSection(settings: AppSettings, onSettings: (AppSettings) ->
                     onSettings(settings.copy(enabledMessengers = v)); onChanged(v)
                 }
             } else {
-                // WhatsApp ist immer aktiv, Signal und Telegram sind nicht schaltbar: nur Statuszeile, kein Schalter, der nichts tut
+                // WhatsApp is always active; Signal and Telegram cannot be switched: a status line only, no switch that does nothing
                 Row(Modifier.fillMaxWidth().heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(a.displayName, style = MaterialTheme.typography.bodyMedium, color = GlassColors.Text)
                     Text(if (active) "aktiv" else "in Vorbereitung", style = MaterialTheme.typography.bodyMedium, color = if (active) GlassColors.Ok else GlassColors.TextDim)

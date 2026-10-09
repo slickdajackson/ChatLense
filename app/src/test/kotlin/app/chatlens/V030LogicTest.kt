@@ -25,11 +25,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Logik und Regeln der Version 0.3.0 (ohne Geraet). */
+/** Logic and rules of version 0.3.0 (no device). */
 class V030LogicTest {
     private val area = Area(width = 1080, height = 2400, insetTop = 100, insetBottom = 120)
 
-    // --- Overlay-Geometrie (O1 bis O4) ---
+    // --- Overlay geometry (O1 to O4) ---
 
     @Test fun clampKeepsWindowInsideVisibleArea() {
         assertEquals(0 to 100, OverlayGeometry.clamp(-50, -50, 120, 120, area))
@@ -45,7 +45,7 @@ class V030LogicTest {
     @Test fun snapGoesToNearerSideByWindowCenter() {
         assertEquals(Side.LEFT, OverlayGeometry.snapSide(100, 120, area))
         assertEquals(Side.RIGHT, OverlayGeometry.snapSide(700, 120, area))
-        assertEquals(Side.RIGHT, OverlayGeometry.snapSide(480, 120, area)) // Mitte 540 = Bereichsmitte: rechts
+        assertEquals(Side.RIGHT, OverlayGeometry.snapSide(480, 120, area)) // center 540 equals the area center: right
     }
 
     @Test fun xAtSideHonoursMargin() {
@@ -73,7 +73,7 @@ class V030LogicTest {
         assertEquals(1000 - 140, cy)
     }
 
-    // --- Messenger-Adapter (Abschnitt 26) ---
+    // --- Messenger adapters (section 26) ---
 
     @Test fun onlyWhatsAppIsActive() {
         assertEquals(AdapterStatus.ACTIVE, WhatsAppAdapter.status)
@@ -91,7 +91,7 @@ class V030LogicTest {
     @Test fun preparedAdaptersCannotBeSwitchedOn() {
         assertEquals("whatsapp", MessengerRegistry.toggled("whatsapp", "signal", true))
         assertEquals("whatsapp", MessengerRegistry.toggled("whatsapp", "telegram", true))
-        assertEquals("whatsapp", MessengerRegistry.toggled("whatsapp", "whatsapp", false)) // letzter aktiver bleibt
+        assertEquals("whatsapp", MessengerRegistry.toggled("whatsapp", "whatsapp", false)) // the last active one stays
     }
 
     @Test fun packageAllowedOnlyForEnabledMessengers() {
@@ -125,7 +125,7 @@ class V030LogicTest {
         assertTrue("Telegram hat keine Ressourcen-IDs", tg.messageTextIds.isEmpty())
     }
 
-    // --- Entitlement (MONETARISIERUNG 4.3) ---
+    // --- Entitlement (MONETIZATION 4.3) ---
 
     @Test fun devEntitlementsAllowEverythingAndDescribeNoPurchase() {
         assertEquals(Tier.PRO_VERIFIED, DevEntitlements.tier)
@@ -145,7 +145,7 @@ class V030LogicTest {
         assertEquals(Tier.FREE, EntitlementRules.afterCheck(Tier.FREE, 0, 100 * day, CheckResult.NO_PURCHASE))
     }
 
-    // --- Flavors (Play-Konformitaet) ---
+    // --- Flavors (Play compliance) ---
 
     @Test fun playPolicyRemovesApiBackend() {
         assertEquals(BackendChoice.EXTRACT_ONLY, BackendPolicy.effective(BackendChoice.API, allowed = false))
@@ -162,12 +162,12 @@ class V030LogicTest {
         assertTrue("Satzanfang gross", privacyText(false).contains("Die Haushaltsausnahme"))
     }
 
-    @Test fun datenschutzAssetExistsAndNamesTheCoreFacts() {
+    @Test fun privacyAssetExistsAndNamesTheCoreFacts() {
         val t = File("src/main/assets/datenschutz.md").readText()
-        for (k in listOf("Verantwortlicher", "Bedienungshilfe", "Löschen", "AES-GCM", "sendet nie")) assertTrue("fehlt: $k", t.contains(k))
+        for (k in listOf("Verantwortlicher", "Bedienungshilfe", "Löschen", "AES-GCM", "sendet nie")) assertTrue("missing: $k", t.contains(k))
     }
 
-    // --- Regel: kein LLM-Ergebnis loest Bedienungshilfe-Aktionen aus (MONETARISIERUNG Phase 0) ---
+    // --- Rule: no LLM result triggers accessibility actions (MONETIZATION phase 0) ---
 
     @Test fun llmPackageDoesNotReachAccessibilityClasses() {
         val dir = File("src/main/kotlin/app/chatlens/llm")
@@ -180,13 +180,13 @@ class V030LogicTest {
     }
 
     @Test fun setTextOnlyInKnownPlaces() {
-        // ACTION_SET_TEXT steht nur im Navigator (Suchfeld), in den Antwortaktionen (Eintragen nach Bestaetigung) und als Hinweis in MainActivity.
+        // ACTION_SET_TEXT appears only in the navigator (search field), in the reply actions (insert after confirmation), and as a note in MainActivity.
         val root = File("src/main/kotlin/app/chatlens")
         val hits = root.walkTopDown().filter { it.extension == "kt" && it.readText().contains("ACTION_SET_TEXT") }.map { it.name }.toSet()
         assertTrue("ACTION_SET_TEXT nur im Eintragen: $hits", hits.all { it in setOf("WhatsAppNavigator.kt", "ReplyActions.kt", "MainActivity.kt") })
     }
 
-    // --- Fehlertexte (N3) ---
+    // --- Error texts (N3) ---
 
     @Test fun errorTextHidesClassNames() {
         val all = listOf(OutOfMemoryError(), SecurityException("x"), java.io.FileNotFoundException("f"), java.io.IOException("io"),

@@ -4,7 +4,7 @@ import android.content.Context
 import app.chatlens.profile.SelectorProfile
 import java.io.File
 
-/** Laedt das Selektor-Profil: eigene Datei im App-Speicher hat Vorrang vor dem mitgelieferten Asset. */
+/** Loads the selector profile: a custom file in app storage takes priority over the bundled asset. */
 object ProfileStore {
     private const val ASSET = "profiles/whatsapp.json"
 
@@ -20,7 +20,7 @@ object ProfileStore {
         return SelectorProfile.parse(ctx.assets.open(ASSET).bufferedReader().use { it.readText() })
     }
 
-    /** Prueft die Datei, bevor sie uebernommen wird. Wirft bei ungueltigem Inhalt. */
+    /** Validates the file before it is adopted. Throws if the content is invalid. */
     fun importOverride(ctx: Context, json: String) {
         SelectorProfile.parse(json)
         val f = overrideFile(ctx)

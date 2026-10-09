@@ -27,9 +27,9 @@ sealed class ShotResult {
 }
 
 /**
- * Duenne Huelle um die Android-Accessibility-API.
- * Der Dienst liest nur und fuehrt Navigationsaktionen aus (Klick, Scrollen, Zurueck, Suchfeld ausfuellen).
- * Es gibt hier keine Funktion zum Schreiben oder Senden von Chatnachrichten.
+ * Thin wrapper around the Android accessibility API.
+ * The service only reads and performs navigation actions (click, scroll, back, fill the search field).
+ * There is no function here for writing or sending chat messages.
  */
 class ChatAccessibilityService : AccessibilityService() {
 
@@ -55,9 +55,9 @@ class ChatAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Inhalte werden nicht ausgewertet; gelesen wird nur auf Anforderung. Gemerkt wird nur Paket und Klasse des letzten
-        // Fensterwechsels (fuer das Log "Paket/Aktivitaet" und als zweite Meinung der Vordergrundpruefung). Der Dienst bekommt nur
-        // Ereignisse der Pakete aus der Dienstkonfiguration (com.whatsapp); verlaesst man WhatsApp, kommt daher oft kein Ereignis.
+        // Contents are not evaluated; reading happens only on request. Only the package and class of the last
+        // window change are remembered (for the "Paket/Aktivitaet" log, and as a second opinion for the foreground check). The service receives only
+        // events for the packages in the service configuration (com.whatsapp); leaving WhatsApp therefore often produces no event.
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             lastEventPackage = event.packageName?.toString()
             lastEventClass = event.className?.toString()
@@ -69,19 +69,19 @@ class ChatAccessibilityService : AccessibilityService() {
 
     val density: Float get() = resources.displayMetrics.density
 
-    /** Paket, das als Ziel gilt (wird vom Navigator aus dem Profil gesetzt). Nur Fenster dieses Pakets werden gelesen oder bedient. */
+    /** Package treated as the target (set by the navigator from the profile). Only windows of this package are read or operated. */
     @Volatile
     var expectedPackage: String = "com.whatsapp"
 
-    /** Pakete der ausdruecklich freigegebenen Messenger (ab 0.3.0). Bekannte Messenger-Pakete ausserhalb dieser Menge werden nie gelesen. */
+    /** Packages of the messengers explicitly allowed (from 0.3.0). Known messenger packages outside this set are never read. */
     @Volatile
     var allowedPackages: Set<String> = setOf("com.whatsapp")
         private set
 
     /**
-     * Uebernimmt die freigegebenen Messenger: Die Dienstkonfiguration (XML) nennt statisch nur die gelieferten Pakete; zur Laufzeit wird die
-     * Ereignisquelle auf die freigegebenen Pakete eingeengt ([AccessibilityServiceInfo.packageNames]). Zusaetzlich verweigert [liveRoot] jedes Lesen
-     * eines bekannten Messengers, der nicht freigegeben ist. Das Einengen ist laut API vorgesehen; sein Verhalten auf Android 13 bis 16 ist ungeprueft.
+     * Applies the allowed messengers. The service configuration (XML) statically names only the shipped packages; at runtime the
+     * event source is narrowed to the allowed packages ([AccessibilityServiceInfo.packageNames]). In addition, [liveRoot] refuses any read
+     * of a known messenger that is not allowed. Narrowing is provided for by the API; its behavior on Android 13 to 16 is untested.
      */
     fun applyEnabledMessengers(setting: String) {
         allowedPackages = app.chatlens.messenger.MessengerRegistry.enabledPackages(setting)
@@ -92,7 +92,7 @@ class ChatAccessibilityService : AccessibilityService() {
         }.onFailure { AppLog.w("Paketfilter konnte nicht gesetzt werden: ${it.javaClass.simpleName}") }
     }
 
-    /** true, wenn das Paket gelesen werden darf: unbekannte Pakete (z. B. Testattrappe per Profil) gelten wie bisher, bekannte nur wenn freigegeben. */
+    /** True when the package may be read: unknown packages (for example a test dummy via the profile) behave as before; known ones only if allowed. */
     private fun packageReadable(pkg: String): Boolean = app.chatlens.messenger.MessengerRegistry.byPackage(pkg) == null || pkg in allowedPackages
 
     @Volatile
@@ -107,12 +107,12 @@ class ChatAccessibilityService : AccessibilityService() {
     var lastEventAt: Long = 0L
         private set
 
-    /** Paket des aktiven Fensters, wie es das System meldet (auch fremde Apps). Nur fuer Pruefung und Log. */
+    /** Package of the active window, as reported by the system (including other apps). For checks and the log only. */
     fun activePackage(): String? = foregroundPackage()
 
     /**
-     * Paket des Vordergrunds fuer die Pruefung: Ist das aktive Fenster ein eigenes (Overlay), zaehlt ein darunter liegendes Fenster
-     * der Ziel-App. Sonst das Paket des aktiven Fensters, auch wenn es fremd ist (dann wird nichts gelesen, siehe [liveRoot]).
+     * Foreground package for the check: if the active window is our own (the overlay), a window underneath
+     * that belongs to the target app counts. Otherwise the package of the active window, even if it belongs to another app (then nothing is read; see [liveRoot]).
      */
     fun foregroundPackage(): String? {
         liveRoot()?.let { return it.packageName?.toString() }
@@ -120,10 +120,10 @@ class ChatAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Wurzel des aktiven Fensters, aber NUR wenn es zur Ziel-App gehoert ([expectedPackage]). Fremde Fenster liefern null:
-     * Lesen, Klicken, Scrollen und Debug-Export laufen alle darueber und koennen so nie in einem fremden Fenster landen.
-     * (Bis 0.2.2 wurde hier ersatzweise irgendein anderes App-Fenster genommen; das ist entfernt.)
-     * Ist das aktive Fenster ein eigenes (ChatLens-Overlay), wird ein Fenster der Ziel-App unter den Fenstern gesucht.
+     * Root of the active window, but ONLY if it belongs to the target app ([expectedPackage]). Windows of other apps return null:
+     * reading, clicking, scrolling, and debug export all go through this, so they can never land in another app's window.
+     * (Until 0.2.2 some other app window was used as a fallback here; that is removed.)
+     * If the active window is our own (the ChatLens overlay), a window of the target app is searched for among the windows.
      */
     fun liveRoot(): AccessibilityNodeInfo? {
         if (!packageReadable(expectedPackage)) return null
@@ -140,13 +140,13 @@ class ChatAccessibilityService : AccessibilityService() {
         return null
     }
 
-    /** Wurzel des aktiven Fensters irgendeiner fremden App, nur fuer den manuellen Debug-Export. Nie fuer Navigation. */
+    /** Root of the active window of any other app, only for the manual debug export. Never for navigation. */
     fun anyForeignRoot(): AccessibilityNodeInfo? {
         val r = rootInActiveWindow ?: return null
         return if (r.packageName?.toString() != packageName) r else liveRoot()
     }
 
-    /** Bildschirmzustand fuer das Log: an/aus (PowerManager.isInteractive) und ob der Sperrbildschirm aktiv ist. Keine Inhalte. */
+    /** Screen state for the log: on or off (PowerManager.isInteractive) and whether the lock screen is active. No contents. */
     fun screenState(): String = try {
         val pm = getSystemService(android.os.PowerManager::class.java)
         val km = getSystemService(android.app.KeyguardManager::class.java)
@@ -158,9 +158,9 @@ class ChatAccessibilityService : AccessibilityService() {
     private var awakeView: android.view.View? = null
 
     /**
-     * Haelt den Bildschirm waehrend eines Laufs an: ein 1x1 Pixel grosses, unsichtbares, nicht beruehrbares Bedienungshilfe-Overlay mit FLAG_KEEP_SCREEN_ON
-     * (braucht keine zusaetzliche Berechtigung). Hintergrund: Knotenaktionen und eingespeiste Gesten gelten nicht sicher als Nutzeraktivitaet, der Bildschirm
-     * kann nach der Zeitspanne der Bildschirmsperre ausgehen, und dann liegt der Sperrbildschirm (com.android.systemui) vorn.
+     * Keeps the screen on during a run: a 1x1 pixel, invisible, untouchable accessibility overlay with FLAG_KEEP_SCREEN_ON
+     * (needs no extra permission). Background: node actions and injected gestures do not reliably count as user activity, so the screen
+     * can turn off after the screen-lock timeout, and then the lock screen (com.android.systemui) is in front.
      */
     fun setKeepScreenOn(on: Boolean) {
         runCatching {
@@ -184,7 +184,7 @@ class ChatAccessibilityService : AccessibilityService() {
         }.onFailure { AppLog.w("BILDSCHIRM: Wachhalten nicht moeglich: ${it.javaClass.simpleName}: ${it.message}") }
     }
 
-    /** Fenster-Uebersicht fuer das Log: Typ, Ebene, Paket. Keine Inhalte. Am Ende der Bildschirmzustand. */
+    /** Window summary for the log: type, layer, package. No contents. The screen state is appended at the end. */
     fun windowsSummary(): String = try {
         windows.joinToString("; ") { w ->
             val t = when (w.type) {
@@ -200,7 +200,7 @@ class ChatAccessibilityService : AccessibilityService() {
         "nicht lesbar (${e.javaClass.simpleName}); " + screenState()
     }
 
-    /** Holt die App per Intent nach vorn. Aus dem Dienst heraus gestartet (Dienste duerfen Aktivitaeten leichter starten als Hintergrund-Apps). */
+    /** Brings the app to the front with an intent. Started from the service (services may start activities more easily than background apps). */
     fun launchApp(pkg: String): Boolean {
         val intent = packageManager.getLaunchIntentForPackage(pkg) ?: return false
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -213,7 +213,7 @@ class ChatAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** Schnappschuss des aktiven Fensters der Ziel-App (null, wenn ein fremdes Fenster aktiv ist). [anyApp] nur fuer den manuellen Debug-Export. */
+    /** Snapshot of the active window of the target app (null if another app's window is active). [anyApp] is only for the manual debug export. */
     fun snapshot(maxNodes: Int = 5000, anyApp: Boolean = false): UiNode? {
         val root = (if (anyApp) anyForeignRoot() else liveRoot()) ?: return null
         val budget = intArrayOf(maxNodes)
@@ -253,7 +253,7 @@ class ChatAccessibilityService : AccessibilityService() {
         )
     }
 
-    /** Sucht einen lebenden Knoten per Praedikat (Tiefensuche). */
+    /** Finds a live node by predicate (depth-first search). */
     fun findLive(root: AccessibilityNodeInfo? = liveRoot(), pred: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
         if (root == null) return null
         fun rec(n: AccessibilityNodeInfo, depth: Int): AccessibilityNodeInfo? {
@@ -289,7 +289,7 @@ class ChatAccessibilityService : AccessibilityService() {
         return Bounds(r.left, r.top, r.right, r.bottom)
     }
 
-    /** Oberkante der Tastatur in Pixeln oder null, wenn keine Tastatur sichtbar ist (braucht flagRetrieveInteractiveWindows). */
+    /** Top edge of the keyboard in pixels, or null if no keyboard is visible (needs flagRetrieveInteractiveWindows). */
     fun imeTop(): Int? = try {
         windows.filter { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }.mapNotNull { w ->
             val r = Rect()
@@ -301,8 +301,8 @@ class ChatAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Einzelner Fingertipp per Geste. Nur fuer die Navigation (Suchtreffer antippen) gedacht;
-     * der Aufrufer prueft, dass die Koordinate im Ergebnislistenbereich liegt.
+     * A single finger tap as a gesture. Intended only for navigation (tapping a search result);
+     * the caller checks that the coordinate lies in the result-list area.
      */
     suspend fun tap(x: Int, y: Int): Boolean = suspendCancellableCoroutine { cont ->
         val path = Path().apply { moveTo(x.toFloat(), y.toFloat()) }
@@ -341,12 +341,12 @@ class ChatAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Wischgeste mit definiertem Weg, nur zum Scrollen der Nachrichtenliste.
-     * Nach der Bewegung haelt ein zweiter, stillstehender Abschnitt den Finger kurz an ([holdMs]), damit kein Nachschwung (Fling)
-     * entsteht und die Schrittweite dem geplanten Weg entspricht. Ob das auf dem Geraet so wirkt, ist ungetestet.
+     * Swipe gesture along a defined path, only for scrolling the message list.
+     * After the movement, a second, stationary segment holds the finger briefly ([holdMs]) so there is no fling
+     * and the step size matches the planned path. Whether it behaves that way on the device is untested.
      */
     suspend fun swipe(x: Int, fromY: Int, toY: Int, durationMs: Long, holdMs: Long): Boolean {
-        // Letzte Sperre: Start und Ende liegen strikt im Sicherheitsfenster (nie nahe Statusleiste, Gestenzone oder Seitenrand).
+        // Final guard: start and end lie strictly inside the safety window (never near the status bar, the gesture zone, or the screen edge).
         val ins = screenInsets()
         if (!SwipeSafety.pointSafe(x, fromY, ins) || !SwipeSafety.pointSafe(x, toY, ins)) {
             AppLog.w("SWIPE verweigert: ($x,$fromY) nach ($x,$toY) liegt ausserhalb des Sicherheitsfensters (Bildschirm ${ins.width}x${ins.height}, Statusleiste ${ins.statusBar}, Gestenzone ${ins.gestureBottom}).")
@@ -369,7 +369,7 @@ class ChatAccessibilityService : AccessibilityService() {
     @Volatile
     private var insetsCache: ScreenInsets? = null
 
-    /** Bildschirmmasse und Systemzonen fuer die Gestenplanung. Status- und Gestenzone aus Systemressourcen, wenn moeglich aus den Fensterraendern. */
+    /** Screen size and system zones for planning gestures. The status and gesture zones come from system resources, or from the window insets when possible. */
     fun screenInsets(): ScreenInsets {
         insetsCache?.let { return it }
         val dm = resources.displayMetrics
@@ -400,7 +400,7 @@ class ChatAccessibilityService : AccessibilityService() {
         return r
     }
 
-    /** Schliesst Benachrichtigungsleiste oder Kontrollzentrum: erst DISMISS_NOTIFICATION_SHADE (ab Android 12), dann Zurueck. */
+    /** Closes the notification shade or the control center: first DISMISS_NOTIFICATION_SHADE (from Android 12), then Back. */
     fun dismissSystemUi(): Boolean {
         var ok = false
         if (Build.VERSION.SDK_INT >= 31) ok = performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)
@@ -409,7 +409,7 @@ class ChatAccessibilityService : AccessibilityService() {
 
     fun goHome(): Boolean = performGlobalAction(GLOBAL_ACTION_HOME)
 
-    /** Screenshot des gesamten Bildschirms (ab Android 11). */
+    /** Screenshot of the whole screen (from Android 11). */
     suspend fun screenshot(): ShotResult {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return ShotResult.Fail(-1, "takeScreenshot braucht Android 11 oder neuer")

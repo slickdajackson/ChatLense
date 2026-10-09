@@ -6,13 +6,13 @@ import app.chatlens.core.Kind
 import app.chatlens.core.PageItem
 
 /**
- * Fuehrt Seiten (jeweils oben nach unten = alt nach neu) beim Rueckwaertsscrollen zusammen.
- * Die erste Seite ist die neueste. Spaetere Seiten ueberlappen mit dem Kopf der gesammelten Liste.
+ * Merges pages (each top to bottom = old to new) while scrolling backward.
+ * The first page is the newest. Later pages overlap the head of the collected list.
  *
- * Randnachrichten: Eine am Listenrand angeschnittene Nachricht ist als [ChatMessage.incomplete] markiert.
- * Beim Abgleich zweier Seiten gilt eine angeschnittene Fassung als gleich wie die vollstaendige, wenn Art, Richtung,
- * Absender und Uhrzeit nicht widersprechen und der Text gleich ist oder der eine Text im anderen enthalten ist
- * (Praefix, Suffix oder Teiltext). Taucht spaeter die vollstaendige Fassung auf, ersetzt sie die angeschnittene.
+ * Edge messages: a message cut off at the list edge is marked [ChatMessage.incomplete].
+ * When matching two pages, a cut-off version counts as the same as the complete one when kind, direction,
+ * sender, and time do not contradict and the text is equal or one text is contained in the other
+ * (prefix, suffix, or substring). If the complete version appears later, it replaces the cut-off one.
  */
 class TranscriptMerger {
     private val collected = ArrayList<ChatMessage>()
@@ -21,27 +21,27 @@ class TranscriptMerger {
 
     class Result(
         val added: Int,
-        /** Zu jedem PageItem das kanonische Objekt in der Gesamtliste. */
+        /** For each PageItem, the canonical object in the full list. */
         val canonical: List<ChatMessage>,
         val gapInserted: Boolean,
-        /** true, wenn keine belastbare Ausrichtung gefunden wurde und (bei allowGap=false) nichts uebernommen wurde. */
+        /** True when no reliable alignment was found and (when allowGap=false) nothing was taken over. */
         val noOverlap: Boolean = false,
-        /** Anzahl der Seitenzeilen, die einer Zeile im bisherigen Bestand zugeordnet wurden. */
+        /** Number of page rows that were matched to a row already in the collection. */
         val overlapRows: Int = 0,
-        /** Anzahl angeschnittener Nachrichten, die durch eine vollstaendige Fassung ersetzt wurden. */
+        /** Number of cut-off messages that were replaced by a complete version. */
         val completed: Int = 0,
-        /** Davon in den Bestand eingefuegt, obwohl sie mitten in der Ueberlappung lagen (zuvor nicht erkannt). */
+        /** Of those, inserted into the collection even though they lay in the middle of the overlap (not recognized before). */
         val inserted: Int = 0,
-        /** Seitenzeilen in der Ueberlappung ohne Gegenstueck (Parser-Rauschen). */
+        /** Page rows in the overlap with no counterpart (parser noise). */
         val unmatched: Int = 0,
     )
 
     /**
-     * Fuegt eine Seite ein. Die Seite wird per laengster gemeinsamer Teilfolge am Kopf des Bestands ausgerichtet:
-     * einzelne Zeilen ohne Gegenstueck (Rauschen, anders erkannte Randzeilen) verhindern die Ausrichtung nicht mehr.
-     * Belastbar ist sie, wenn mindestens eine Nicht-Datums-Zeile passt, aeltere Seitenzeilen nur am Kopf des Bestands
-     * (Index 0 oder 1) angefuegt werden muessen und hoechstens so viele Zeilen ungepaart sind wie Anker da sind
-     * (bei einem einzigen Anker keine).
+     * Inserts a page. The page is aligned to the head of the collection by a longest common subsequence:
+     * individual rows without a counterpart (noise, edge rows recognized differently) no longer block the alignment.
+     * It is reliable when at least one non-date row matches, older page rows have to be appended only at the head of the collection
+     * (index 0 or 1), and at most as many rows are unpaired as there are anchors
+     * (none when there is a single anchor).
      */
     fun add(page: List<PageItem>, allowGap: Boolean = true): Result {
         val msgs = page.map { it.message }
@@ -68,7 +68,7 @@ class TranscriptMerger {
 
         if (!allowGap) return Result(0, msgs, gapInserted = false, noOverlap = true)
 
-        // Keine Ueberlappung gefunden: komplett vorne anfuegen, Luecke markieren
+        // No overlap found: append the whole page at the front, mark a gap
         val gap = ChatMessage(Kind.GAP, Direction.UNKNOWN, null, "mögliche Lücke: Seiten überlappen nicht", null)
         collected.addAll(0, msgs + gap)
         return Result(msgs.size, msgs, true, true, 0, 0)
@@ -90,7 +90,7 @@ class TranscriptMerger {
                 canon.add(target)
                 lastB = mt.b
             } else if (i > first.a && lastB >= 0 && (isCountable(msgs[i]) || msgs[i].kind == Kind.DATE)) {
-                // mitten in der Ueberlappung ohne Gegenstueck: nach der zuletzt zugeordneten Zeile einfuegen
+                // in the middle of the overlap with no counterpart: insert after the last matched row
                 insertAfter.getOrPut(lastB) { ArrayList() }.add(msgs[i])
                 canon.add(msgs[i])
                 inserted++
@@ -110,12 +110,12 @@ class TranscriptMerger {
         return Result(older.size + inserted, canon, false, false, matches.size, completed, inserted, unmatched)
     }
 
-    /** Anzahl noch angeschnittener Nachrichten (nie in vollstaendiger Fassung gesehen). */
+    /** Number of messages still cut off (never seen in a complete version). */
     fun incompleteCount(): Int = collected.count { it.incomplete }
 
     /**
-     * Entfernt angeschnittene Nachrichten am aeltesten Ende, solange danach noch mindestens [minKeep]
-     * Nachrichten (Text, Bild, Sprache) uebrig sind. Gibt die Anzahl entfernter Eintraege zurueck.
+     * Removes cut-off messages at the oldest end, as long as at least [minKeep]
+     * messages (text, image, voice) remain afterwards. Returns the number of removed entries.
      */
     fun trimIncompleteHead(minKeep: Int): Int {
         var removed = 0
@@ -136,7 +136,7 @@ class TranscriptMerger {
 
         private fun norm(s: String): String = s.replace(Regex("\\s+"), " ").trim().trimEnd('…', '.', ' ')
 
-        /** true, wenn beide Zeilen dieselbe Nachricht sein koennen. Streng, solange keine Seite angeschnitten oder gekuerzt ist. */
+        /** True when both rows can be the same message. Strict, as long as neither side is cut off or truncated. */
         fun compatible(a: ChatMessage, b: ChatMessage): Boolean {
             if (a.kind == Kind.GAP || b.kind == Kind.GAP) return false
             val loose = a.incomplete || b.incomplete || a.truncated || b.truncated

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gemeinsame Funktionen fuer die Emulator-Regression (Box: 8 Kerne, 15 GB RAM, immer nur ein Emulator).
+# Shared functions for the emulator regression (box: 8 cores, 15 GB RAM, only one emulator at a time).
 export JAVA_HOME=${JAVA_HOME:-$HOME/tools/jdk-17.0.20.1+1}
 export ANDROID_HOME=${ANDROID_HOME:-$HOME/tools/android-sdk}
 export ANDROID_SDK_ROOT=$ANDROID_HOME
@@ -8,7 +8,7 @@ export ANDROID_AVD_HOME=${ANDROID_AVD_HOME:-$HOME/.android/avd}
 EMU_PORT=${EMU_PORT:-5554}
 SER=emulator-$EMU_PORT
 
-# api_name API -> Android-Version fuer den Bericht
+# api_name API -> Android version for the report
 android_name() { case $1 in 33) echo "Android 13";; 34) echo "Android 14";; 35) echo "Android 15";; 36) echo "Android 16";; *) echo "API $1";; esac; }
 
 create_avd() { # API
@@ -22,12 +22,12 @@ create_avd() { # API
 
 kvm_ok() { sudo -n -u "$USER" -g kvm test -w /dev/kvm; }
 
-# EMU_ACCEL=off (Standard auf der Box) oder on. BEFUND 0.2.9: /dev/kvm der Box meldet vmx, aber KVM_CREATE_VCPU endet im Kernel mit
-# "kernel BUG at arch/x86/kvm/x86.c:702 (kvm_spurious_fault)", jeder Versuch erzeugt einen Kernel-Oops. Deshalb Standard ohne KVM (TCG, langsam).
-# Mit on laeuft der Emulator unter Gruppe kvm (gid 103) und /dev/kvm. NICHT auf der Box verwenden, solange der Befund gilt.
+# EMU_ACCEL=off (default on the box) or on. Finding 0.2.9: /dev/kvm on the box reports vmx, but KVM_CREATE_VCPU ends in the kernel with
+# "kernel BUG at arch/x86/kvm/x86.c:702 (kvm_spurious_fault)", and every attempt produces a kernel oops. The default is therefore without KVM (TCG, slow).
+# With on, the emulator runs under group kvm (gid 103) and /dev/kvm. Do not use that on the box while this finding still holds.
 EMU_ACCEL=${EMU_ACCEL:-off}
 
-# start_emulator API -> druckt Startzeit in Sekunden (bis sys.boot_completed) auf stdout, Meldungen auf stderr
+# start_emulator API -> prints startup time in seconds (until sys.boot_completed) on stdout, messages on stderr
 start_emulator() {
   local api=$1 n=api$1 log=${EMU_LOG:-/tmp/emu-$1.log}
   stop_emulator
@@ -54,7 +54,7 @@ start_emulator() {
 stop_emulator() {
   timeout 10 adb -s $SER emu kill >/dev/null 2>&1 || true
   sleep 2
-  # Prozessnamen exakt (comm ist auf 15 Zeichen gekuerzt), damit pkill nie die eigene Shell trifft
+  # Exact process names (comm is truncated to 15 characters), so pkill never hits this shell
   pkill -9 -x qemu-system-x86 >/dev/null 2>&1 || true
   pkill -9 -x emulator >/dev/null 2>&1 || true
   sleep 1

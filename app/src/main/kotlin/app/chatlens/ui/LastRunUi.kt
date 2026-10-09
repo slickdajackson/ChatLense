@@ -27,7 +27,7 @@ import app.chatlens.agent.Phase
 import app.chatlens.data.AppSettings
 import app.chatlens.service.ChatAccessibilityService
 
-/** Zustand des schwebenden Punktes mit Hinweis und Knoepfen, falls er wegen fehlender Berechtigung nicht laeuft. */
+/** State of the floating dot, with a hint and buttons if it is not running because a permission is missing. */
 @Composable
 fun DotStatusSection(
     settings: AppSettings, overlayGranted: Boolean, onSettings: (AppSettings) -> Unit,
@@ -50,8 +50,8 @@ fun DotStatusSection(
 }
 
 /**
- * Letzter Lauf: Status mit Fortschrittsanzeige, NOTAUS, Ergebnis, Antwortentwuerfe, extrahierter Verlauf und gesendeter Prompt.
- * Frueher im Tab Analyse (Auftrag); der Lauf selbst startet jetzt ueber den Punkt, das Ergebnis erscheint hier.
+ * Last run: status with a progress display, NOTAUS, result, reply drafts, extracted history, and the prompt that was sent.
+ * Formerly on the Analysis tab (job section); the run itself now starts from the dot, and the result appears here.
  */
 @Composable
 fun LastRunSection(

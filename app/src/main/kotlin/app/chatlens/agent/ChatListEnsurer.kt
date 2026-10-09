@@ -4,15 +4,15 @@ import app.chatlens.core.UiNode
 import app.chatlens.parse.ChatListParser
 import app.chatlens.profile.SelectorProfile
 
-/** Erkennung der aktuellen WhatsApp-Ansicht fuer das reine Listenlesen. Reine Logik, in JVM-Tests pruefbar. */
+/** Recognizes the current WhatsApp screen for list-only reading. Pure logic, checkable in JVM tests. */
 object ListScreen {
     /**
-     * Reihenfolge der Entscheidung:
-     * 1. Editierbares Feld unten: CHAT (Nachrichtenfeld).
-     * 2. Editierbares Feld oben UND (Eingabefokus oder sichtbare Tastatur): SEARCH_ACTIVE. Ein ruhendes Suchfeld der Chatliste
-     *    (kein Fokus, keine Tastatur) zaehlt NICHT als aktive Suche (bis 0.2.2 war das der Fehler: Zurueck wurde auf der Liste gedrueckt).
-     * 3. Mindestens ein sichtbarer Knoten mit Namens- oder Container-ID oder mindestens zwei lesbare Zeilen: LIST.
-     * 4. Sonst OTHER (unbekannt; dann wird nie "Zurueck" gedrueckt und nichts angetippt).
+     * Decision order:
+     * 1. Editable field at the bottom: CHAT (message field).
+     * 2. Editable field at the top AND (input focus or a visible keyboard): SEARCH_ACTIVE. An idle search field on the chat list
+     *    (no focus, no keyboard) does NOT count as an active search (until 0.2.2 this was the bug: "Zurueck" was pressed on the list).
+     * 3. At least one visible node with a name or container id, or at least two readable rows: LIST.
+     * 4. Otherwise OTHER (unknown; then "Zurueck" is never pressed and nothing is tapped).
      */
     fun classify(root: UiNode?, profile: SelectorProfile, imeVisible: Boolean): ScreenState {
         if (root == null) return ScreenState.NOT_WHATSAPP
@@ -27,7 +27,7 @@ object ListScreen {
     }
 }
 
-/** Ergebnis der Tab-Leisten-Erkennung. */
+/** Result of tab bar recognition. */
 class TabInfo(val found: Boolean, val chatsSelected: Boolean, val selectedOther: String?)
 
 object TabBar {
@@ -37,7 +37,7 @@ object TabBar {
         return labels.firstOrNull { l.equals(it, true) || ((l.startsWith("$it,", true) || l.startsWith("$it ", true)) && l.length <= it.length + 30) }
     }
 
-    /** Sucht die untere Tab-Leiste (Knoten im unteren Bereich mit den Beschriftungen) und welcher Tab gewaehlt ist. */
+    /** Finds the bottom tab bar (nodes in the lower area that carry the labels) and which tab is selected. */
     fun read(root: UiNode, profile: SelectorProfile): TabInfo {
         val h = root.bounds.b.coerceAtLeast(1)
         var chatsFound = false
@@ -62,7 +62,7 @@ object TabBar {
     }
 }
 
-/** Was [ChatListEnsurer] vom Geraet braucht. Auf dem Geraet vom Navigator, in Tests ein Fake. */
+/** What [ChatListEnsurer] needs from the device. On the device this comes from the navigator, in tests a fake. */
 interface ListDevice {
     suspend fun ensureForeground()
     fun snapshot(): UiNode?
@@ -72,19 +72,19 @@ interface ListDevice {
     fun back(): Boolean
     suspend fun pause(ms: Long)
 
-    /** Schreibt den Debug-Baum (maskiert) und liefert den Dateinamen. */
+    /** Writes the debug tree (masked) and returns the file name. */
     fun dumpTree(): String?
     fun nav(msg: String)
 
-    /** Tippt den Tab Chats der unteren Leiste (per Knoten-Aktion, nicht per Koordinate). true, wenn die Aktion angenommen wurde. */
+    /** Taps the Chats tab of the bottom bar (by node action, not by coordinate). true when the action was accepted. */
     fun openChatsTab(): Boolean = false
 }
 
 /**
- * Bringt WhatsApp zur Chatliste. Die Liste wird an Knoten-IDs erkannt, nicht am Zustand "OTHER". "Zurueck" wird nur gedrueckt,
- * wenn ein Chat oder eine aktive Suche sicher erkannt ist (hoechstens [MAX_BACKS] mal). Nach jedem Zurueck wird geprueft, ob
- * WhatsApp noch vorn ist (sonst zaehlt es als Verlassen; bei [MAX_LEAVES] Abbruch, davor holt [ListDevice.ensureForeground] die App
- * zurueck). In der Liste selbst und bei unbekannter Ansicht wird nie "Zurueck" gedrueckt und nie etwas angetippt.
+ * Brings WhatsApp to the chat list. The list is recognized by node ids, not by the OTHER state. "Zurueck" is pressed only
+ * when a chat or an active search is recognized with confidence (at most [MAX_BACKS] times). After each back press, the code checks whether
+ * WhatsApp is still in front (otherwise it counts as leaving; at [MAX_LEAVES] the run aborts, and before that [ListDevice.ensureForeground] brings the app
+ * back). On the list itself and on an unknown screen, "Zurueck" is never pressed and nothing is ever tapped.
  */
 class ChatListEnsurer(private val dev: ListDevice, private val profile: SelectorProfile) {
     suspend fun run(log: (String) -> Unit) {
@@ -107,13 +107,13 @@ class ChatListEnsurer(private val dev: ListDevice, private val profile: Selector
             if (st != ScreenState.LIST) listSeen = 0
             when (st) {
                 ScreenState.LIST -> {
-                    // Zweimal hintereinander als Liste erkannt (Uebergangszustaende nach Zurueck ausschliessen)
+                    // Recognized as the list twice in a row (exclude transitional states after back)
                     if (++listSeen >= 2) return
                     dev.pause(450)
                 }
                 ScreenState.NOT_WHATSAPP, ScreenState.OTHER -> {
                     if (st == ScreenState.OTHER) {
-                        // Zuerst pruefen, ob nur der falsche Tab (Aktuelles, Communities, Anrufe) offen ist: dann gezielt den Tab Chats waehlen
+                        // First check whether only the wrong tab (Aktuelles, Communities, Anrufe) is open: then select the Chats tab specifically
                         val tabs = snap?.let { TabBar.read(it, profile) }
                         if (tabs != null && tabs.found && !tabs.chatsSelected && tabClicks < MAX_TAB_CLICKS) {
                             tabClicks++
@@ -123,7 +123,7 @@ class ChatListEnsurer(private val dev: ListDevice, private val profile: Selector
                             continue
                         }
                         unknown++
-                        // Ansicht evtl. noch im Aufbau: kurz warten und neu lesen. Nie Zurueck und nie Antippen.
+                        // The screen may still be building: wait briefly and read again. Never press back and never tap.
                         if (unknown >= UNKNOWN_LIMIT) {
                             fail(backs, "Chatliste nicht erkannt (keine Knoten mit den IDs ${profile.chatListMarkerIds.joinToString(", ") { it.substringAfter('/') }}, kein Chat, keine aktive Suche).", snap)
                         }
@@ -135,7 +135,7 @@ class ChatListEnsurer(private val dev: ListDevice, private val profile: Selector
                     log(if (st == ScreenState.CHAT) "In einem Chat: zurueck zur Chatliste." else "Suche ist aktiv: zurueck zur Chatliste.")
                     dev.back(); backs++
                     dev.pause(900)
-                    if (!dev.isForeground()) dev.pause(800) // Fensterwechsel evtl. noch im Gange
+                    if (!dev.isForeground()) dev.pause(800) // a window change may still be in progress
                     if (!dev.isForeground()) {
                         leaves++
                         dev.nav("WhatsApp nach Zurueck verlassen (${dev.describe()}), Zaehler $leaves von $MAX_LEAVES.")
@@ -149,7 +149,7 @@ class ChatListEnsurer(private val dev: ListDevice, private val profile: Selector
         fail(backs, "Chatliste nicht erreicht.", null)
     }
 
-    /** Schreibt den Debug-Baum (maskiert) in eine Datei und bricht mit klarer Meldung ab. Nichts wurde angetippt. */
+    /** Writes the debug tree (masked) to a file and aborts with a clear message. Nothing was tapped. */
     private fun fail(backs: Int, reason: String, snap: UiNode?): Nothing {
         val name = dev.dumpTree()
         val summary = snap?.let { s0 ->

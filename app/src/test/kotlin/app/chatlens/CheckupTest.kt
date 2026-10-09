@@ -31,7 +31,7 @@ class CheckupTest {
     private fun entry(i: Int, title: String = "Chat $i", time: String = "1${i % 10}:00", group: Boolean = false, pinned: Boolean = false, unread: Boolean = false) =
         ChatListEntry(title, "Vorschau $i", time, pinned, false, group, i, unread, if (unread) 2 else 0)
 
-    /** Fake-Geraet: eine Liste von Eintraegen, sichtbares Fenster von [win] Zeilen, Wischer schiebt um [swipeStep] Zeilen. */
+    /** Fake device: a list of entries, a visible window of [win] rows, and a swipe that shifts by [swipeStep] rows. */
     private class FakeList(
         val all: List<ChatListEntry>,
         val win: Int = 8,
@@ -70,7 +70,7 @@ class CheckupTest {
         assertEquals((0 until 50).toList(), r.entries.map { it.order })
         assertTrue(dev.prepared)
         assertEquals(0, r.gaps)
-        assertTrue(r.duplicates > 0) // Ueberlappung der Seiten wurde dedupliziert
+        assertTrue(r.duplicates > 0) // overlapping pages were deduplicated
         assertEquals(0, dev.actions)
     }
 
@@ -100,7 +100,7 @@ class CheckupTest {
     }
 
     @Test fun gapAfterSwipeIsDetectedAndFixedByPagewiseScrolling() = runBlocking {
-        // Wischer springt 12 Zeilen bei Fenster 8: keine Ueberlappung. Danach seitenweise (8).
+        // The swipe jumps 12 rows with a window of 8: no overlap. After that, page by page (8).
         val dev = FakeList(list(60), win = 8, swipeStep = 12, actionStep = 6)
         val r = CheckupScanner(dev).scan(40)
         assertTrue("Luecke erwartet", r.gaps >= 1)
@@ -150,7 +150,7 @@ class CheckupTest {
         assertEquals("Ma*** (10 Zeichen)", NameMask.short("Maximilian"))
     }
 
-    // ---------- Auswahl ----------
+    // ---------- Selection ----------
 
     private fun stored(sel: List<String>, known: List<String> = sel) = CheckupStored(1L, sel, known, known)
 
@@ -186,7 +186,7 @@ class CheckupTest {
         assertFalse("Chat 0" in titles)
         val all = CheckupSelection.quickPick(items, 10, includeGroups = true, pinnedCounts = true, now = now)
         assertEquals(10, all.count { it.selected })
-        // Schnellwahl ersetzt eine fruehere Auswahl
+        // Quick pick replaces an earlier selection
         val second = CheckupSelection.quickPick(all, 3, true, true, now)
         assertEquals(3, second.count { it.selected })
     }
@@ -239,7 +239,7 @@ class CheckupTest {
         assertEquals(st, CheckupCodec.fromJson(String(c.decrypt(blob), Charsets.UTF_8)))
     }
 
-    // ---------- Ungelesen und Gruppe im Parser ----------
+    // ---------- Unread and group in the parser ----------
 
     private val profile = SelectorProfile.parse(File("src/main/assets/profiles/whatsapp.json").readText())
     private val now = LocalDateTime.of(2026, 10, 3, 19, 0)
@@ -280,7 +280,7 @@ class CheckupTest {
         assertFalse(rows[0].entry.unread)
     }
 
-    // ---------- Quelltext-Wachen ----------
+    // ---------- Source guards ----------
 
     @Test fun checkupNeverOpensChatsAndSetupUsesSelection() {
         val nav = File("src/main/kotlin/app/chatlens/agent/WhatsAppNavigator.kt").readText()

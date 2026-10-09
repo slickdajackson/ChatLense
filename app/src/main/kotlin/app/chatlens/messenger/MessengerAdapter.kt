@@ -1,61 +1,61 @@
 package app.chatlens.messenger
 
 /**
- * Beschreibung eines Messengers (ab 0.3.0). Die Schnittstelle trennt, was je Messenger anders ist, von der gemeinsamen Mechanik
- * (Tippen, Scrollen, Sicherheit, Gedaechtnis). WhatsApp ist der einzige freigeschaltete Adapter; Signal und Telegram sind
- * Geruest mit Status [AdapterStatus.PREPARED] und lassen sich nicht aktivieren, solange sie nicht am Geraet kalibriert sind.
- * Siehe PLAN.md Abschnitt 26 und 27.
+ * Description of a messenger (from 0.3.0). The interface separates what differs per messenger from the shared mechanics
+ * (tapping, scrolling, safety, memory). WhatsApp is the only unlocked adapter. Signal and Telegram are
+ * scaffolding with status [AdapterStatus.PREPARED] and cannot be activated until they are calibrated on the device.
+ * See PLAN.md sections 26 and 27.
  */
 enum class AdapterStatus {
-    /** Gebaut, getestet, im Einsatz. */
+    /** Built, tested, in use. */
     ACTIVE,
 
-    /** Profil und Beschreibung liegen vor, aber nicht am Geraet kalibriert. Nicht aktivierbar. */
+    /** Profile and description exist, but it is not calibrated on the device. Cannot be activated. */
     PREPARED,
 }
 
-/** Wie Chatzeilen und Nachrichten aus dem Barrierefreiheitsbaum gelesen werden. */
+/** How chat rows and messages are read from the accessibility tree. */
 enum class ReadStrategy {
-    /** ueber Resource-IDs (WhatsApp, Signal). */
+    /** Via resource IDs (WhatsApp, Signal). */
     BY_IDS,
 
-    /** ueber zusammengesetzte Beschreibungstexte (Telegram: keine Resource-IDs, lokalisierter Text). */
+    /** Via composed description texts (Telegram: no resource IDs, localized text). */
     BY_DESCRIPTION,
 }
 
 enum class VoiceSourceKind {
-    /** Ordnerfreigabe (SAF) auf die Sprachnachrichten-Dateien. */
+    /** Folder grant (SAF) for the voice message files. */
     FOLDER_SAF,
 
-    /** Keine Datei zugaenglich; Sprachnachrichten erscheinen als Platzhalter mit Dauer. */
+    /** No file is accessible. Voice messages appear as placeholders with a duration. */
     NONE,
 }
 
 interface MessengerAdapter {
-    /** Stabile Kennung, auch Schluessel fuer Einstellungen und Gedaechtnisordner. */
+    /** Stable id, also the key for settings and the memory folder. */
     val id: String
     val displayName: String
 
-    /** Hauptpaket und bekannte Forks. Nur Pakete, die der Nutzer ausdruecklich freigibt, werden gelesen. */
+    /** Main package and known forks. Only packages the user explicitly allows are read. */
     val packages: List<String>
     val launchPackage: String
     val status: AdapterStatus
     val readStrategy: ReadStrategy
 
-    /** Asset-Datei des Selektorprofils. */
+    /** Asset file of the selector profile. */
     val profileAsset: String
     val voiceSource: VoiceSourceKind
 
-    /** Darf Text an einen API-Server gehen? Fuer Signal und geheime Chats nein (nur lokale Verarbeitung). */
+    /** May text go to an API server? For Signal and secret chats, no (local processing only). */
     val apiModeAllowed: Boolean
 
-    /** Hinweis fuer die Oberflaeche, warum der Adapter nicht verfuegbar ist (leer bei ACTIVE). */
+    /** Hint for the UI explaining why the adapter is unavailable (empty when ACTIVE). */
     val unavailableReason: String
 
-    /** Ansichten, die nie gelesen werden duerfen (z. B. Telegram: Geheimer Chat). Beschriftungen zum Erkennen, Kleinschreibung egal. */
+    /** Views that must never be read (for example Telegram: "Geheimer Chat"). Labels used for detection, case does not matter. */
     val protectedViewHints: List<String> get() = emptyList()
 
-    /** Ordnername des Gedaechtnisses. WhatsApp behaelt den bisherigen Ordner "memory" (keine Migration noetig). */
+    /** Memory folder name. WhatsApp keeps the existing folder "memory" (no migration needed). */
     val memoryDirName: String get() = if (id == WhatsAppAdapter.ID) "memory" else "memory-$id"
 }
 
@@ -74,8 +74,8 @@ object WhatsAppAdapter : MessengerAdapter {
 }
 
 /**
- * Signal: Resource-IDs stammen aus dem offenen Quelltext (v8.30.1), nicht aus einem Baumexport. Profil `profiles/signal.json` ist
- * eine Vorlage. Sprachnachrichten nur ueber die Oberflaeche. FLAG_SECURE blockiert Screenshots, nicht den Baum (Abschnitt 26.5).
+ * Signal: resource IDs come from the open source (v8.30.1), not from a tree export. Profile `profiles/signal.json` is
+ * a template. Voice messages are available through the UI only. FLAG_SECURE blocks screenshots, not the tree (section 26.5).
  */
 object SignalAdapter : MessengerAdapter {
     override val id = "signal"
@@ -90,7 +90,7 @@ object SignalAdapter : MessengerAdapter {
     override val unavailableReason = "In Vorbereitung: Das Profil ist nicht am Gerät kalibriert."
 }
 
-/** Telegram: keine Resource-IDs, Text aus Beschreibungen (Abschnitt 26.4). Geheime Chats sind fuer Bedienungshilfen ausgeblendet. */
+/** Telegram: no resource IDs, text comes from descriptions (section 26.4). Secret chats are hidden from accessibility services. */
 object TelegramAdapter : MessengerAdapter {
     override val id = "telegram"
     override val displayName = "Telegram"
@@ -105,7 +105,7 @@ object TelegramAdapter : MessengerAdapter {
     override val protectedViewHints = listOf("geheimer chat", "secret chat")
 }
 
-/** Verzeichnis der Adapter und Regeln, welche Pakete gelesen werden duerfen. Aenderungen am Bestand gehoeren in einen Test. */
+/** Registry of adapters and rules for which packages may be read. Changes to the set belong in a test. */
 object MessengerRegistry {
     val all: List<MessengerAdapter> = listOf(WhatsAppAdapter, SignalAdapter, TelegramAdapter)
 
@@ -113,19 +113,19 @@ object MessengerRegistry {
 
     fun byPackage(pkg: String): MessengerAdapter? = all.firstOrNull { pkg in it.packages }
 
-    /** Kennungen aus der Einstellung; unbekannte und nicht aktivierbare (PREPARED) fallen weg. WhatsApp ist die Rueckfallebene. */
+    /** Ids from the setting. Unknown ones and ones that cannot be activated (PREPARED) are dropped. WhatsApp is the fallback. */
     fun enabledIds(setting: String): Set<String> {
         val ids = setting.split(',').map { it.trim() }.filter { it.isNotEmpty() }
             .filter { id -> byId(id)?.status == AdapterStatus.ACTIVE }.toSet()
         return ids.ifEmpty { setOf(WhatsAppAdapter.ID) }
     }
 
-    /** Pakete, die gelesen werden duerfen. */
+    /** Packages that may be read. */
     fun enabledPackages(setting: String): Set<String> = enabledIds(setting).flatMap { byId(it)?.packages.orEmpty() }.toSet()
 
     fun isPackageAllowed(pkg: String?, setting: String): Boolean = pkg != null && pkg in enabledPackages(setting)
 
-    /** Neue Einstellung beim Umschalten; PREPARED-Adapter lassen sich nicht einschalten, WhatsApp nie ausschalten (letzter aktiver). */
+    /** New setting after a toggle. PREPARED adapters cannot be turned on, and WhatsApp can never be turned off (last active one). */
     fun toggled(setting: String, id: String, on: Boolean): String {
         val a = byId(id) ?: return setting
         val cur = enabledIds(setting).toMutableSet()

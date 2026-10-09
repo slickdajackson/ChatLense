@@ -83,9 +83,9 @@ private class OverlayOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelS
 }
 
 /**
- * Schwebender Punkt (Overlay) als Vordergrunddienst. Fenster: TYPE_APPLICATION_OVERLAY mit FLAG_NOT_FOCUSABLE, damit WhatsApp
- * das aktive Fenster bleibt und das Auslesen nicht gestoert wird. Der Punkt startet nur Auftraege, die der Nutzer antippt;
- * gesendet wird nie etwas. Unverifiziert auf dem Geraet (HyperOS kann Overlays einschraenken).
+ * Floating dot (overlay) as a foreground service. Window: TYPE_APPLICATION_OVERLAY with FLAG_NOT_FOCUSABLE, so WhatsApp
+ * stays the active window and reading is not disturbed. The dot starts only jobs the user taps;
+ * it never sends anything. Unverified on device (HyperOS can restrict overlays).
  */
 class OverlayService : Service() {
 
@@ -105,11 +105,11 @@ class OverlayService : Service() {
         super.onCreate()
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         owner.start()
-        // Waehrend des Lesens (Wischgesten laufen unter dem Overlay) sind Punkt und Panel beruehrungsdurchlaessig und halbtransparent
+        // While reading (swipes run under the overlay), the dot and panel let touches pass through and are semi-transparent
         scope.launch {
             AgentState.state.map { it.phase in READING_PHASES }.distinctUntilChanged().collect { setReadingMode(it) }
         }
-        // Prompt-Auswahl: waehrend sie offen ist, braucht das Panel Fokus fuer die Tastatur (sonst bleibt es nicht fokussierbar, damit WhatsApp die Eingabe behaelt)
+        // Prompt choice: while it is open, the panel needs focus for the keyboard (otherwise it stays non-focusable, so WhatsApp keeps the input)
         scope.launch {
             PromptChoiceBroker.pending.collect { req ->
                 if (req != null) {
@@ -124,8 +124,8 @@ class OverlayService : Service() {
     private var reading = false
 
     /**
-     * Lesemodus: FLAG_NOT_TOUCHABLE auf Punkt und Panel, damit eingespeiste Wischgesten und Tipper zu WhatsApp durchgehen und nicht im eigenen Fenster
-     * landen (das Panel liegt oben mittig, genau dort beginnen Wischgesten). Der Ring wird geschlossen. Abbruch waehrend des Lesens: Benachrichtigung NOTAUS.
+     * Read mode: FLAG_NOT_TOUCHABLE on the dot and panel, so injected swipes and taps pass through to WhatsApp and do not land
+     * in our own window (the panel sits at the top center, exactly where swipes start). The ring is closed. Cancel during reading: the NOTAUS notification.
      */
     private fun setReadingMode(on: Boolean) {
         reading = on
@@ -139,7 +139,7 @@ class OverlayService : Service() {
         AppLog.i("OVERLAY: Lesemodus ${if (on) "an (Punkt und Panel beruehrungsdurchlaessig)" else "aus"}.")
     }
 
-    /** Schaltet das Panelfenster fokussierbar (Tastatur) oder zurueck. Hypothese: auf HyperOS getestet noch nicht; Fallback ist der Dialog in der App. */
+    /** Makes the panel window focusable (keyboard) or switches it back. Hypothesis: not yet tested on HyperOS; the fallback is the dialog in the app. */
     private fun setPanelFocusable(on: Boolean) {
         val v = panelView ?: return
         val lp = v.layoutParams as? WindowManager.LayoutParams ?: return
@@ -150,7 +150,7 @@ class OverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            // Aktion "Punkt entfernen" in der Benachrichtigung: wie im Menue, aber ohne Abbruch eines Laufs (der laeuft im eigenen Dienst weiter)
+            // "Punkt entfernen" action in the notification: same as in the menu, but without canceling a run (that continues in its own service)
             removeDot(OverlayRemoval.MSG_REMOVED)
             return START_NOT_STICKY
         }
@@ -194,7 +194,7 @@ class OverlayService : Service() {
         v.setViewTreeViewModelStoreOwner(owner)
     }
 
-    /** Sichtbarer Bereich ohne Systemleisten. */
+    /** Visible area without system bars. */
     private fun area(): OverlayGeometry.Area {
         val dm = resources.displayMetrics
         if (Build.VERSION.SDK_INT >= 30) {
@@ -210,7 +210,7 @@ class OverlayService : Service() {
     private var dotX = 0
     private var dotY = 0
 
-    /** Setzt den Punkt aus der gemerkten Seite und dem Hoehenanteil (Start, Drehung). */
+    /** Places the dot from the remembered side and height fraction (start, rotation). */
     private fun placeFromSaved() {
         val lp = dotLp ?: return
         val s = SettingsRepo(this).load()
@@ -234,7 +234,7 @@ class OverlayService : Service() {
         dotView?.let { runCatching { wm.updateViewLayout(it, lp) } }
     }
 
-    /** Nach dem Loslassen: am naechsten Rand einrasten (kurze Animation) und Seite samt Hoehenanteil merken. */
+    /** After release: snap to the nearest edge (a short animation) and remember the side together with the height fraction. */
     private fun snapAndSave() {
         val lp = dotLp ?: return
         val a = area()
@@ -255,7 +255,7 @@ class OverlayService : Service() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
-        // Drehung, Faltgeraet, Splitscreen: Position neu aus Seite und Hoehenanteil berechnen und begrenzen
+        // Rotation, foldable, split screen: recompute the position from the side and the height fraction, and clamp it
         if (dotView != null) placeFromSaved()
     }
 
@@ -285,12 +285,12 @@ class OverlayService : Service() {
         if (reading) setReadingMode(true)
     }
 
-    /** Ring auf- oder zuklappen: das Fenster waechst um den Punkt herum, damit der Punkt an seiner Stelle bleibt. */
+    /** Expand or collapse the ring: the window grows around the dot so the dot stays in place. */
     private fun applyExpanded(e: Boolean) {
         if (e == expanded) return
         val lp = dotLp ?: return
         expanded = e
-        // Ring am Rand: das Fenster rueckt nach innen, der Punkt wandert mit (siehe OverlayGeometry.ringOrigin); beim Schliessen kehrt der Punkt zurueck
+        // Ring at the edge: the window shifts inward and the dot moves with it (see OverlayGeometry.ringOrigin); on close the dot returns
         applyPosition(lp)
     }
 
@@ -301,18 +301,18 @@ class OverlayService : Service() {
             RingAction.ANALYSE -> startForOpenChat(TaskMode.ANALYSE)
             RingAction.SUGGEST -> startForOpenChat(TaskMode.SUGGEST)
             RingAction.ADVISE -> {
-                // Das gewuenschte Ergebnis muss der Nutzer in der App eintragen; ohne Ziel gibt es keinen Rat.
+                // The user has to enter the desired result in the app; without a goal there is no advice.
                 if (s.lastGoal.isBlank()) { toast("Berater braucht ein Ziel. Bitte in den Einstellungen unter Aufträge eintragen.", true); openApp(TAB_SETTINGS, null) } else startForOpenChat(TaskMode.ADVISE)
             }
             RingAction.AUTO -> openApp(TAB_AUTO, null)
-            // Selbstanalyse ist eine Mehr-Chat-Aufgabe: sie braucht den Checkup und wird deshalb auf der Startseite gewaehlt
+            // Self-analysis is a multi-chat task: it needs the checkup and is therefore chosen on the start page
             RingAction.SELF -> openApp(TAB_START, null)
             RingAction.SETTINGS -> openApp(TAB_SETTINGS, null)
             RingAction.REMOVE -> onRemove()
         }
     }
 
-    /** "Entfernen": laeuft ein Auftrag, erst warnen (Toast), beim zweiten Tipp abbrechen und entfernen. */
+    /** "Entfernen": if a job is running, warn first (a toast), then on the second tap cancel and remove. */
     private fun onRemove() {
         val now = System.currentTimeMillis()
         val running = AgentController.isRunning()
@@ -334,7 +334,7 @@ class OverlayService : Service() {
         android.widget.Toast.makeText(applicationContext, msg, if (long) android.widget.Toast.LENGTH_LONG else android.widget.Toast.LENGTH_SHORT).show()
     }
 
-    /** Punkt und Dienst beenden, Schalter in den Einstellungen speichern (aus), offene App benachrichtigen. */
+    /** Stop the dot and the service, save the switch in settings (off), and notify the open app. */
     private fun removeDot(msg: String) {
         val repo = SettingsRepo(this)
         runCatching { repo.save(repo.load().copy(overlayEnabled = false)) }
@@ -366,7 +366,7 @@ class OverlayService : Service() {
         }
         val cfg = ScrollRunConfig(
             chatTitle = "", chatAlreadyOpen = true, scrollCount = s.lastScrollCount, instruction = s.lastInstruction,
-            // Analysieren liest den gerade offenen Chat bis zur Zielmenge, danach die Auswahl "wie immer" oder eigener Prompt
+            // Analyse reads the chat that is currently open, up to the target amount, then the choice "wie immer" or a custom prompt
             stopMode = if (task == TaskMode.ANALYSE) StopMode.TARGET else s.lastStopMode,
             targetMessages = s.lastTargetMessages.coerceIn(1, 5000),
             task = task, goal = s.lastGoal.trim(), useMemory = true, askPrompt = task == TaskMode.ANALYSE,
@@ -445,10 +445,10 @@ class OverlayService : Service() {
     }
 
     companion object {
-        /** Phasen, in denen Wischgesten und Tipper laufen: Overlay ist dann beruehrungsdurchlaessig. */
+        /** Phases in which swipes and taps run: the overlay then lets touches pass through. */
         val READING_PHASES = setOf(Phase.NAVIGATING, Phase.SCROLLING, Phase.CAPTURING)
 
-        /** Hoechstanteil der Bildschirmhoehe fuer das Panel; darueber scrollt der Inhalt. */
+        /** Maximum fraction of the screen height for the panel; above that, the content scrolls. */
         const val PANEL_MAX_FRACTION = 0.6
         const val ACTION_STOP = "app.chatlens.OVERLAY_STOP"
         const val CH = "overlay"

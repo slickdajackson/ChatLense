@@ -1,8 +1,8 @@
 package app.chatlens.agent
 
 /**
- * Verstaendliche Fehlertexte fuer die Oberflaeche (0.3.0, N3). Die technische Meldung steht weiter im Protokoll (AppLog), nicht mehr im Panel
- * oder in der Benachrichtigung. Reine Logik, ohne Android.
+ * Readable error text for the UI (0.3.0, N3). The technical message stays in the log (AppLog), and no longer appears in the panel
+ * or in the notification. Pure logic, no Android.
  */
 object ErrorText {
     fun friendly(e: Throwable): String = when (e) {

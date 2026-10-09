@@ -2,7 +2,7 @@ package app.chatlens.agent
 
 import app.chatlens.service.ChatAccessibilityService
 
-/** Speist den [ForegroundGuard] vom Bedienungshilfe-Dienst. */
+/** Feeds [ForegroundGuard] from the accessibility service. */
 class ServiceForegroundProbe(private val svc: ChatAccessibilityService, private val launchPackage: String) : ForegroundProbe {
     override fun rootPackage(): String? = svc.foregroundPackage()
     override fun eventPackage(): String? = svc.lastEventPackage

@@ -3,8 +3,8 @@ package app.chatlens.models
 import android.content.Context
 
 /**
- * Auf diesem Geraet gemessene Laufzeit eines lokalen Modells (getrennt von unserer Einschaetzung). Je Modelldatei: Anzahl Laeufe, Mittel in Sekunden
- * je 1000 Zeichen Eingabe und der letzte Lauf. Die Zeit zaehlt ohne das Laden des Modells. Gespeichert werden nur Zahlen, keine Inhalte.
+ * Runtime of a local model measured on this device (separate from our estimate). Per model file: number of runs, mean in seconds
+ * per 1000 characters of input, and the last run. The time excludes loading the model. Only numbers are stored, no contents.
  */
 data class Measured(val runs: Int, val avgSecPer1k: Double, val lastSeconds: Double, val lastChars: Int)
 

@@ -6,7 +6,7 @@ import app.chatlens.memory.IchProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Das Ich-Profil im Speicher (fuer die Oberflaeche und die Prompts) und verschluesselt auf dem Geraet. */
+/** The Ich profile in memory (for the UI and the prompts) and encrypted on the device. */
 object IchState {
     private val _p = MutableStateFlow(IchProfile())
     val profile: StateFlow<IchProfile> = _p

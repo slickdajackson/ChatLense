@@ -1,6 +1,6 @@
 package app.chatlens.llm
 
-/** Bild fuer Vision-Modelle (JPEG-Bytes). */
+/** Image for vision models (JPEG bytes). */
 class LlmImage(val label: String, val jpeg: ByteArray)
 
 class LlmRequest(
@@ -13,16 +13,16 @@ class LlmResult(val text: String, val info: String)
 
 class LlmException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/** Abstraktion fuer alle Modelle. Implementierungen: OpenAiCompatBackend (API), LiteRtLmBackend (lokal). */
+/** Abstraction for all models. Implementations: OpenAiCompatBackend (API), LiteRtLmBackend (local). */
 interface LlmBackend {
-    /** Kurzname fuer Logs und UI. */
+    /** Short name for logs and the UI. */
     val name: String
 
-    /** Verlaesst der Chatinhalt das Geraet? Wird in der UI angezeigt. */
+    /** Does the chat content leave the device? Shown in the UI. */
     val sendsDataOffDevice: Boolean
 
     val supportsImages: Boolean
 
-    /** Blockiert nicht den Main-Thread; abbrechbar durch Coroutine-Cancellation. */
+    /** Does not block the main thread. Cancellable through coroutine cancellation. */
     suspend fun generate(request: LlmRequest): LlmResult
 }

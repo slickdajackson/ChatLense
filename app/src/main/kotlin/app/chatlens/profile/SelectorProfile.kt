@@ -3,7 +3,7 @@ package app.chatlens.profile
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Austauschbares Selektor-Profil (assets/profiles/whatsapp.json oder Datei im App-Speicher). */
+/** Replaceable selector profile (assets/profiles/whatsapp.json or a file in app storage). */
 enum class SectionKind { CHATS, DENIED, OTHER }
 
 class SelectorProfile(
@@ -33,44 +33,44 @@ class SelectorProfile(
     val imageMinHeightDp: Int,
     val directionToleranceDp: Int,
     val denyClickIdSubstrings: List<String>,
-    /** Ueberschriften der Suchtreffer-Abschnitte (Kleinschreibung egal). Nur Abschnitt "chats" darf gewaehlt werden. */
+    /** Headings of the search-result sections (case does not matter). Only the "chats" section may be chosen. */
     val searchSectionsChats: List<String> = DEFAULT_CHATS,
     val searchSectionsDenied: List<String> = DEFAULT_DENIED,
     val searchSectionsOther: List<String> = DEFAULT_OTHER,
-    /** Wenn im Baum gar keine bekannte Abschnittsueberschrift steht, trotzdem exakten Titeltreffer erlauben. */
+    /** If the tree contains no known section heading at all, still allow an exact title hit. */
     val searchFallbackWithoutHeaders: Boolean = true,
-    /** Texte des "Mehr lesen"-Links langer Nachrichten (Kleinschreibung egal, fuehrende Auslassungspunkte egal). */
+    /** Texts of the "Mehr lesen" link on long messages (case does not matter, leading ellipsis does not matter). */
     val readMoreTexts: List<String> = DEFAULT_READ_MORE,
-    /** Regex-Muster fuer den Systemhinweis am Chatanfang (Verschluesselungshinweis). */
+    /** Regex patterns for the system notice at the start of a chat (encryption notice). */
     val chatStartPatterns: List<String> = DEFAULT_CHAT_START,
-    /** Regex-Muster fuer Ladehinweise ("Aeltere Nachrichten werden geladen" o. ae.). Nur kurze Texte werden geprueft. */
+    /** Regex patterns for loading hints ("Aeltere Nachrichten werden geladen" and similar). Only short texts are checked. */
     val loadingHintPatterns: List<String> = DEFAULT_LOADING,
-    /** Beschreibungen des Senden-Knopfs (nur fuer den experimentellen, standardmaessig deaktivierten Sender). */
+    /** Descriptions of the send button (only for the experimental sender, which is off by default). */
     val sendButtonDescriptions: List<String> = listOf("Senden", "Send"),
-    /** IDs des Zeilen-Containers der Chatliste (zusammen mit [chatListRowNameIds] das Erkennungsmerkmal "Das ist die Chatliste"). */
+    /** Ids of the chat-list row container (together with [chatListRowNameIds], the sign that this is the chat list). */
     val chatListRowContainerIds: List<String> = DEFAULT_ROW_CONTAINERS,
-    /** Beschriftung des Tabs Chats in der unteren Leiste und der anderen Tabs. Nur Knoten im unteren Bildschirmbereich zaehlen. */
+    /** Label of the Chats tab in the bottom bar, and of the other tabs. Only nodes in the lower part of the screen count. */
     val tabLabelsChats: List<String> = DEFAULT_TAB_CHATS,
     val tabLabelsOther: List<String> = DEFAULT_TAB_OTHER,
     val tabBarTopFraction: Double = 0.75,
-    /** IDs des Badges "ungelesene Nachrichten" in einer Chatzeile (nur fuer den Checkup, Hinweis, nicht belegt). */
+    /** Ids of the "ungelesene Nachrichten" badge in a chat row (for the checkup only, a hint, not proven). */
     val chatListUnreadIds: List<String> = DEFAULT_UNREAD_IDS,
 ) {
-    /** Alle IDs, an denen man die Chatliste erkennt. */
+    /** All ids by which the chat list is recognized. */
     val chatListMarkerIds: Set<String> = (chatListRowNameIds + chatListRowContainerIds).toSet()
 
     private val loadingRegexes = loadingHintPatterns.map { Regex(it) }
 
-    /** true, wenn der Text wie ein Ladehinweis aussieht (kurzer Text, damit lange Chattexte nicht zaehlen). */
+    /** True when the text looks like a loading hint (short text, so long chat texts do not count). */
     fun isLoadingHint(text: String): Boolean = text.length <= 80 && loadingRegexes.any { it.containsMatchIn(text) }
 
     private val readMoreSet = readMoreTexts.map { it.trim().lowercase() }.toSet()
     private val chatStartRegexes = chatStartPatterns.map { Regex(it) }
 
-    /** true, wenn der Text nur aus dem "Mehr lesen"-Link besteht. */
+    /** True when the text consists only of the "Mehr lesen" link. */
     fun isReadMore(text: String): Boolean = stripEllipsis(text.trim().lowercase()) in readMoreSet
 
-    /** Liefert den Text ohne angehaengten "Mehr lesen"-Link, oder null, wenn keiner am Ende steht. */
+    /** Returns the text without a trailing "Mehr lesen" link, or null when none is at the end. */
     fun stripReadMoreSuffix(text: String): String? {
         val t = text.trimEnd()
         val low = t.lowercase()
@@ -91,7 +91,7 @@ class SelectorProfile(
     private val deniedSet = searchSectionsDenied.map(::norm).toSet()
     private val otherSet = searchSectionsOther.map(::norm).toSet()
 
-    /** Art der Abschnittsueberschrift oder null, wenn der Text keine bekannte Ueberschrift ist. */
+    /** Kind of section heading, or null when the text is not a known heading. */
     fun sectionKindOf(text: String?): SectionKind? {
         if (text == null) return null
         val t = norm(text)

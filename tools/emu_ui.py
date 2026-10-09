@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Emulator-Regression fuer ChatLens: Szenarien gegen die Attrappe FakeWA (com.chatlens.fakewa).
+"""Emulator regression for ChatLens: scenarios against the FakeWA stand-in (com.chatlens.fakewa).
 
-Aufruf: emu_ui.py --api 34 --out DIR --chatlens APK --fakewa APK [--only S1,S2]
-Jedes Szenario liefert ein Ergebnis mit Status (BESTANDEN, FEHLER, UEBERSPRUNGEN) und Beleg. Bildschirmfotos landen in DIR/shots.
-Alles hier ist Emulator-Beleg: kein HyperOS, kein echtes WhatsApp.
+Usage: emu_ui.py --api 34 --out DIR --chatlens APK --fakewa APK [--only S1,S2]
+Each scenario returns a result with a status (BESTANDEN, FEHLER, UEBERSPRUNGEN) and evidence. Screenshots land in DIR/shots.
+Everything here is emulator evidence: no HyperOS, no real WhatsApp.
 """
 import argparse, os, re, subprocess, sys, time, traceback, threading, json
 import xml.etree.ElementTree as ET
@@ -127,7 +127,7 @@ def crashes():
 def clear_logcat(): sh("logcat -c")
 
 
-# ---------------- Mock-API (OpenAI-kompatibel) ----------------
+# ---------------- Mock API (OpenAI compatible) ----------------
 class Mock(BaseHTTPRequestHandler):
     calls = 0
 
@@ -147,7 +147,7 @@ def start_mock(port=8099):
     return srv
 
 
-# ---------------- Ergebnisse ----------------
+# ---------------- Results ----------------
 class Report:
     def __init__(self): self.rows = []
 
@@ -166,7 +166,7 @@ def prefs_xml(d):
 
 
 def seed_prefs(d):
-    """Schreibt shared_prefs/chatlens.xml der Debug-App (run-as) und startet die App neu."""
+    """Writes shared_prefs/chatlens.xml for the debug app (run-as) and restarts the app."""
     adb("shell", "am", "force-stop", CL)
     xml = prefs_xml(d)
     open("/tmp/chatlens.xml", "w").write(xml)
@@ -175,7 +175,7 @@ def seed_prefs(d):
 
 
 def push_profile():
-    """Profil mit dem Paket der Attrappe: alle IDs com.whatsapp:id/ werden zu com.chatlens.fakewa:id/."""
+    """Profile using the stand-in package: every id com.whatsapp:id/ becomes com.chatlens.fakewa:id/."""
     here = os.path.dirname(os.path.abspath(__file__))
     src = os.path.join(here, "..", "app", "src", "main", "assets", "profiles", "whatsapp.json")
     j = open(src, encoding="utf-8").read().replace("com.whatsapp", FW)
@@ -198,7 +198,7 @@ def a11y_connected():
 
 
 def wait_a11y(timeout=120):
-    """Unter TCG bindet der Dienst erst nach Sekunden bis Minuten; bei verlorener Einstellung erneut setzen."""
+    """Under TCG the service binds only after seconds or minutes; if the setting is lost, set it again."""
     end = time.time() + timeout
     while time.time() < end:
         if a11y_connected(): return True
@@ -233,26 +233,26 @@ def launch_cl():
     wait_top(CL, 40)
 
 
-# ---------------- Szenarien ----------------
+# ---------------- Scenarios ----------------
 def s1_install(rp, a):
     have_cl = "versionCode=15" in sh(f"dumpsys package {CL} | grep versionCode")
     have_fw = FW in sh("pm list packages " + FW)
     if have_cl and have_fw and os.environ.get("REUSE_INSTALL"):
-        out = out2 = "Success (vorhanden, REUSE_INSTALL)"
+        out = out2 = "Success (already present, REUSE_INSTALL)"
     else:
         out = adb("install", "-r", "-g", a.chatlens, timeout=900)
         out2 = adb("install", "-r", "-g", a.fakewa, timeout=600)
     ok_cl = "Success" in out
     ok_fw = "Success" in out2
     abis = sh("getprop ro.product.cpu.abilist").strip()
-    rp.add("S1", "Installation von ChatLens und FakeWA", "BESTANDEN" if ok_cl and ok_fw else "FEHLER",
-           f"ChatLens: {out.strip()[:120]}; FakeWA: {out2.strip()[:120]}; ABI-Liste des Images: {abis}")
+    rp.add("S1", "Install ChatLens and FakeWA", "BESTANDEN" if ok_cl and ok_fw else "FEHLER",
+           f"ChatLens: {out.strip()[:120]}; FakeWA: {out2.strip()[:120]}; image ABI list: {abis}")
     if not (ok_cl and ok_fw): return False
     fresh_state()
     ok = wait_a11y(150)
     ov = "allow" in sh(f"appops get {CL} SYSTEM_ALERT_WINDOW")
-    rp.add("S1b", "Bedienungshilfe und Overlay-Recht per adb gesetzt", "BESTANDEN" if ok and ov else "FEHLER",
-           f"Dienst gebunden: {ok}; SYSTEM_ALERT_WINDOW erlaubt: {ov}")
+    rp.add("S1b", "Accessibility and overlay permission set via adb", "BESTANDEN" if ok and ov else "FEHLER",
+           f"service bound: {ok}; SYSTEM_ALERT_WINDOW allowed: {ov}")
     return True
 
 
@@ -265,35 +265,35 @@ def s2_wizard_checkup(rp, a):
     n = wait_text("Willkommen", 90)
     s0 = shot("s2-1-willkommen")
     if not n:
-        rp.add(sid, "Assistent erscheint beim ersten Start", "FEHLER", "Seite Willkommen nicht gefunden", shots=[s0]); return
-    rp.add(sid + "a", "Assistent erscheint beim ersten Start", "BESTANDEN", "Willkommen sichtbar, 1 von 6", shots=[s0])
-    # kein WhatsApp ohne Tipp
+        rp.add(sid, "Wizard appears on first start", "FEHLER", "Welcome page not found", shots=[s0]); return
+    rp.add(sid + "a", "Wizard appears on first start", "BESTANDEN", "Welcome visible, 1 of 6", shots=[s0])
+    # no WhatsApp without a tap
     wa_front = top_activity() == FW
-    rp.add(sid + "b", "Beim Start oeffnet sich keine WhatsApp-Attrappe", "BESTANDEN" if not wa_front else "FEHLER", f"Vordergrund: {top_activity()}")
-    # Weiter ohne Zustimmung gesperrt
+    rp.add(sid + "b", "Startup does not open the WhatsApp stand-in", "BESTANDEN" if not wa_front else "FEHLER", f"foreground: {top_activity()}")
+    # Next is blocked without consent
     nodes = dump(); w = find(nodes, text="Weiter")
-    rp.add(sid + "c", "Weiter ohne Zustimmung gesperrt", "BESTANDEN" if (w and not w.clickable) or (w and True) else "FEHLER", f"Weiter-Knopf gefunden: {bool(w)} (Sperre pruefen die Unit-Tests; hier nur sichtbar)", kind="TEILBELEG")
+    rp.add(sid + "c", "Next is blocked without consent", "BESTANDEN" if (w and not w.clickable) or (w and True) else "FEHLER", f"Next button found: {bool(w)} (unit tests check the lock; here it is only visible)", kind="TEILBELEG")
     tap_text("Ich habe das gelesen"); time.sleep(1)
     tap_text("Weiter"); time.sleep(2)
     p2 = wait_text("Bedienungshilfe", 20)
-    rp.add(sid + "d", "Seite 2 zeigt erteilte Bedienungshilfe", "BESTANDEN" if p2 and find(dump(), text="Eingeschaltet") else "FEHLER", "Text Eingeschaltet", shots=[shot("s2-2-bedienungshilfe")])
+    rp.add(sid + "d", "Page 2 shows that accessibility is granted", "BESTANDEN" if p2 and find(dump(), text="Eingeschaltet") else "FEHLER", "text Eingeschaltet", shots=[shot("s2-2-bedienungshilfe")])
     tap_text("Weiter"); time.sleep(2)
     p3 = find(dump(), text="Erlaubt")
-    rp.add(sid + "e", "Seite 3 zeigt erteiltes Overlay-Recht", "BESTANDEN" if p3 else "FEHLER", "Text Erlaubt", shots=[shot("s2-3-overlay")])
+    rp.add(sid + "e", "Page 3 shows that the overlay permission is granted", "BESTANDEN" if p3 else "FEHLER", "text Erlaubt", shots=[shot("s2-3-overlay")])
     tap_text("Weiter"); time.sleep(2)
     shot("s2-4-modell")
     tap_text("Später"); time.sleep(2)
     n5 = find(dump(), text="Chats einlesen")
     still_cl = top_activity() == CL
-    rp.add(sid + "f", "Auf Seite 5 ist WhatsApp noch nicht geoeffnet", "BESTANDEN" if n5 and still_cl else "FEHLER", f"Vordergrund {top_activity()}", shots=[shot("s2-5-checkup")])
+    rp.add(sid + "f", "On page 5 WhatsApp is still not open", "BESTANDEN" if n5 and still_cl else "FEHLER", f"foreground {top_activity()}", shots=[shot("s2-5-checkup")])
     tap_text("Chats einlesen", sub=False); time.sleep(2)
     ans = find(dump(), text="Gleich öffnet sich WhatsApp")
-    rp.add(sid + "g", "Ansage erscheint, WhatsApp bleibt zu", "BESTANDEN" if ans and top_activity() == CL else "FEHLER", f"Ansage sichtbar: {bool(ans)}; Vordergrund {top_activity()}", shots=[shot("s2-6-ansage")])
+    rp.add(sid + "g", "The announcement appears and WhatsApp stays closed", "BESTANDEN" if ans and top_activity() == CL else "FEHLER", f"announcement visible: {bool(ans)}; foreground {top_activity()}", shots=[shot("s2-6-ansage")])
     t0 = time.time()
     tap_text("WhatsApp öffnen und lesen")
     seen_fw = wait_top(FW, 60)
-    rp.add(sid + "h", "Erst der zweite Tipp oeffnet die Attrappe", "BESTANDEN" if seen_fw else "FEHLER", f"Attrappe vorn nach {time.time()-t0:.0f} s: {seen_fw}")
-    # Checkup abwarten: ChatLens-Benachrichtigung oder Ende per Log
+    rp.add(sid + "h", "Only the second tap opens the stand-in", "BESTANDEN" if seen_fw else "FEHLER", f"stand-in in front after {time.time()-t0:.0f} s: {seen_fw}")
+    # Wait for the checkup: a ChatLens notification, or the end in the log
     done = False
     for _ in range(120):
         lg = sh("logcat -d -s ChatLens:I | grep -i 'CHECKUP' | tail -3")
@@ -307,18 +307,18 @@ def s2_wizard_checkup(rp, a):
     txt = m.text if m else ""
     mm = re.search(r"(\d+) von (\d+) Chats gewählt", txt)
     rows = int(mm.group(2)) if mm else 0
-    rp.add(sid + "i", "Checkup liest 50 Chats durch Scrollen", "BESTANDEN" if rows >= 50 else "FEHLER",
-           f"Anzeige: '{txt}'; Ende im Log erkannt: {done}", shots=[shot("s2-8-auswahl")])
-    # Hinweis: Chatlist der Attrappe hat 200 Chats, ChatLens liest die obersten X
+    rp.add(sid + "i", "Checkup reads 50 chats by scrolling", "BESTANDEN" if rows >= 50 else "FEHLER",
+           f"display: '{txt}'; end seen in the log: {done}", shots=[shot("s2-8-auswahl")])
+    # Note: the stand-in chat list has 200 chats; ChatLens reads the top X
 
 
 def s3_scroll_log(rp, a):
     lg = sh("logcat -d | grep -E 'ChatLens' | grep -iE 'Liste:|SCROLL|Checkup|CHECKUP' | tail -15")
-    rp.add("S3", "Log des Checkups (Auszug, letzte 15 Zeilen)", "INFO", lg.strip()[:1500] or "keine Zeilen unter dem Tag ChatLens", kind="BELEG")
+    rp.add("S3", "Checkup log (excerpt, last 15 lines)", "INFO", lg.strip()[:1500] or "no lines under the ChatLens tag", kind="BELEG")
 
 
 def s4_setup_search(rp, a):
-    """Einzelchat per Namen mit Suche (Mock-API als Modell)."""
+    """A single chat by name, using search (mock API as the model)."""
     srv = start_mock()
     seed_prefs({
         "backend": "API", "apiBaseUrl": "http://10.0.2.2:8099/v1", "apiModel": "mock", "privacyAcknowledged": True, "wizardDone": True, "wizardStep": "DONE",
@@ -327,12 +327,12 @@ def s4_setup_search(rp, a):
     clear_logcat()
     launch_cl(); time.sleep(4)
     shot("s4-1-start")
-    rp.add("S4", "Mock-Modell eingetragen, App startet ohne Assistent", "BESTANDEN" if not find(dump(), text="Willkommen") else "FEHLER", "Startseite statt Assistent", shots=["shots/s4-1-start.png"])
+    rp.add("S4", "Mock model configured, app starts without the wizard", "BESTANDEN" if not find(dump(), text="Willkommen") else "FEHLER", "home screen instead of the wizard", shots=["shots/s4-1-start.png"])
     srv.shutdown()
 
 
 def s5_provoke(rp, a):
-    """Chat offen, Wisch von oben, Benachrichtigungsleiste, Heads-up: App darf nicht abstuerzen, ChatLens muss ruhig bleiben."""
+    """Chat open, swipe from the top, notification shade, heads-up: the app must not crash, and ChatLens must stay quiet."""
     sh(f"am start -n {FW}/.HomeActivity")
     wait_top(FW, 20)
     clear_logcat()
@@ -343,7 +343,7 @@ def s5_provoke(rp, a):
     s2 = shot("s5-2-leiste")
     sh("cmd statusbar collapse"); time.sleep(1)
     cr, anr = crashes()
-    rp.add("S5", "Heads-up und Leiste provoziert, kein Absturz", "BESTANDEN" if not cr and not anr else "FEHLER", f"Absturzpuffer: {len(cr)} Zeichen; ANR: {len(anr)} Zeichen", shots=[s, s2])
+    rp.add("S5", "Heads-up and shade provoked, no crash", "BESTANDEN" if not cr and not anr else "FEHLER", f"crash buffer: {len(cr)} characters; ANR: {len(anr)} characters", shots=[s, s2])
 
 
 def s6_overlay(rp, a):
@@ -353,14 +353,14 @@ def s6_overlay(rp, a):
     win = sh("dumpsys window windows | grep -c 'app.chatlens'")
     ov = sh("dumpsys window | grep -iE 'TYPE_APPLICATION_OVERLAY|ApplicationOverlay' | head -3")
     s = shot("s6-1-punkt")
-    rp.add("S6", "Overlay-Punkt erscheint nach Einschalten", "BESTANDEN" if "app.chatlens" in sh("dumpsys window windows | grep -i 'Window{' | grep -i chatlens | head -5") else "UNKLAR",
-           f"Fenster mit app.chatlens: {win.strip()}; Overlay-Zeilen: {ov.strip()[:200]}", shots=[s])
+    rp.add("S6", "Overlay dot appears after it is turned on", "BESTANDEN" if "app.chatlens" in sh("dumpsys window windows | grep -i 'Window{' | grep -i chatlens | head -5") else "UNKLAR",
+           f"windows with app.chatlens: {win.strip()}; overlay lines: {ov.strip()[:200]}", shots=[s])
 
 
 def s7_health(rp, a):
     cr, anr = crashes()
-    rp.add("S7", "Abstuerze und ANR im ganzen Lauf", "BESTANDEN" if not cr and not anr else "FEHLER",
-           f"Absturzpuffer: {'leer' if not cr else cr[:600]}; ANR: {'keine' if not anr else anr[:300]}")
+    rp.add("S7", "Crashes and ANRs across the whole run", "BESTANDEN" if not cr and not anr else "FEHLER",
+           f"crash buffer: {'empty' if not cr else cr[:600]}; ANR: {'none' if not anr else anr[:300]}")
 
 
 ALL = [("S1", s1_install), ("S2", s2_wizard_checkup), ("S3", s3_scroll_log), ("S4", s4_setup_search), ("S5", s5_provoke), ("S6", s6_overlay), ("S7", s7_health)]
@@ -382,7 +382,7 @@ def main():
             if fn(rp, a) is False and sid == "S1":
                 break
         except Exception as e:
-            rp.add(sid, fn.__name__, "FEHLER", "Ausnahme: " + "".join(traceback.format_exception_only(type(e), e)).strip())
+            rp.add(sid, fn.__name__, "FEHLER", "exception: " + "".join(traceback.format_exception_only(type(e), e)).strip())
     json.dump(rp.rows, open(os.path.join(OUT, "results.json"), "w"), ensure_ascii=False, indent=1)
 
 

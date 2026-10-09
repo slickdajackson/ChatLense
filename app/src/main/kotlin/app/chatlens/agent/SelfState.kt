@@ -9,7 +9,7 @@ import app.chatlens.memory.SelfPartial
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Teilergebnisse und Vorschlag der Selbstanalyse, verschluesselt gespeichert (damit Fortsetzen nach Abbruch moeglich ist). */
+/** Partial results and the self-analysis proposal, stored encrypted (so a run can resume after cancellation). */
 object SelfState {
     private val _proposal = MutableStateFlow<IchProfile?>(null)
     val proposal: StateFlow<IchProfile?> = _proposal
@@ -37,7 +37,7 @@ object SelfState {
         runCatching { MemoryRepo.get(ctx).saveSelf(SelfCodec.partialsToJson(_partials.value, _proposal.value)) }
     }
 
-    /** Bestaetigung durch den Nutzer: Vorschlag ins Ich-Profil uebernehmen. Gepinnte Eintraege und Loeschungen des Nutzers bleiben unberuehrt. */
+    /** Confirmation by the user: adopt the proposal into the Ich profile. Pinned entries and deletions made by the user stay untouched. */
     fun confirm(ctx: Context, blocked: Set<String>) {
         val p = _proposal.value ?: return
         IchState.update(ctx) { IchLogic.adopt(it, p, blocked, System.currentTimeMillis()) }

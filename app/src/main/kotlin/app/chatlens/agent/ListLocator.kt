@@ -3,7 +3,7 @@ package app.chatlens.agent
 import app.chatlens.core.Bounds
 import app.chatlens.core.UiNode
 
-/** Wie die scrollbare Chatliste gefunden wurde. */
+/** How the scrollable chat list was found. */
 enum class ListHow(val text: String) {
     VERTICAL_ACTION("Knoten mit senkrechter Scrollaktion"),
     ROW_ANCESTOR("naechster scrollbarer Vorfahr der Chatzeilen (keine senkrechte Aktion gemeldet)"),
@@ -12,16 +12,16 @@ enum class ListHow(val text: String) {
 }
 
 /**
- * Ergebnis der Listenwahl. [node] ist der Knoten fuer Knotenaktionen (null bei ROW_GEOMETRY), [bounds] der Bereich fuer die Wischgeste.
- * [allowGeneric]: ACTION_SCROLL_FORWARD/BACKWARD darf auf dem Knoten benutzt werden (nur beim naechsten Vorfahr der Zeilen, nie bei Seitenwechslern).
+ * Result of choosing a list. [node] is the node for node actions (null for ROW_GEOMETRY), [bounds] is the area for the swipe gesture.
+ * [allowGeneric]: ACTION_SCROLL_FORWARD/BACKWARD may be used on the node (only on the nearest ancestor of the rows, never on page switchers).
  */
 class ListChoice(val node: UiNode?, val bounds: Bounds?, val how: ListHow, val allowGeneric: Boolean, val skipped: List<String>)
 
 /**
- * Waehlt die senkrecht scrollbare Chatliste aus einem Schnappschuss. Reine Logik (JVM-testbar).
- * Seitenwechsler (ViewPager, die Tabs Chats, Aktuelles, Communities, Anrufe) und waagerechte Listen werden nie als Listenknoten gewaehlt:
- * eine Vorwaertsaktion darauf wuerde zum naechsten Tab blaettern. Ein Seitenwechsler, der der naechste scrollbare Vorfahr der Zeilen ist,
- * ergibt nur die Zeilengeometrie fuer die Wischgeste.
+ * Chooses the vertically scrollable chat list from a snapshot. Pure logic (JVM-testable).
+ * Page switchers (ViewPager, the tabs Chats, Aktuelles, Communities, Anrufe) and horizontal lists are never chosen as the list node:
+ * a forward action on them would page to the next tab. A page switcher that is the nearest scrollable ancestor of the rows
+ * yields only the row geometry for the swipe gesture.
  */
 object ListLocator {
     fun isPager(n: UiNode): Boolean = n.className.contains("Pager", ignoreCase = true)
@@ -40,23 +40,23 @@ object ListLocator {
             if (isHorizontal(n)) { skipped.add("${n.shortClass} ${n.bounds} (waagerecht oder Seitenwechsler)"); false } else true
         }
         val union = rows.reduceOrNull { a, b -> a.union(b) }
-        // 1. Knoten mit senkrechter Aktion, der die Zeilen umfasst: der kleinste (naechster Vorfahr), ohne Zeilen der groesste
+        // 1. Node with a vertical action that covers the rows: the smallest (nearest ancestor), or the largest when there are no rows
         val vertical = usable.filter { it.hasVerticalAction && coversRows(it, rows) }
         val v = if (rows.isEmpty()) vertical.maxByOrNull { it.bounds.area } else vertical.minByOrNull { it.bounds.area }
         if (v != null) return ListChoice(v, v.bounds, ListHow.VERTICAL_ACTION, false, skipped)
-        // 2. Kein Knoten mit senkrechter Aktion: naechster scrollbarer Vorfahr der Zeilen, sofern nicht waagerecht
+        // 2. No node with a vertical action: nearest scrollable ancestor of the rows, unless it is horizontal
         if (rows.isNotEmpty()) {
             val anc = usable.filter { coversRows(it, rows) }.minByOrNull { it.bounds.area }
             if (anc != null) return ListChoice(anc, anc.bounds, ListHow.ROW_ANCESTOR, true, skipped)
-            // 3. Nur Zeilen: Wischgeste im Bereich der erkannten Zeilen
+            // 3. Rows only: swipe gesture in the area of the recognized rows
             return ListChoice(null, union, ListHow.ROW_GEOMETRY, false, skipped)
         }
-        // Ohne Zeilen und ohne senkrechten Knoten: der groesste verbleibende scrollbare Knoten nur als Notbehelf fuer Gesten
+        // No rows and no vertical node: the largest remaining scrollable node, only as a fallback for gestures
         val any = usable.maxByOrNull { it.bounds.area }
         return if (any != null) ListChoice(any, any.bounds, ListHow.ROW_ANCESTOR, false, skipped) else ListChoice(null, null, ListHow.NONE, false, skipped)
     }
 
-    /** Eine Zeile je scrollbarem Knoten: Klasse, ID, Bounds, Aktionen, Elternkette. Fuer das Log bei Misserfolg. */
+    /** One line per scrollable node: class, id, bounds, actions, parent chain. For the log on failure. */
     fun describeScrollables(root: UiNode): List<String> {
         val out = ArrayList<String>()
         fun rec(n: UiNode, chain: List<String>) {

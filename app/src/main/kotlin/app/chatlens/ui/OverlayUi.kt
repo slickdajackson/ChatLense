@@ -62,13 +62,13 @@ enum class RingAction(val label: String) {
     ANALYSE("Analyse"), SUGGEST("Vorschlag"), ADVISE("Berater"), AUTO("Update"), SELF("Selbst"), SETTINGS("Optionen"), REMOVE("Entfernen"),
 }
 
-/** Seitenlaenge des Fensters: eingeklappt nur der Punkt, ausgeklappt der Ring. */
+/** Side length of the window: collapsed, only the dot; expanded, the ring. */
 const val OVERLAY_DOT_DP = 60
 const val OVERLAY_RING_DP = 248
 
 /**
- * Schwebender Punkt mit Ring. Der Punkt bleibt beim Ausklappen in der Fenstermitte (das Fenster waechst um ihn herum,
- * siehe OverlayService). Ziehen verschiebt, Tippen klappt den Ring auf und zu.
+ * Floating dot with a ring. When it expands, the dot stays in the center of the window (the window grows around it,
+ * see OverlayService). Dragging moves it; tapping opens and closes the ring.
  */
 @Composable
 fun OverlayDot(
@@ -114,7 +114,7 @@ fun OverlayDot(
                 .border(1.5.dp, Brush.linearGradient(listOf(GlassColors.Accent, GlassColors.Accent2)), CircleShape)
                 .pointerInput(Unit) { detectTapGestures(onTap = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onToggle() }) }
                 .pointerInput(Unit) { detectDragGestures(onDragEnd = { onDragEnd() }, onDragCancel = { onDragEnd() }) { change, drag -> change.consume(); onDrag(drag.x, drag.y) } }
-                // TalkBack und Schalterzugriff: Zugaenglichkeitsaktionen statt reiner Zeigergesten (ab 0.3.0)
+                // TalkBack and Switch Access: accessibility actions instead of pointer gestures alone (from 0.3.0)
                 .semantics {
                     role = Role.Button
                     contentDescription = "ChatLens schwebender Punkt, " + (if (expanded) "Ring ist offen" else "Ring ist geschlossen")
@@ -132,9 +132,9 @@ fun OverlayDot(
 }
 
 /**
- * Ergebnisfenster neben dem Punkt. Begrenzte Hoehe ([maxHeightDp]) mit eigener senkrechter Scrollflaeche: Kopf (Status, Fortschritt, Knoepfe
- * Abbrechen, Schliessen, Punkt entfernen) bleibt stehen, darunter scrollt alles andere (Promptwahl, Rueckfragen, lange Ergebnisse, Entwuerfe).
- * Das Ergebnis ist vollstaendig lesbar und kopierbar. So laesst sich alles Wesentliche im Overlay bedienen, ohne die App zu oeffnen.
+ * Result window next to the dot. Limited height ([maxHeightDp]) with its own vertical scroll area: the header (status, progress, and the
+ * cancel, close, and remove-dot buttons) stays put, and everything else scrolls below (prompt choice, follow-up questions, long results, drafts).
+ * The result is fully readable and copyable. The essential actions can be used in the overlay without opening the app.
  */
 @Composable
 fun OverlayPanel(
@@ -152,19 +152,19 @@ fun OverlayPanel(
     val ctx = androidx.compose.ui.platform.LocalContext.current
     GlassCard(Modifier.fillMaxWidth().heightIn(max = maxHeightDp.dp), fill = GlassColors.PanelFill) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Fester Kopf
+            // Fixed header
             RunStatus(st, AutoState.state.collectAsState().value, compact = true)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (st.running) OutlinedButton(onClick = onCancel) { Text("Abbrechen") }
                 OutlinedButton(onClick = onClose) { Text("Schließen") }
                 OutlinedButton(onClick = onRemoveDot) { Text("Punkt entfernen", color = GlassColors.Danger) }
             }
-            // Scrollflaeche
+            // Scroll area
             Column(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Kompakte DISC-Leiste des Gegenuebers, wenn zu diesem Chat ein Gedaechtnis mit Einschaetzung vorliegt
+                // Compact DISC bar for the other person, when this chat has a memory with an assessment
                 val discMem by androidx.compose.runtime.produceState<app.chatlens.memory.ChatMemory?>(null, st.resultChat, st.phase) {
                     value = if (st.resultChat.isBlank()) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                         runCatching { app.chatlens.data.MemoryRepo.get(ctx).loadByTitle(st.resultChat) }.getOrNull()
@@ -191,7 +191,7 @@ fun OverlayPanel(
                 }
                 if (st.error.isNotEmpty()) {
                     Text(st.error, color = GlassColors.Bad, style = MaterialTheme.typography.bodySmall)
-                    // N4: ein Fehler im Overlay braucht einen Weg zur Loesung (Einstellungen und Berechtigungen liegen in der App)
+                    // N4: an error in the overlay needs a path to a fix (settings and permissions live in the app)
                     OutlinedButton(onClick = onOpenApp) { Text("ChatLens öffnen") }
                 }
                 if (st.suggestions.isNotEmpty()) {
@@ -201,7 +201,7 @@ fun OverlayPanel(
                         OutlinedButton(onClick = { onInsert(t) }) { Text("Eintragen") }
                     }
                 } else if (st.result.isNotEmpty() && !st.running) {
-                    // Das ganze Ergebnis, auswaehlbar und kopierbar; scrollt mit der Flaeche
+                    // The full result, selectable and copyable; it scrolls with the area
                     androidx.compose.foundation.text.selection.SelectionContainer {
                         Text(st.result, style = MaterialTheme.typography.bodySmall, color = GlassColors.Text)
                     }
@@ -215,7 +215,7 @@ fun OverlayPanel(
     }
 }
 
-/** Kopiert Text in die Zwischenablage (Ergebnis des Panels). */
+/** Copies text to the clipboard (the panel result). */
 fun copyToClipboard(ctx: android.content.Context, text: String) {
     runCatching {
         val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager

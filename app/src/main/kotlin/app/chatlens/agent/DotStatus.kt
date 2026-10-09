@@ -1,8 +1,8 @@
 package app.chatlens.agent
 
 /**
- * Zustand des schwebenden Punktes fuer die Startseite: laeuft er, und wenn nicht, warum nicht und was der Nutzer tun kann.
- * Reine Logik, deshalb ohne Android testbar.
+ * State of the floating dot for the home screen: whether it is running, and if not, why not and what the user can do.
+ * Pure logic, so testable without Android.
  */
 enum class DotFix { ENABLE_SWITCH, OPEN_OVERLAY_PERMISSION, OPEN_A11Y }
 

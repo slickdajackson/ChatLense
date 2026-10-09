@@ -2,7 +2,7 @@ package app.chatlens.agent
 
 import app.chatlens.asr.VoiceReport
 
-/** Merkt sich den Stand des letzten Sprachnachrichten-Schritts fuer das Markdown-Log. Kein Transkripttext, keine Dateinamen. */
+/** Remembers the state of the last voice-message step for the markdown log. No transcript text, no file names. */
 object VoiceState {
     @Volatile private var last: VoiceReport? = null
     @Volatile private var note: String = ""

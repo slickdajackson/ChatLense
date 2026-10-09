@@ -6,14 +6,14 @@ import app.chatlens.profile.SectionKind
 import app.chatlens.profile.SelectorProfile
 
 /**
- * Ein Textknoten, dessen Text dem gesuchten Titel entspricht, samt Abschnitt und Klickziel.
- * [section] ist null, wenn oberhalb des Treffers keine bekannte Abschnittsueberschrift steht.
+ * A text node whose text matches the searched title, together with its section and click target.
+ * [section] is null when no known section heading stands above the hit.
  */
 class SearchHit(
     val title: UiNode,
     val section: SectionKind?,
     val header: UiNode?,
-    /** Naechster klickbarer Knoten ab dem Titelknoten aufwaerts (kann der Knoten selbst sein), sonst null. */
+    /** Nearest clickable node from the title node upward (can be the node itself), otherwise null. */
     val clickTarget: UiNode?,
     val viaFallback: Boolean,
 )
@@ -23,12 +23,12 @@ class PickResult(
     val candidates: List<SearchHit>,
     val headersSeen: Int,
     val reason: String,
-    /** Untere Kante des Suchfelds in Pixeln; darunter beginnt der Listenbereich. */
+    /** Bottom edge of the search field in pixels; the list area begins below it. */
     val searchBottom: Int = 0,
-    /** Zahl verschiedener Zeilen mit gleichem (normalisiertem) Namen im erlaubten Bereich, wenn mehr als eine: dann wird nichts gewaehlt. */
+    /** Number of distinct rows with the same (normalized) name in the allowed area; if more than one, nothing is chosen. */
     val ambiguous: Int = 0,
 ) {
-    /** Kurze Zusammenfassung fuers Log. Enthaelt keinen Chattext, nur Zaehler. */
+    /** Short summary for the log. Contains no chat text, only counters. */
     fun summary(): String {
         val chats = candidates.count { it.section == SectionKind.CHATS }
         val denied = candidates.count { it.section == SectionKind.DENIED }
@@ -40,25 +40,25 @@ class PickResult(
 }
 
 /**
- * Waehlt aus dem Suchergebnis den Treffer im Abschnitt "Chats".
- * Regeln:
- *  - Der Text des Knotens muss dem Titel entsprechen (getrimmt, Gross/Klein egal), kein Teiltreffer.
- *  - Der Abschnitt ergibt sich aus der naechsten bekannten Ueberschrift oberhalb des Treffers.
- *  - Nur Abschnitt "Chats" ist erlaubt. Gruppen und andere Abschnitte werden nie gewaehlt.
- *  - Nur wenn im ganzen Baum keine bekannte Ueberschrift steht (und das Profil es erlaubt), gilt der oberste
- *    Titeltreffer unterhalb des Suchfelds als Rueckfall.
- * Reine Funktion auf UiNode, ohne Android-Abhaengigkeit, daher testbar.
+ * Chooses the hit in the "Chats" section from the search result.
+ * Rules:
+ *  - The node text must match the title (trimmed, case-insensitive), not a partial match.
+ *  - The section comes from the nearest known heading above the hit.
+ *  - Only the "Chats" section is allowed. Groups and other sections are never chosen.
+ *  - Only when the whole tree has no known heading (and the profile allows it) does the topmost
+ *    title hit below the search field count as the fallback.
+ * Pure function on UiNode, with no Android dependency, so testable.
  */
 object SearchResultPicker {
-    /** Ohne erkennbares Suchfeld gilt das obere Achtel des Bildschirms als Suchleiste. */
+    /** Without a recognizable search field, the top eighth of the screen counts as the search bar. */
     private const val NO_FIELD_FALLBACK_FRACTION = 0.12
 
     fun pick(root: UiNode, title: String, profile: SelectorProfile): PickResult {
         val t = title.trim()
         if (t.isEmpty()) return PickResult(null, emptyList(), 0, "Titel ist leer.")
         val h = root.bounds.b.coerceAtLeast(1)
-        // Obergrenze fuer die Suchleiste. Die Treffer duerfen weit oben liegen (auf hohen Displays unter 25 Prozent der Hoehe),
-        // deshalb zaehlt als Listenbereich alles unterhalb der Unterkante des editierbaren Suchfelds.
+        // Upper bound for the search bar. Hits may sit quite high (on tall displays, below 25 percent of the height),
+        // so everything below the bottom edge of the editable search field counts as the list area.
         val fieldLine = (h * profile.searchFieldTopFraction).toInt()
         val searchBottom = root.walk()
             .filter { it.editable && it.visible && it.bounds.centerY < fieldLine }
@@ -69,7 +69,7 @@ object SearchResultPicker {
             .toList()
 
         val headers = listNodes.mapNotNull { n -> profile.sectionKindOf(n.text)?.let { n to it } }
-        // Identitaetsmenge: UiNode ist eine data class, ein tiefer equals/hashCode waere teuer und mehrdeutig.
+        // Identity set: UiNode is a data class, so a deep equals/hashCode would be expensive and ambiguous.
         val headerNodes: MutableSet<UiNode> = java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
         headers.forEach { headerNodes.add(it.first) }
 
@@ -116,9 +116,9 @@ object SearchResultPicker {
     class FuzzyHit(val hit: SearchHit, val name: String, val percent: Int)
 
     /**
-     * Wie [pick], aber ohne exakte Namensgleichheit: der Textknoten im Abschnitt "Chats" (oder, ohne Ueberschriften, unterhalb
-     * des Suchfelds) mit der groessten Uebereinstimmung ab [NameMatcher.MIN_ASK_PERCENT]. Gruppen und andere Abschnitte nie.
-     * Der Treffer wird nur vorgeschlagen; gewaehlt wird er erst nach Ja des Nutzers.
+     * Like [pick], but without an exact name match: the text node in the "Chats" section (or, with no headings, below
+     * the search field) with the highest similarity from [NameMatcher.MIN_ASK_PERCENT] up. Groups and other sections never.
+     * The hit is only proposed; it is chosen only after the user says yes.
      */
     fun pickFuzzy(root: UiNode, title: String, profile: SelectorProfile): FuzzyHit? {
         val t = title.trim()
@@ -154,9 +154,9 @@ object SearchResultPicker {
     }
 
     /**
-     * Naechster klickbarer Knoten auf dem Pfad Wurzel bis Titelknoten (von unten nach oben).
-     * Ein Knoten, der fast den ganzen Bildschirm fuellt oder eine Abschnittsueberschrift enthaelt,
-     * ist kein Zeilen-Container und wird nicht genommen.
+     * Nearest clickable node on the path from root to the title node (from the bottom upward).
+     * A node that fills almost the whole screen or contains a section heading
+     * is not a row container and is not taken.
      */
     private fun clickTarget(root: UiNode, node: UiNode, headerNodes: Set<UiNode>, rootArea: Long): UiNode? {
         val path = pathTo(root, node) ?: return null

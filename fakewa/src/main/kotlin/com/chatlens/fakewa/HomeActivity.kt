@@ -20,7 +20,7 @@ import androidx.viewpager2.widget.ViewPager2
 
 fun Activity.dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-/** Eine Chatzeile mit den IDs, die ChatLens aus dem Profil kennt (conversations_row_contact_name, contact_row_container, ...). */
+/** One chat row with the ids ChatLens knows from the profile (conversations_row_contact_name, contact_row_container, ...). */
 class RowHolder(v: View, val name: TextView, val preview: TextView, val time: TextView, val badge: TextView) : RecyclerView.ViewHolder(v)
 
 fun Activity.rowView(): RowHolder {
@@ -59,7 +59,7 @@ class ChatAdapter(val act: Activity, var items: List<FakeChat>, val archiveRow: 
     }
 }
 
-/** Hauptseite: Kopfzeile mit Lupe, ViewPager2 mit vier Seiten (Chats mit RecyclerView android:id/list), untere Tableiste, Suchfeld als Ueberlagerung. */
+/** Home screen: header with a magnifier, ViewPager2 with four pages (Chats with RecyclerView android:id/list), bottom tab bar, search field as an overlay. */
 class HomeActivity : Activity() {
     private lateinit var search: LinearLayout
     private lateinit var field: EditText
@@ -73,7 +73,7 @@ class HomeActivity : Activity() {
         chats = Data.chats(n)
         val root = FrameLayout(this)
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.WHITE) }
-        // Kopfzeile
+        // Header
         val bar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(Color.rgb(0, 100, 80)); setPadding(dp(16), dp(36), dp(8), dp(8)) }
         bar.addView(TextView(this).apply { text = "WhatsApp"; textSize = 22f; setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
         bar.addView(ImageButton(this).apply {
@@ -81,11 +81,11 @@ class HomeActivity : Activity() {
             setOnClickListener { showSearch(true) }
         })
         col.addView(bar)
-        // Seiten
+        // Pages
         val pager = ViewPager2(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f) }
         pager.adapter = Pages()
         col.addView(pager)
-        // Tableiste unten
+        // Tab bar at the bottom
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setBackgroundColor(Color.rgb(245, 245, 245)) }
         listOf("Chats", "Aktuelles", "Communitys", "Anrufe").forEachIndexed { i, t ->
             tabs.addView(TextView(this).apply {
@@ -96,7 +96,7 @@ class HomeActivity : Activity() {
         }
         col.addView(tabs)
         root.addView(col)
-        // Suche
+        // Search
         search = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.WHITE); visibility = View.GONE; setPadding(0, dp(36), 0, 0) }
         field = EditText(this).apply {
             id = R.id.search_src_text; hint = "Suchen"; setSingleLine(); setPadding(dp(16), dp(12), dp(16), dp(12))

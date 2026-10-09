@@ -29,8 +29,8 @@ import app.chatlens.service.ChatAccessibilityService
 import java.net.URI
 
 /**
- * Einstellungen zu den Auftraegen des schwebenden Punktes. Frueher im Tab Analyse (Abschnitt Auftrag):
- * Modus (Auslesen, lokal, API), Menge, Instruktion, Ziel des Beraters und der Start fuer einen Chat per Namen.
+ * Settings for the floating dot's jobs. Formerly on the Analysis tab (job section):
+ * mode (read-only, local, API), amount, instruction, the advisor's goal, and starting a chat by name.
  */
 @Composable
 fun JobSettingsSection(settings: AppSettings, onSettings: (AppSettings) -> Unit, onStartChat: (ScrollRunConfig) -> Unit) {

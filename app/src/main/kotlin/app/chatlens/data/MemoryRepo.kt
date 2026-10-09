@@ -18,15 +18,15 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * Zugang zum verschluesselten Gedaechtnis auf dem Geraet. Schluessel: AES-256 im Android Keystore (nicht auslesbar),
- * Dateien: app-interner Speicher, kein Cloud-Backup (allowBackup=false, Extraktionsregeln schliessen alles aus).
+ * Access to the encrypted memory on the device. Key: AES-256 in the Android Keystore (not readable),
+ * files: app-private storage, no cloud backup (allowBackup=false, extraction rules exclude everything).
  */
 class MemoryRepo private constructor(ctx: Context) {
     private val crypto: Crypto = AesGcmCrypto { keystoreKey() }
     val store = MemoryStore(File(ctx.applicationContext.filesDir, "memory"), crypto)
     private val filesDir = ctx.applicationContext.filesDir
 
-    /** Gedaechtnis je Messenger getrennt: WhatsApp nutzt den bisherigen Ordner, jeder weitere einen eigenen (ab 0.3.0). */
+    /** Memory separated per messenger: WhatsApp uses the existing folder, each further one its own (from 0.3.0). */
     fun storeFor(adapter: app.chatlens.messenger.MessengerAdapter): MemoryStore =
         if (adapter.id == app.chatlens.messenger.WhatsAppAdapter.ID) store else MemoryStore(File(filesDir, adapter.memoryDirName), crypto)
 
@@ -61,7 +61,7 @@ class MemoryRepo private constructor(ctx: Context) {
         return runCatching { AutoQueue.fromJson(String(crypto.decrypt(queueFile.readBytes()), Charsets.UTF_8)) }.getOrNull()
     }
 
-    /** Checkup-Auswahl: nur Namen, verschluesselt wie das Gedaechtnis. */
+    /** Checkup selection: names only, encrypted like the memory. */
     fun saveCheckup(s: CheckupStored) {
         checkupFile.writeBytes(crypto.encrypt(CheckupCodec.toJson(s).toByteArray(Charsets.UTF_8)))
     }
@@ -71,7 +71,7 @@ class MemoryRepo private constructor(ctx: Context) {
         return runCatching { CheckupCodec.fromJson(String(crypto.decrypt(checkupFile.readBytes()), Charsets.UTF_8)) }.getOrNull()
     }
 
-    /** Prompt-Buch ("Analysieren" mit eigenem Prompt): Vorlagen und zuletzt genutzte Prompts, verschluesselt wie das Gedaechtnis. */
+    /** Prompt book ("Analysieren" with a custom prompt): templates and recently used prompts, encrypted like the memory. */
     fun savePromptBook(b: PromptBook) {
         promptFile.writeBytes(crypto.encrypt(PromptCodec.toJson(b).toByteArray(Charsets.UTF_8)))
     }
@@ -81,7 +81,7 @@ class MemoryRepo private constructor(ctx: Context) {
         return runCatching { PromptCodec.fromJson(String(crypto.decrypt(promptFile.readBytes()), Charsets.UTF_8)) }.getOrNull()
     }
 
-    /** Ich-Profil: eigener verschluesselter Speicher, getrennt von den Chat-Profilen. Loeschen: [deleteIch] oder "Gedaechtnis loeschen". */
+    /** Self profile: its own encrypted store, separate from the chat profiles. Delete via [deleteIch] or by deleting memory. */
     @Synchronized fun saveIch(p: app.chatlens.memory.IchProfile) {
         ichFile.writeBytes(crypto.encrypt(app.chatlens.memory.IchCodec.toJson(p).toByteArray(Charsets.UTF_8)))
     }
@@ -92,7 +92,7 @@ class MemoryRepo private constructor(ctx: Context) {
 
     fun deleteIch() { ichFile.delete() }
 
-    /** Teilergebnisse und Vorschlag der Selbstanalyse (nur abstrakte Merkmale, keine Chatnamen), verschluesselt. */
+    /** Partial results and the proposal of the self-analysis (abstract traits only, no chat names), encrypted. */
     @Synchronized fun saveSelf(json: String) { selfFile.writeBytes(crypto.encrypt(json.toByteArray(Charsets.UTF_8))) }
     @Synchronized fun loadSelf(): Pair<List<app.chatlens.memory.SelfPartial>, app.chatlens.memory.IchProfile?>? =
         if (!selfFile.isFile) null else runCatching { app.chatlens.memory.SelfCodec.partialsFromJson(String(crypto.decrypt(selfFile.readBytes()), Charsets.UTF_8)) }.getOrNull()

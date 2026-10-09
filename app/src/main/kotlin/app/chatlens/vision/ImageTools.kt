@@ -8,7 +8,7 @@ import java.io.File
 
 object ImageTools {
 
-    /** Schneidet [b] (Bildschirmkoordinaten) aus dem Screenshot, begrenzt auf dessen Flaeche. */
+    /** Crops [b] (screen coordinates) out of the screenshot, clamped to its area. */
     fun crop(screen: Bitmap, b: Bounds): Bitmap? {
         val r = Rect(
             b.l.coerceIn(0, screen.width), b.t.coerceIn(0, screen.height),

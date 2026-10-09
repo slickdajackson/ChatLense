@@ -33,7 +33,7 @@ import app.chatlens.auto.ItemStatus
 import app.chatlens.data.AppSettings
 import app.chatlens.service.ChatAccessibilityService
 
-/** Fortschrittsliste einer Warteschlange: Status und Fehlertext je Chat. */
+/** Progress list of a queue: status and error text for each chat. */
 @Composable
 fun QueueItems(items: List<QueueItemView>) {
     if (items.isEmpty()) return
@@ -59,7 +59,7 @@ fun QueueItems(items: List<QueueItemView>) {
     }
 }
 
-/** Auto-Modus: Chats per Namen oder aus der gelesenen Chatliste auswaehlen, seriell inkrementell aktualisieren. */
+/** Auto mode: pick chats by name or from the chat list that was read, then update them serially and incrementally. */
 @Composable
 fun AutoScreen(
     settings: AppSettings,

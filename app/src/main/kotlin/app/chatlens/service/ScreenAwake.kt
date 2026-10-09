@@ -2,7 +2,7 @@ package app.chatlens.service
 
 import java.util.concurrent.atomic.AtomicInteger
 
-/** Zaehler fuer das Wachhalten des Bildschirms: verschachtelte Laeufe (Auto ruft ChatRunner) halten den Bildschirm bis zum letzten Ende. */
+/** Counter for keeping the screen awake: nested runs (auto calls ChatRunner) keep the screen on until the last one ends. */
 object ScreenAwake {
     private val users = AtomicInteger(0)
 

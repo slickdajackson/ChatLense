@@ -37,13 +37,13 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * Laedt eine Modelldatei im Vordergrund (Typ dataSync) mit Fortschritt, Pause und Fortsetzen. Immer nur ein Download.
- * Die Teildatei bleibt bei Pause liegen; "Abbrechen" loescht sie. Ohne Hugging-Face-Zugangsschluessel, nur freie Dateien.
+ * Downloads a model file in the foreground (type dataSync) with progress, pause, and resume. Only one download at a time.
+ * The partial file stays in place on pause; "Abbrechen" deletes it. No Hugging Face access token, only freely available files.
  */
 class ModelDownloadService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
-    @Volatile private var stopMode = 0 // 0 laeuft, 1 Pause, 2 Abbrechen
+    @Volatile private var stopMode = 0 // 0 running, 1 pause, 2 cancel
     private var wake: PowerManager.WakeLock? = null
     private var currentId: String? = null
 
@@ -119,7 +119,7 @@ class ModelDownloadService : Service() {
         }
     }
 
-    /** Mehrteiliges Modell (Spracherkennung): Dateien nacheinander in den Ordner <modelle>/<id>/, je Datei mit SHA-256. */
+    /** Multi-part model (speech recognition): files one after another into the folder <models>/<id>/, each file with SHA-256. */
     private fun runMulti(entry: ModelEntry, meteredOk: Boolean) {
         val id = entry.id
         val dir = MultiFileDownload.dirFor(ModelStorage.primaryDir(this), entry)

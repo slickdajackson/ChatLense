@@ -1,9 +1,9 @@
 package app.chatlens.asr
 
 /**
- * Entscheidung vor dem Schritt "Sprachnachrichten transkribieren". Reine Logik (JVM-testbar).
- * Der Schritt laeuft nur, wenn Schalter, Modell und Ordner stimmen und der Chat Sprachnachrichten hat. Sonst wird er sauber uebersprungen,
- * und die Anzeige nennt den Grund (und was zu tun ist), statt still nichts zu tun.
+ * Decision before the step "Sprachnachrichten transkribieren". Pure logic (JVM-testable).
+ * The step runs only when the switch, the model, and the folder are in order and the chat has voice messages. Otherwise it is skipped cleanly,
+ * and the display names the reason (and what to do) instead of quietly doing nothing.
  */
 class VoiceDecision(val run: Boolean, val skipReason: String?, val todo: String?)
 

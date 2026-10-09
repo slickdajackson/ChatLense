@@ -2,7 +2,7 @@ package com.chatlens.fakewa
 
 import java.util.Random
 
-/** Testdaten der Attrappe: deterministisch (feste Saat), mit Umlauten, Gruppen, Duplikaten und Angehefteten. */
+/** Test data for the stand-in: deterministic (fixed seed), with umlauts, groups, duplicates, and pinned chats. */
 class FakeChat(val title: String, val preview: String, val time: String, val group: Boolean, val pinned: Boolean, val unread: Int, val archived: Boolean)
 
 object Data {
@@ -18,7 +18,7 @@ object Data {
             val g = i % 9 == 4
             val title = when {
                 i == 0 -> "Anna Schmidt"
-                i == 7 -> "Anna Schmidt" // Duplikat
+                i == 7 -> "Anna Schmidt" // duplicate
                 i == 3 -> "Jürgen Müller"
                 i == 5 -> "Özlem Çelik"
                 i == 11 -> "Bärbel Größer"
@@ -34,9 +34,9 @@ object Data {
 
     fun archived() = (1..8).map { FakeChat("Archiv Kontakt $it", "alt", "gestern", false, false, 0, true) }
 
-    class Msg(val kind: Int, val text: String, val time: String, val out: Boolean) // 0 Text, 1 Datum, 2 Sprache, 3 Hinweis
+    class Msg(val kind: Int, val text: String, val time: String, val out: Boolean) // 0 text, 1 date, 2 voice, 3 notice
 
-    /** Verlauf eines Chats: Verschluesselungshinweis, Datumstrenner, Text- und Sprachnachrichten, ca. [n] Zeilen. */
+    /** History of a chat: encryption notice, date separators, text and voice messages, about [n] rows. */
     fun messages(title: String, n: Int = 420): List<Msg> {
         val r = Random(title.hashCode().toLong())
         val out = ArrayList<Msg>()

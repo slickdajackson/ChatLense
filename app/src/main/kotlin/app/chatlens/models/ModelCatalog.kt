@@ -10,13 +10,13 @@ enum class ModelFormat(val label: String) {
     SHERPA_ONNX("sherpa-onnx (ONNX)"),
 }
 
-/** STANDARD = Vorgabe der App, STABLE = offizielle Datei, EXPERIMENTAL = wenig erprobt, PREVIEW = noch ohne Funktion in der App. */
+/** STANDARD = the app's default, STABLE = official file, EXPERIMENTAL = little tried, PREVIEW = not functional in the app yet. */
 enum class ModelStatus { STANDARD, STABLE, EXPERIMENTAL, PREVIEW }
 
-/** Einschaetzung 0 bis 3 (0 = nicht zutreffend). Das ist keine Messung, sondern eine Schaetzung nach Modellgroesse und Typ. */
+/** Rating 0 to 3 (0 = does not apply). This is not a measurement, but an estimate from model size and type. */
 data class Suitability(val classify: Int, val summary: Int, val profile: Int)
 
-/** Bereiche der Bewertung (unsere Einschaetzung, 1 bis 5, 5 ist am besten; beim Speicherbedarf heisst 5 wenig Bedarf). */
+/** Rating areas (our estimate, 1 to 5, 5 is best; for memory need, 5 means little need). */
 enum class RatingArea(val key: String, val label: String, val short: String) {
     GERMAN("german", "Qualität Deutsch", "Deutsch"),
     SPEED("speed", "Geschwindigkeit", "Tempo"),
@@ -25,10 +25,10 @@ enum class RatingArea(val key: String, val label: String, val short: String) {
     DEVICE("device", "Eignung Xiaomi 15 Ultra", "Gerät"),
 }
 
-/** Punkte 1 bis 5 mit kurzer Begruendung. Nicht gemessen, solange nichts anderes dabeisteht. */
+/** Points from 1 to 5 with a short reason. Not measured, unless something else says so. */
 data class Rating(val score: Int, val why: String)
 
-/** Eine Datei eines mehrteiligen Modells (Spracherkennung): Name im Repo, Groesse und SHA-256 je Datei. */
+/** One file of a multi-file model (speech recognition): name in the repo, size, and SHA-256 per file. */
 data class ModelFile(val name: String, val sizeBytes: Long, val sha256: String)
 
 data class CatalogLink(val label: String, val url: String)
@@ -40,16 +40,16 @@ data class ModelEntry(
     val format: ModelFormat,
     val repo: String,
     val file: String?,
-    /** Commit der Hugging-Face-Revision, auf die Groesse und Pruefsumme zutreffen. Der Download nutzt genau diese Revision. */
+    /** Commit of the Hugging Face revision that the size and checksum match. The download uses exactly this revision. */
     val revision: String,
     val sizeBytes: Long,
-    /** SHA-256 der Datei (LFS-Hash laut Hugging Face), leer wenn nicht verfuegbar (gated oder mehrteilig). */
+    /** SHA-256 of the file (LFS hash according to Hugging Face), empty if unavailable (gated or multi-file). */
     val sha256: String,
     val license: String,
     val gated: Boolean,
     val downloadable: Boolean,
     val status: ModelStatus,
-    /** Kontextfenster in Token laut Karte, 0 = nicht angegeben. */
+    /** Context window in tokens according to the model card, 0 = not stated. */
     val contextTokens: Int,
     val vision: Boolean,
     val ramCpuMb: Int?,
@@ -60,28 +60,28 @@ data class ModelEntry(
     val notes: String,
     val pageUrl: String,
     val links: List<CatalogLink>,
-    /** Hinweis zur Deutsch-Unterstuetzung laut Karte, leer = keine Besonderheit. */
+    /** Note on German support according to the card, empty = nothing special. */
     val german: String = "",
-    /** Vergleichskandidat zum Standard (wird neben dem Standard als Alternative gezeigt). */
+    /** Comparison candidate next to the default (shown beside the default as an alternative). */
     val comparison: Boolean = false,
-    /** Dateien eines mehrteiligen Modells (Encoder, Decoder, Joiner, Tokens). Leer bei einteiligen Modellen (dann gilt file). */
+    /** Files of a multi-file model (encoder, decoder, joiner, tokens). Empty for single-file models (then file applies). */
     val files: List<ModelFile> = emptyList(),
-    /** Unsere Bewertung je Bereich (Einschaetzung, nicht gemessen). Spracherkennung hat keinen Bereich Analyse. */
+    /** Our rating per area (an estimate, not measured). Speech recognition has no analysis area. */
     val ratings: Map<RatingArea, Rating> = emptyMap(),
 ) {
     val multiFile: Boolean get() = files.isNotEmpty()
 
-    /** Download-Link einer Teildatei (fest auf die Revision). */
+    /** Download link of one part file (pinned to the revision). */
     fun fileUrl(f: ModelFile): String = "https://huggingface.co/$repo/resolve/$revision/${f.name}"
 
-    /** Ob die App dieses Modell selbst laden darf: frei, feste Revision, und jede Datei mit voller SHA-256. */
+    /** Whether the app may download this model itself: unrestricted, pinned revision, and every file with a full SHA-256. */
     val canDownload: Boolean
         get() = if (multiFile) downloadable && !gated && revision.isNotBlank() && files.all { it.sha256.length == 64 && it.sizeBytes > 0 }
         else downloadUrl != null
 
     val sizeMb: Long get() = sizeBytes / 1_000_000L
 
-    /** Direkter Download-Link (fest auf die Revision), nur fuer freie, herunterladbare Dateien. */
+    /** Direct download link (pinned to the revision), only for unrestricted, downloadable files. */
     val downloadUrl: String?
         get() = if (downloadable && !gated && !file.isNullOrBlank() && revision.isNotBlank() && sha256.length == 64)
             "https://huggingface.co/$repo/resolve/$revision/$file" else null

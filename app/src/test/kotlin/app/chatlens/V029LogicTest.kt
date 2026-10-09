@@ -29,7 +29,7 @@ import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
 
-/** Tests der Version 0.2.9: Kontextstufen, Wischgeometrie, Vordergrundwaechter, Warteschlange, Sprachschritt, Benachrichtigungen, Overlay, Standardwerte. */
+/** Tests for version 0.2.9: context levels, swipe geometry, foreground guard, queue, voice step, notifications, overlay, defaults. */
 class V029LogicTest {
     private fun src(path: String): String {
         val roots = listOf("src/main/kotlin/app/chatlens/", "app/src/main/kotlin/app/chatlens/")
@@ -38,7 +38,7 @@ class V029LogicTest {
         return ""
     }
 
-    // ---------- Kontext ----------
+    // ---------- Context ----------
 
     @Test fun contextAutoPicksLargestThatFitsRam() {
         val big = ContextPlanner.plan(32768, 0, 6000, 12000, 16000, RememberedLevel(), 0L)
@@ -88,7 +88,7 @@ class V029LogicTest {
         assertEquals(1, one.size)
     }
 
-    // ---------- Wischgeometrie ----------
+    // ---------- Swipe geometry ----------
 
     private val ins = ScreenInsets(1440, 3200, 100, 80)
 
@@ -108,7 +108,7 @@ class V029LogicTest {
         assertTrue(plan.size <= 2)
     }
 
-    // ---------- Vordergrundwaechter ----------
+    // ---------- Foreground guard ----------
 
     private class Fake : ForegroundProbe {
         var clock = 0L
@@ -159,11 +159,11 @@ class V029LogicTest {
         assertTrue(t.contains("MAX_REPEATS"))
     }
 
-    // ---------- Warteschlange ----------
+    // ---------- Queue ----------
 
     @Test fun queuePausesOnlyOnConsecutiveFailuresOfSameKind() = runBlocking {
         val q = AutoQueue.of(QueueKind.SETUP, listOf("A", "B", "C", "D", "E"), 100, 1L, true)
-        // A: nicht gefunden, B: Navigation, C: nicht gefunden, D: Navigation: nie zwei gleiche in Folge, also keine Pause
+        // A: not found, B: navigation, C: not found, D: navigation: never two of the same kind in a row, so no pause
         AutoQueueRunner.run(q, { 5L }, {}, maxConsecutiveFailures = 2) { item ->
             when (item.title) {
                 "A", "C" -> throw ChatNotFoundException("nicht gefunden")
@@ -184,7 +184,7 @@ class V029LogicTest {
         }
     }
 
-    // ---------- Sprachschritt ----------
+    // ---------- Voice step ----------
 
     @Test fun voicePlanSkipsWithReasonInsteadOfSilence() {
         assertTrue(VoicePlan.decide(true, 3, true, true, true).run)
@@ -211,7 +211,7 @@ class V029LogicTest {
         assertTrue(r.contains("stepDetail"))
     }
 
-    // ---------- Benachrichtigungen ----------
+    // ---------- Notifications ----------
 
     @Test fun notificationChannelsAreQuietAndNeverHeadsUp() {
         val ch = src("service/NotificationChannels.kt")
@@ -246,7 +246,7 @@ class V029LogicTest {
         for (w in listOf("Abbrechen", "Schließen", "Punkt entfernen", "Kopieren", "PromptChoiceCard", "RunStatus")) assertTrue(w, panel.contains(w))
     }
 
-    // ---------- Standardwerte und Zustimmung ----------
+    // ---------- Defaults and consent ----------
 
     @Test fun defaultsAreConsentFirst() {
         val d = AppSettings()
@@ -272,23 +272,23 @@ class V029LogicTest {
 
     @Test fun noWhatsAppLaunchInAppStartPath() {
         val m = src("MainActivity.kt")
-        // Der Start der App (onCreate, onResume, onNewIntent, handleIntent) startet weder WhatsApp noch einen Lauf
+        // App startup (onCreate, onResume, onNewIntent, handleIntent) starts neither WhatsApp nor a run
         for (name in listOf("override fun onCreate", "override fun onResume", "override fun onNewIntent", "private fun handleIntent")) {
             val i = m.indexOf(name)
             assertTrue(name, i >= 0)
             val body = m.substring(i, m.indexOf("\n    }\n", i))
             for (bad in listOf("openWhatsApp", "startAutoJob", "startRun", "getLaunchIntentForPackage", "AgentController.start")) assertFalse("$name enthaelt $bad", body.contains(bad))
         }
-        // Der Auto-Checkup beim Start ist an die Richtlinie gebunden
+        // The auto checkup at startup is bound to the policy
         val i = m.indexOf("startAutoJob(AutoStart.Checkup(s0.checkupCount")
         assertTrue(i > 0)
         assertTrue(m.substring(maxOf(0, i - 1500), i).contains("StartPolicy.mayAutoCheckup("))
-        // WhatsApp wird nur in zwei Handlern gestartet (Tipp auf einen Startknopf)
+        // WhatsApp is started in only two handlers (a tap on a start button)
         assertEquals(2, Regex("getLaunchIntentForPackage").findAll(m).count())
-        // Der Assistent selbst startet nie direkt etwas
+        // The wizard itself never starts anything directly
         val w = src("ui/WizardUi.kt")
         for (bad in listOf("getLaunchIntentForPackage", "launchApp", "startActivity")) assertFalse("WizardUi enthaelt $bad", w.contains(bad))
-        // Dienste starten WhatsApp nur ueber den Wächter innerhalb eines gestarteten Laufs
+        // Services start WhatsApp only through the guard, and only inside a run that has already started
         assertFalse(src("service/OverlayService.kt").contains("getLaunchIntentForPackage"))
     }
 }

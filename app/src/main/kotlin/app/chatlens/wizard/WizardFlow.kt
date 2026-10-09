@@ -1,6 +1,6 @@
 package app.chatlens.wizard
 
-/** Seiten des Einrichtungsassistenten, in Reihenfolge. */
+/** Pages of the setup wizard, in order. */
 enum class WizardStep(val number: Int) {
     WELCOME(1), A11Y(2), OVERLAY(3), MODEL(4), CHECKUP(5), DONE(6);
 
@@ -10,17 +10,17 @@ enum class WizardStep(val number: Int) {
     }
 }
 
-/** Was die App gerade ueber das Geraet weiss. Wird laufend neu gelesen (Berechtigungen aendern sich in den Systemeinstellungen). */
+/** What the app currently knows about the device. Reread continuously (permissions change in the system settings). */
 data class WizardFacts(val a11y: Boolean, val overlay: Boolean, val modelReady: Boolean, val checkupRows: Int)
 
 /**
- * Zustand des Assistenten. [consent] ist die Zustimmung auf der ersten Seite (Datenschutz), [waiting] heisst: der Nutzer hat gerade die Systemeinstellung
- * geoeffnet und die App wartet auf den Erfolg, [announced] heisst: die Ansage "WhatsApp oeffnet sich" wurde gezeigt (Voraussetzung fuer den Start von WhatsApp).
+ * Wizard state. [consent] is the agreement on the first page (privacy). [waiting] means the user has just opened the system setting
+ * and the app is waiting for success. [announced] means the notice "WhatsApp oeffnet sich" was shown (required before WhatsApp may start).
  */
 data class WizardState(
     val step: WizardStep = WizardStep.WELCOME,
     val consent: Boolean = false,
-    /** Eigene, ausdrueckliche Zustimmung zur Bedienungshilfe (Offenlegung auf Seite 2, vor dem Systemdialog). */
+    /** Separate, explicit consent for the accessibility service (disclosure on page 2, before the system dialog). */
     val a11yConsent: Boolean = false,
     val waiting: Boolean = false,
     val announced: Boolean = false,
@@ -33,28 +33,28 @@ sealed class WizardAction {
     data class A11yConsent(val value: Boolean) : WizardAction()
     object Next : WizardAction()
     object Back : WizardAction()
-    /** Eine optionale Seite (Modell, Checkup) ueberspringen. */
+    /** Skip an optional page (model, checkup). */
     object LaterStep : WizardAction()
-    /** Den ganzen Assistenten verlassen (spaeter fortsetzbar). */
+    /** Leave the whole wizard (can be resumed later). */
     object Leave : WizardAction()
     object OpenA11y : WizardAction()
     object OpenOverlay : WizardAction()
-    /** Die Ansage vor dem Lesen der Chats zeigen. Oeffnet noch nichts. */
+    /** Show the notice before reading the chats. Does not open anything yet. */
     object AnnounceRead : WizardAction()
     object CancelAnnounce : WizardAction()
-    /** Zweiter, ausdruecklicher Tipp nach der Ansage: erst jetzt darf WhatsApp geoeffnet werden. */
+    /** Second, explicit tap after the notice: only now may WhatsApp be opened. */
     object ConfirmRead : WizardAction()
     object Finish : WizardAction()
-    /** Fakten haben sich geaendert (Berechtigung erteilt). */
+    /** Facts have changed (permission granted). */
     object Observe : WizardAction()
 }
 
-/** Nebenwirkungen, die der Assistent erbittet. Ohne Aktion des Nutzers gibt es nie eine. */
+/** Side effects the wizard requests. Without a user action there is never one. */
 enum class WizardEffect { NONE, OPEN_A11Y_SETTINGS, OPEN_OVERLAY_SETTINGS, LAUNCH_CHECKUP_AND_WHATSAPP }
 
 class WizardResult(val state: WizardState, val effect: WizardEffect = WizardEffect.NONE)
 
-/** Zustandsautomat des Assistenten: reine Logik ohne Android, deshalb voll testbar. */
+/** State machine of the wizard: pure logic without Android, so fully testable. */
 object WizardFlow {
     fun canNext(s: WizardState, f: WizardFacts): Boolean = when (s.step) {
         WizardStep.WELCOME -> s.consent
@@ -65,7 +65,7 @@ object WizardFlow {
         WizardStep.DONE -> false
     }
 
-    /** "Spaeter" gibt es nur fuer Modell und Checkup (beide koennen auch ausserhalb des Assistenten erledigt werden). */
+    /** "Später" exists only for the model and checkup pages (both can also be finished outside the wizard). */
     fun canLater(s: WizardState): Boolean = s.step == WizardStep.MODEL || s.step == WizardStep.CHECKUP
 
     fun progressText(s: WizardState): String = "${s.step.number} von ${WizardStep.COUNT}"
@@ -93,22 +93,22 @@ object WizardFlow {
             if (s.step == WizardStep.CHECKUP && s.announced && f.a11y) WizardResult(s.copy(announced = false), WizardEffect.LAUNCH_CHECKUP_AND_WHATSAPP) else WizardResult(s)
         WizardAction.Finish -> if (s.step == WizardStep.DONE) WizardResult(s.copy(finished = true)) else WizardResult(s)
         WizardAction.Observe -> {
-            // Nach dem Oeffnen der Systemeinstellung: Erfolg erkennen und automatisch weiter
+            // After the system setting was opened: detect success and continue automatically
             val ok = when (s.step) { WizardStep.A11Y -> f.a11y; WizardStep.OVERLAY -> f.overlay; else -> false }
             if (s.waiting && ok) WizardResult(go(s, WizardStep.entries[s.step.ordinal + 1])) else WizardResult(s)
         }
     }
 }
 
-/** Regeln fuer alles, was ohne Zutun des Nutzers beim Start der App passieren koennte. */
+/** Rules for anything that could happen at app start without the user doing anything. */
 object StartPolicy {
-    /** Der Auto-Checkup beim Start laeuft nur mit abgeschlossenem Assistenten, bestaetigtem Datenschutz und bewusst eingeschaltetem Schalter. */
+    /** The auto checkup at start runs only with a finished wizard, acknowledged privacy notice, and the switch turned on on purpose. */
     fun mayAutoCheckup(checkupOnStart: Boolean, wizardDone: Boolean, privacyAcknowledged: Boolean): Boolean =
         checkupOnStart && wizardDone && privacyAcknowledged
 
-    /** Migration: bis 0.2.8 war der Schalter standardmaessig an. Beim ersten Laden ab 0.2.9 wird er fuer alle auf aus gesetzt. */
+    /** Migration: through 0.2.8 the switch defaulted to on. On the first load from 0.2.9 it is set to off for everyone. */
     fun checkupOnStartLoaded(stored: Boolean, migrated: Boolean): Boolean = migrated && stored
 
-    /** Migration: Sprachnachrichten-Transkription ist ab 0.2.9 standardmaessig an; bis 0.2.8 gespeichertes "aus" war nur der alte Standard. */
+    /** Migration: voice message transcription defaults to on from 0.2.9. A stored off through 0.2.8 was only the old default. */
     fun voiceLoaded(stored: Boolean, migrated: Boolean): Boolean = if (!migrated) true else stored
 }

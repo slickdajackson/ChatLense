@@ -7,15 +7,15 @@ import app.chatlens.llm.PromptBuilder
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Teilergebnis eines Chats bei der Selbstanalyse: nur abstrakte Merkmale, kein Chatname (nur ein Hash fuer die Zaehlung). */
+/** Partial result of one chat in the self-analysis: abstract traits only, no chat name (only a hash for counting). */
 data class SelfPartial(val found: Map<IchCat, List<String>>, val disc: DiscProfile?, val ownMessages: Int, val chatHash: String)
 
-/** Auftrag der Selbstanalyse: Zahl der Chats, Nachrichten je Chat, optionaler freier Schwerpunkt. */
+/** Self-analysis job: number of chats, messages per chat, optional free-form focus. */
 data class SelfRequest(val chats: Int, val perChat: Int, val focus: String)
 
 /**
- * Selbstanalyse: mehrere Chats nacheinander, nur die eigenen Nachrichten (mit knappem Kontext des Gegenuebers, ohne Namen und Zeiten), je Chat Stil und
- * Persoenlichkeitsmerkmale (auch DISC), am Ende ein Gesamtbild. Das Ergebnis ist ein Vorschlag fuers Ich-Profil und wird erst nach Bestaetigung uebernommen.
+ * Self-analysis: several chats in sequence, only one's own messages (with a little context from the other person, without names and times), per chat style and
+ * personality traits (including DISC), and a combined picture at the end. The result is a proposal for the self profile and is applied only after confirmation.
  */
 object SelfAnalysis {
     const val DEFAULT_CHATS = 20
@@ -24,8 +24,8 @@ object SelfAnalysis {
     const val MAX_PER_CHAT = 1000
 
     /**
-     * Liest Zahlen aus einem freien Auftrag, zum Beispiel "Scanne 20 Chats, je letzte 200 Nachrichten, analysiere meine Persoenlichkeit ...".
-     * Fehlende Zahlen bekommen die Vorgaben. Der ganze Text bleibt als Schwerpunkt erhalten (wird als Daten-Hinweis an das Modell gegeben, nie als Befehl fuer die App).
+     * Reads numbers from a free-form job, for example "Scanne 20 Chats, je letzte 200 Nachrichten, analysiere meine Persoenlichkeit ...".
+     * Missing numbers get the defaults. The whole text stays as the focus (it is given to the model as a data hint, never as a command for the app).
      */
     fun parseRequest(text: String, defChats: Int = DEFAULT_CHATS, defPer: Int = DEFAULT_PER_CHAT): SelfRequest {
         val t = text.trim()
@@ -35,8 +35,8 @@ object SelfAnalysis {
     }
 
     /**
-     * Chats fuer die Selbstanalyse, ausschliesslich aus der Checkup-Liste [all] (Listenreihenfolge). [selection] sind die angekreuzten Titel.
-     * [fromSelection]: die ersten [n] angekreuzten; sonst die obersten [n] der Liste. Titel ausserhalb der Liste werden verworfen.
+     * Chats for the self-analysis, taken only from the checkup list [all] (list order). [selection] is the checked titles.
+     * [fromSelection]: the first [n] checked ones; otherwise the top [n] of the list. Titles outside the list are dropped.
      */
     fun pickTitles(selection: List<String>, all: List<String>, n: Int, fromSelection: Boolean): List<String> {
         val pool = if (fromSelection) all.filter { a -> selection.any { it == a } } else all
@@ -46,8 +46,8 @@ object SelfAnalysis {
     private fun isOwnText(m: ChatMessage) = m.direction == Direction.OUT && (m.kind == Kind.TEXT || m.kind == Kind.VOICE) && !m.incomplete && m.text.isNotBlank()
 
     /**
-     * Nur die Nachrichten des Nutzers, je mit hoechstens einer vorangehenden Nachricht des Gegenuebers als Kontext (gekuerzt, ohne Namen, Uhrzeiten und Datum).
-     * Bei Platzmangel zaehlen die neuesten. Rueckgabe: Text und Zahl der eigenen Nachrichten darin.
+     * Only the user's messages, each with at most one preceding message from the other person as context (trimmed, without names, times, and dates).
+     * When space runs out, the newest count. Returns the text and the number of own messages in it.
      */
     fun ownTranscript(messages: List<ChatMessage>, maxChars: Int, ctxChars: Int = 80): Pair<String, Int> {
         val blocks = ArrayList<Pair<String, Int>>()
@@ -66,7 +66,7 @@ object SelfAnalysis {
         return keep.asReversed().joinToString("\n") to count
     }
 
-    /** Die Blocke (eigene Nachricht mit hoechstens einer Gegenueber-Zeile) in zeitlicher Folge, wie sie [ownTranscript] bildet. */
+    /** The blocks (own message with at most one line from the other person) in time order, as [ownTranscript] builds them. */
     fun ownBlocks(messages: List<ChatMessage>, ctxChars: Int = 80): List<String> {
         val out = ArrayList<String>()
         messages.forEachIndexed { i, m ->
@@ -81,9 +81,9 @@ object SelfAnalysis {
     }
 
     /**
-     * Map-Reduce-Vorbereitung: teilt die Blocke in Abschnitte, die je ins Zeichenbudget passen. Es zaehlen die neuesten Abschnitte
-     * (hoechstens [maxChunks]); aeltere fallen weg. Ergebnis in zeitlicher Folge, je Abschnitt Text und Zahl der Blocke.
-     * Passt alles in einen Abschnitt, entsteht genau einer (kein Map-Reduce noetig).
+     * Map-reduce preparation: splits the blocks into sections that each fit the character budget. The newest sections count
+     * (at most [maxChunks]); older ones are dropped. Result in time order, each section as text and a block count.
+     * If everything fits in one section, exactly one is produced (no map-reduce needed).
      */
     fun packChunks(blocks: List<String>, maxChars: Int, maxChunks: Int = 4): List<Pair<String, Int>> {
         val chunks = ArrayList<Pair<String, Int>>()
@@ -102,7 +102,7 @@ object SelfAnalysis {
         return chunks.asReversed()
     }
 
-    /** Reduce-Schritt: die Ergebnisse der Abschnitte eines Chats werden mit [mergeSystem] zu einem Ergebnis des Chats zusammengefuehrt. */
+    /** Reduce step: the results of a chat's sections are merged with [mergeSystem] into one result for the chat. */
     fun reduceUser(texts: List<String>): String = buildString {
         append("Teilergebnisse aus ${texts.size} Abschnitten desselben Chats (aelteste zuerst):\n").append(PromptBuilder.CHAT_BEGIN).append('\n')
         texts.forEachIndexed { i, t -> append("Abschnitt ").append(i + 1).append('\n').append(t.trim()).append('\n') }
@@ -141,7 +141,7 @@ $FORMAT"""
         append(PromptBuilder.CHAT_END)
     }
 
-    /** Teilergebnis eines Chats aus der Modellantwort, jeder Eintrag durch die Nachpruefung gegen Namen und Zahlen. */
+    /** Partial result of one chat from the model reply, each entry checked against names and numbers. */
     fun partialFrom(output: String, blocked: Set<String>, chatTexts: List<String>, ownMessages: Int, chatKey: String, now: Long): SelfPartial {
         val (raw, discLine) = IchLogic.parseOutput(output)
         val clean = LinkedHashMap<IchCat, List<String>>()
@@ -153,8 +153,8 @@ $FORMAT"""
     }
 
     /**
-     * Gesamtbild als Vorschlag: aus der Modellantwort des Zusammenfuehrens, ersatzweise (Modell fehlgeschlagen) rein rechnerisch aus den Teilen:
-     * Eintraege, die in mindestens zwei Chats vorkommen (bei weniger als zwei Chats alle). DISC: gewichtetes Mittel nach Zahl der eigenen Nachrichten.
+     * Combined picture as a proposal: from the model's merge reply, or, if the model failed, computed from the parts:
+     * entries that appear in at least two chats (all of them when there are fewer than two chats). DISC: weighted mean by the number of own messages.
      */
     fun proposal(partials: List<SelfPartial>, mergedOutput: String?, blocked: Set<String>, now: Long): IchProfile {
         val own = partials.sumOf { it.ownMessages }

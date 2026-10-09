@@ -6,7 +6,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/** Dekodierte Tonspur: Mono, Gleitkommawerte in -1 bis 1. */
+/** Decoded audio track: mono, floating-point values from -1 to 1. */
 class DecodedAudio(val samples: FloatArray, val sampleRate: Int) {
     val durationSec: Double get() = samples.size / sampleRate.toDouble()
 }
@@ -16,7 +16,7 @@ object Pcm {
 
     fun shortsToFloat(pcm: ShortArray, length: Int = pcm.size): FloatArray = FloatArray(length) { pcm[it] / 32768f }
 
-    /** Mehrkanal zu Mono (Mittelwert). Verschachtelte Abtastwerte. */
+    /** Multi-channel to mono (mean). Interleaved samples. */
     fun downmix(interleaved: ShortArray, frames: Int, channels: Int): FloatArray {
         if (channels == 1) return shortsToFloat(interleaved, frames)
         return FloatArray(frames) { f ->
@@ -27,8 +27,8 @@ object Pcm {
     }
 
     /**
-     * Abtastratenwandlung auf 16 kHz mit Tiefpass (gefenstertes Sinc, Grenzfrequenz knapp unter 8 kHz).
-     * Fuer Eingaben mit Rate 16 kHz wird nichts veraendert.
+     * Sample-rate conversion to 16 kHz with a low pass (windowed sinc, cutoff just under 8 kHz).
+     * Input already at 16 kHz is left unchanged.
      */
     fun resampleTo16k(x: FloatArray, rate: Int): FloatArray {
         if (rate == TARGET_RATE || x.isEmpty()) return x
@@ -36,7 +36,7 @@ object Pcm {
         val ratio = rate.toDouble() / TARGET_RATE
         val outLen = (x.size / ratio).toInt()
         val out = FloatArray(outLen)
-        val cutoff = if (ratio > 1.0) 0.45 / ratio * 1.0 else 0.45 // relativ zur Eingangsrate, Nyquist = 0.5
+        val cutoff = if (ratio > 1.0) 0.45 / ratio * 1.0 else 0.45 // relative to the input rate, Nyquist = 0.5
         val radius = max(8.0, 8.0 * ratio).toInt()
         for (i in 0 until outLen) {
             val c = i * ratio
@@ -46,7 +46,7 @@ object Pcm {
             var norm = 0.0
             for (j in lo..hi) {
                 val t = j - c
-                val w = 0.5 * (1 + kotlin.math.cos(PI * t / radius)) // Hann-Fenster
+                val w = 0.5 * (1 + kotlin.math.cos(PI * t / radius)) // Hann window
                 val sinc = if (abs(t) < 1e-9) 2 * cutoff else sin(2 * PI * cutoff * t) / (PI * t)
                 val k = w * sinc
                 acc += x[j] * k

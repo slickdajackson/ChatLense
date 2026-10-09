@@ -1,9 +1,9 @@
 package app.chatlens.llm
 
 /**
- * Entscheidet nach dem Dateinamen, ob an den Prompt der Soft-Switch "/no_think" gehaengt wird.
- * Qwen3 (Dateien Qwen3-..., Qwen3_..., qwen3_...) kennt ihn. Qwen3.5 (Dateien Qwen3.5-...) hat ihn nicht; dort ist das Denken
- * im Modell abgeschaltet (leerer think-Block in der Vorlage der Konvertierung). Gemma braucht ihn nicht.
+ * Decides from the file name whether the soft switch "/no_think" is appended to the prompt.
+ * Qwen3 (files Qwen3-..., Qwen3_..., qwen3_...) knows it. Qwen3.5 (files Qwen3.5-...) does not. There, thinking
+ * is switched off inside the model (empty think block in the conversion template). Gemma does not need it.
  */
 fun noThinkSuffixFor(fileName: String): Boolean {
     val n = fileName.lowercase()

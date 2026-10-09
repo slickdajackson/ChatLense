@@ -5,9 +5,9 @@ import app.chatlens.core.Kind
 import app.chatlens.core.PageItem
 
 /**
- * Richtet zwei Ansichten (Zeilenlisten) aneinander aus und misst die Verschiebung in Pixeln.
- * Die Zuordnung ist eine laengste gemeinsame Teilfolge ueber [TranscriptMerger.compatible]. Sie verkraftet einzelne
- * Zeilen, die in nur einer Ansicht erkannt wurden (angeschnittene Bilder, Parser-Rauschen).
+ * Aligns two views (row lists) with each other and measures the shift in pixels.
+ * The matching is a longest common subsequence over [TranscriptMerger.compatible]. It tolerates individual
+ * rows that were recognized in only one view (cut-off images, parser noise).
  */
 object FrameAligner {
     class Match(val a: Int, val b: Int)
@@ -39,13 +39,13 @@ object FrameAligner {
         return out
     }
 
-    /** true, wenn mindestens eine Zuordnung keine reine Datumszeile ist (nur Datumstrenner reichen nicht als Anker). */
+    /** True when at least one match is not a pure date row (date separators alone are not enough as an anchor). */
     fun hasAnchor(x: List<ChatMessage>, matches: List<Match>): Boolean = matches.any { x[it.a].kind != Kind.DATE }
 
     /**
-     * Median der Verschiebung der Zeilen von [prev] nach [next] in Pixeln. Positiv: Inhalt ist nach unten gerutscht
-     * (zu aelteren Nachrichten gescrollt). Es zaehlen nur Zeilenkanten, die in beiden Ansichten nicht angeschnitten sind
-     * (obere Kante, sonst untere Kante). Null, wenn keine Zeile dafuer taugt.
+     * Median of the shift of rows from [prev] to [next] in pixels. Positive: the content moved downward
+     * (scrolled toward older messages). Only row edges that are not cut off in either view count
+     * (top edge, otherwise bottom edge). Null when no row is usable for that.
      */
     fun shift(prev: List<PageItem>, next: List<PageItem>, matches: List<Match>): Int? {
         val dys = ArrayList<Int>()

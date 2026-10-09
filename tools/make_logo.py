@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Erzeugt das Logo von ChatLens (Version 0.2.8, Entwurf 2a) als Android-Vector-Drawables.
+"""Builds the ChatLens logo (version 0.2.8, draft 2a) as Android vector drawables.
 
   python3 tools/make_logo.py
 
-Motiv: Sprechblase als Flaeche im Verlauf Tuerkis nach Violett, ein grosser und zwei kleine vierzackige KI-Sterne sind ausgespart
-(Negativraum, evenOdd). Keine Buchstaben, keine Lupe. Vorlage der Zeichnung: tools/logo_drafts.py (Entwurf 2a).
-Es entstehen in app/src/main/res:
-  drawable/ic_logo_mark.xml      farbige Marke, 48 dp, fuer Overlay-Punkt und App-Kopfzeile
-  drawable/ic_launcher_fg.xml    Adaptive-Icon-Vordergrund, 108 dp, Marke im Sicherheitsbereich (60 von 108 dp)
-  drawable/ic_launcher_bg.xml    Adaptive-Icon-Hintergrund, 108 dp, Verlauf Indigo nach Nachtblau
-  drawable/ic_launcher_mono.xml  einfarbige Fassung fuer Themed Icons (Android 13 und neuer)
-  drawable/ic_stat.xml           Benachrichtigungssymbol, 24 dp, einfarbig
+Motif: a speech bubble filled with a turquoise-to-violet gradient. One large and two small four-point AI stars are cut out
+(negative space, evenOdd). No letters, no magnifying glass. Drawing source: tools/logo_drafts.py (draft 2a).
+Written under app/src/main/res:
+  drawable/ic_logo_mark.xml      colored mark, 48 dp, for the overlay dot and the app header
+  drawable/ic_launcher_fg.xml    adaptive icon foreground, 108 dp, mark inside the safe area (60 of 108 dp)
+  drawable/ic_launcher_bg.xml    adaptive icon background, 108 dp, indigo-to-night-blue gradient
+  drawable/ic_launcher_mono.xml  single-color version for themed icons (Android 13 and newer)
+  drawable/ic_stat.xml           notification icon, 24 dp, single color
   mipmap-anydpi-v26/ic_launcher.xml
 """
 import os
@@ -26,7 +26,7 @@ def sparkle(cx, cy, r, k=0.14):
             f"Q{cx - d:g},{cy + d:g} {cx - r:g},{cy:g}Q{cx - d:g},{cy - d:g} {cx:g},{cy - r:g}z")
 
 
-# Sprechblase: abgerundetes Rechteck 4..44 x 6..36, Schwanz unten links; Sterne: ein grosser, zwei kleine (im 48er Raster)
+# Speech bubble: rounded rectangle 4..44 x 6..36, tail at the bottom left; stars: one large, two small (on the 48 dp grid)
 BUBBLE = "M13,6H35A9,9 0 0 1 44,15V27A9,9 0 0 1 35,36H20L10.5,43.5L12,36H13A9,9 0 0 1 4,27V15A9,9 0 0 1 13,6Z"
 STAR_BIG = (19.5, 22.5, 10.0)
 STAR_TOP = (33.0, 14.5, 4.8)
@@ -52,7 +52,7 @@ def fillpath(d, color=None, g=None, evenodd=False, alpha=None):
 
 
 def mark(mono=False):
-    """Pfade der Marke im 48er Raster: Blase mit ausgesparten Sternen. mono=True: eine Farbe (weiss)."""
+    """Mark paths on the 48 dp grid: a bubble with cut-out stars. mono=True: one color (white)."""
     d = BUBBLE + star(STAR_BIG) + star(STAR_TOP) + star(STAR_LOW)
     if mono:
         return fillpath(d, color=WHITE, evenodd=True)

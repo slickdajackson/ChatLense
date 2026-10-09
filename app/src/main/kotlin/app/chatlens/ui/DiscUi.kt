@@ -27,8 +27,8 @@ object DiscColors {
 }
 
 /**
- * Kompakte DISC-Leiste: vier Segmente nach Prozent mit Beschriftung und Konfidenz. Bei zu wenig Daten nur der Hinweis.
- * Immer als vorsichtige Einschaetzung gekennzeichnet; [showReason] zeigt die Begruendung und den Hinweis "keine Diagnose".
+ * Compact DISC bar: four segments by percentage, with labels and confidence. If there is too little data, only the hint.
+ * Always marked as a cautious assessment; [showReason] shows the reasoning and the note "keine Diagnose".
  */
 @Composable
 fun DiscBar(p: DiscProfile?, modifier: Modifier = Modifier, showReason: Boolean = false, who: String = "") {

@@ -8,7 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Katalog-Invarianten (gegen die echte Asset-Datei) und Empfehlungslogik. Rein JVM. */
+/** Catalog invariants (against the real asset file) and recommendation logic. JVM only. */
 class ModelCatalogTest {
     private val jsonFile = File("src/main/assets/model-catalog.json")
     private val cat: ModelCatalog.Parsed by lazy { ModelCatalog.parse(jsonFile.readText()) }
@@ -16,9 +16,9 @@ class ModelCatalogTest {
     private fun dev(total: Long = 12_000, avail: Long = 6_000, storageGb: Double = 50.0, unmetered: Boolean? = true) =
         DeviceInfo(total, avail, (storageGb * 1e9).toLong(), unmetered)
 
-    private fun m(id: String) = cat.byId(id) ?: error("fehlt: $id")
+    private fun m(id: String) = cat.byId(id) ?: error("missing: $id")
 
-    // ---------- Katalog ----------
+    // ---------- Catalog ----------
 
     @Test fun assetExistsAndParses() {
         assertTrue("Asset nicht gefunden: ${jsonFile.absolutePath}", jsonFile.isFile)
@@ -61,7 +61,7 @@ class ModelCatalogTest {
         gated.forEach { assertNull(it.id, it.downloadUrl); assertFalse(it.id, it.downloadable) }
         val asr = cat.models.filter { it.kind == ModelKind.ASR }
         assertTrue(asr.isNotEmpty())
-        // ab 0.2.6 sind mehrteilige ASR-Eintraege ladbar (je Datei SHA-256), aber ohne einteiligen Link
+        // from 0.2.6, multi-file ASR entries are downloadable (SHA-256 per file), but without a single-file link
         asr.forEach { assertNull(it.id, it.downloadUrl); assertEquals(ModelFormat.SHERPA_ONNX, it.format); assertTrue(it.id, it.multiFile) }
     }
 
@@ -195,7 +195,7 @@ class ModelCatalogTest {
         assertTrue(mobile.allowed); assertTrue(mobile.needsMeteredConfirm); assertTrue(mobile.warnings.isNotEmpty())
         val unknownNet = ModelAdvisor.downloadCheck(e, dev(unmetered = null), 0)
         assertTrue(unknownNet.needsMeteredConfirm)
-        // teilweise geladen: weniger Platz noetig
+        // partly downloaded: less space is required
         val partly = ModelAdvisor.downloadCheck(e, dev(storageGb = 1.0), 3_000_000_000L)
         assertTrue(partly.allowed)
     }
@@ -286,7 +286,7 @@ class ModelCatalogTest {
     }
 
     @Test fun cacheWarningForQwen35FourB() {
-        // 2,75 GB Datei: Platz fuer Datei plus Cache fehlt knapp unter 5,6 GB
+        // 2.75 GB file: space for the file plus cache is just short of 5.6 GB
         val chk = ModelAdvisor.downloadCheck(m("qwen35-4b-int4"), dev(storageGb = 4.0), 0)
         assertTrue(chk.allowed); assertTrue(chk.warnings.any { it.contains("Cache") })
     }

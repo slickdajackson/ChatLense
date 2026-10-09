@@ -14,11 +14,11 @@ android {
         targetSdk = 36
         versionCode = 16
         versionName = "0.3.0-mvp"
-        // Zielgeraet Xiaomi 15 Ultra ist arm64; spart APK-Groesse (LiteRT-LM, ML Kit Native-Libs)
+        // Target device Xiaomi 15 Ultra is arm64; this saves APK size (LiteRT-LM, ML Kit native libs)
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 
-    // Zwei Ausgaben: "full" (Direktvertrieb, mit API-Modus) und "play" (ohne API-Modus, ohne Klartext-Verkehr). Siehe PLAN.md Abschnitt 28.
+    // Two outputs: "full" (direct distribution, with API mode) and "play" (without API mode, without cleartext traffic). See PLAN.md section 28.
     flavorDimensions += "dist"
     productFlavors {
         create("full") {
@@ -59,9 +59,9 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        // LiteRT-LM und ML Kit liefern native Libs; sie muessen entpackt/ausgerichtet bleiben
+        // LiteRT-LM and ML Kit ship native libs; they must stay unpacked and aligned
         jniLibs.useLegacyPackaging = false
-        // sherpa-onnx: die JNI-Bibliothek haengt nur von libonnxruntime ab (readelf NEEDED) und laedt nur "sherpa-onnx-jni"; C- und C++-API werden nicht gebraucht (spart 4,9 MB)
+        // sherpa-onnx: the JNI library depends only on libonnxruntime (readelf NEEDED) and loads only "sherpa-onnx-jni"; the C and C++ APIs are not needed (saves 4.9 MB)
         jniLibs.excludes += listOf("**/libsherpa-onnx-c-api.so", "**/libsherpa-onnx-cxx-api.so")
     }
     testOptions {
@@ -70,7 +70,7 @@ android {
     }
 }
 
-// Linux-Bibliothek von sherpa-onnx nur fuer JVM-Tests (ONNX-Laufzeit und JNI), wird nicht in die APK gepackt
+// Linux library of sherpa-onnx only for JVM tests (ONNX runtime and JNI); it is not packed into the APK
 val sherpaNativeTest by configurations.creating
 val extractSherpaNative by tasks.registering(Copy::class) {
     from(sherpaNativeTest.elements.map { fs -> fs.map { zipTree(it.asFile) } }) {
@@ -100,20 +100,20 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
-    // OCR fuer Text in Bildern (gebuendelt, Latin-Skript, offline)
+    // OCR for text in images (bundled, Latin script, offline)
     implementation("com.google.mlkit:text-recognition:16.0.1")
 
-    // Lokales LLM (Qwen3-0.6B als .litertlm)
+    // Local LLM (Qwen3-0.6B as .litertlm)
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 
-    // Spracherkennung fuer Sprachnachrichten: sherpa-onnx (Parakeet TDT 0.6B v3 INT8), nur arm64 durch den ABI-Filter oben
+    // Speech recognition for voice messages: sherpa-onnx (Parakeet TDT 0.6B v3 INT8), arm64 only because of the ABI filter above
     implementation("com.github.k2-fsa.sherpa-onnx:sherpa-onnx:v1.13.8")
-    // Opus-Dekodierung in reinem Java (BSD-3-Clause), Rueckfall zu MediaExtractor/MediaCodec
+    // Opus decoding in pure Java (BSD-3-Clause), fallback to MediaExtractor/MediaCodec
     implementation("io.github.jaredmdobson:concentus:1.0.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
-    // Render der Oberflaeche ohne Emulator (Robolectric, nativer Grafikmodus)
+    // UI render without an emulator (Robolectric, native graphics mode)
     testImplementation("org.robolectric:robolectric:4.16")
     testImplementation(composeBom)
     testImplementation("androidx.compose.ui:ui-test-junit4")

@@ -2,7 +2,7 @@ package app.chatlens.agent
 
 import app.chatlens.core.TaskMode
 
-/** Schritte eines Laufs, wie sie in der Schrittleiste erscheinen. */
+/** Steps of a run, as they appear in the step bar. */
 enum class StepKind(val label: String) {
     OPEN_CHAT("Chat öffnen"),
     COLLECT("Nachrichten sammeln"),
@@ -14,9 +14,9 @@ enum class StepKind(val label: String) {
 }
 
 /**
- * Fortschritt eines einzelnen Laufs (ein Chat). [index] ist der Schritt, der gerade laeuft (0-basiert); alles davor ist erledigt.
- * [llmLabel] benennt den Modellschritt je Aufgabe und Modell ("Gemma analysiert"). [tokens] ist -1, solange keine Zahl vorliegt
- * (das lokale Modell und die API werden nicht gestreamt, deshalb gibt es in 0.2.7 keinen Token-Zaehler).
+ * Progress of a single run (one chat). [index] is the step currently running (0-based); everything before it is done.
+ * [llmLabel] names the model step by task and model ("Gemma analysiert"). [tokens] is -1 until a number is available
+ * (the local model and the API are not streamed, so 0.2.7 has no token counter).
  */
 data class ProgressUi(
     val steps: List<StepKind> = emptyList(),
@@ -25,13 +25,13 @@ data class ProgressUi(
     val runStartedAt: Long = 0,
     val stepStartedAt: Long = 0,
     val tokens: Int = -1,
-    /** Zaehler des laufenden Schritts, z. B. "Nachricht 2 von 4" bei der Transkription. Leer, wenn es keinen gibt. */
+    /** Counter for the current step, for example "Nachricht 2 von 4" during transcription. Empty when there is none. */
     val detail: String = "",
 ) {
     val active: Boolean get() = steps.isNotEmpty()
 }
 
-/** Anzeige-Werte zu einem [ProgressUi] und der Phase. Reine Logik, deshalb ohne Android testbar. */
+/** Display values for a [ProgressUi] and the phase. Pure logic, so testable without Android. */
 object RunProgress {
     fun plan(task: TaskMode, chatAlreadyOpen: Boolean, askPrompt: Boolean, voiceEnabled: Boolean, localModel: Boolean): List<StepKind> = buildList {
         if (!chatAlreadyOpen) add(StepKind.OPEN_CHAT)
@@ -43,7 +43,7 @@ object RunProgress {
         if (task == TaskMode.MEMORY) add(StepKind.SAVE)
     }
 
-    /** Name des Modellschritts: "Gemma analysiert", "Modell schreibt Vorschläge", "API berät" ... */
+    /** Name of the model step: "Gemma analysiert", "Modell schreibt Vorschläge", "API berät" ... */
     fun llmLabel(task: TaskMode, backendName: String, local: Boolean): String {
         val who = when {
             !local -> "API"
@@ -64,14 +64,14 @@ object RunProgress {
     fun begin(steps: List<StepKind>, now: Long, llmLabel: String = StepKind.LLM.label) =
         ProgressUi(steps, 0, llmLabel, now, now)
 
-    /** Setzt den laufenden Schritt. Ist der Schritt nicht im Plan, bleibt alles wie es war. */
+    /** Sets the current step. If the step is not in the plan, everything stays as it was. */
     fun advance(p: ProgressUi, kind: StepKind, now: Long): ProgressUi {
         val i = p.steps.indexOf(kind)
         if (i < 0 || i == p.index) return p
         return p.copy(index = i, stepStartedAt = now, detail = "")
     }
 
-    /** Nimmt einen Schritt aus dem Plan (zum Beispiel Sprachnachrichten, wenn der Chat keine hat). Der Index bleibt auf demselben Schritt. */
+    /** Removes a step from the plan (for example voice messages when the chat has none). The index stays on the same step. */
     fun drop(p: ProgressUi, kind: StepKind): ProgressUi {
         val i = p.steps.indexOf(kind)
         if (i < 0) return p
@@ -89,7 +89,7 @@ object RunProgress {
         else -> End.RUNNING
     }
 
-    /** Zahl der erledigten Schritte: bei Fertig alle, sonst alle vor dem laufenden. */
+    /** Number of completed steps: all of them when finished, otherwise all before the current one. */
     fun completed(p: ProgressUi, end: End): Int = if (end == End.DONE) p.steps.size else p.index.coerceIn(0, p.steps.size)
 
     fun counter(p: ProgressUi, end: End): String = "${completed(p, end)}/${p.steps.size} erledigt"
@@ -98,7 +98,7 @@ object RunProgress {
 
     fun currentLabel(p: ProgressUi): String = p.steps.getOrNull(p.index)?.let { stepLabel(p, it) } ?: ""
 
-    /** Kopfzeile der Schrittleiste: laufend "Nachrichten sammeln", am Ende "Fertig", "Abgebrochen bei ..." oder "Fehler bei ...". */
+    /** Headline of the step bar: while running "Nachrichten sammeln", at the end "Fertig", "Abgebrochen bei ..." or "Fehler bei ...". */
     fun headline(p: ProgressUi, end: End): String = when (end) {
         End.RUNNING -> currentLabel(p)
         End.DONE -> "Fertig"
@@ -108,23 +108,23 @@ object RunProgress {
 
     fun elapsedSec(startedAt: Long, now: Long): Long = if (startedAt <= 0) 0 else ((now - startedAt) / 1000).coerceAtLeast(0)
 
-    /** "42 s" oder "1:05 min". */
+    /** "42 s" or "1:05 min". */
     fun formatElapsed(sec: Long): String = if (sec < 60) "$sec s" else "%d:%02d min".format(sec / 60, sec % 60)
 
-    /** Zeile unter dem Modellbalken: "Modell arbeitet seit 42 s (Token: 120)". */
+    /** Line under the model bar: "Modell arbeitet seit 42 s (Token: 120)". */
     fun llmDetail(p: ProgressUi, now: Long): String {
         val s = "seit " + formatElapsed(elapsedSec(p.stepStartedAt, now))
         return if (p.tokens >= 0) s + ", " + p.tokens + " Token" else s
     }
 
-    /** Zeile fuer Downloads: "412 von 670 MB, 61 Prozent". */
+    /** Line for downloads: "412 von 670 MB, 61 Prozent". */
     fun downloadLine(done: Long, total: Long): String =
         if (total <= 0) "${done / 1_000_000L} MB" else "${done / 1_000_000L} von ${total / 1_000_000L} MB, ${(done * 100 / total).coerceIn(0, 100)} Prozent"
 
-    /** Zeile fuer Setup und Auto: "Chat 3 von 12". */
+    /** Line for setup and auto: "Chat 3 von 12". */
     fun queueLine(done: Int, total: Int): String = if (total > 0) "Chat ${(done + 1).coerceAtMost(total)} von $total" else ""
 
-    /** Kurztext fuer die Benachrichtigung: "3/5 Nachrichten sammeln". */
+    /** Short text for the notification: "3/5 Nachrichten sammeln". */
     fun notificationLine(p: ProgressUi, end: End = End.RUNNING): String =
         if (!p.active) "" else "${p.index.coerceIn(0, p.steps.size) + 1}/${p.steps.size} ${currentLabel(p)}"
 }

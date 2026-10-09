@@ -8,16 +8,16 @@ import app.chatlens.match.ChatTimeRank
 import java.time.LocalDateTime
 
 /**
- * Liest die sichtbaren Zeilen der WhatsApp-Chatliste aus einem Baum.
+ * Reads the visible rows of the WhatsApp chat list from a tree.
  *
- * Erster Weg (ab 0.2.3): ueber Knoten-IDs. Zeilen sind die Knoten mit einer Container-ID (contact_row_container); fehlen sie, ist die
- * Zeile der hoechste Vorfahr eines Knotens mit Namens-ID (conversations_row_contact_name), der genau einen solchen Namen enthaelt und
- * nicht groesser als eine Zeile ist. Der Titel ist der Text des Namensknotens.
- * Rueckfall ohne IDs: die groesste scrollbare Liste, darin Zeilen mit mindestens zwei Textknoten (auch eine Ebene tiefer, wenn die Liste
- * nur einen Huellknoten hat). Uhrzeit/Datum erkennt man am Format, die Vorschau ist der laengste Rest. Am Geraet ungeprueft (PLAN.md).
+ * First path (from 0.2.3): via node ids. Rows are the nodes with a container id (contact_row_container). If those are missing, the
+ * row is the highest ancestor of a node with a name id (conversations_row_contact_name) that contains exactly one such name and
+ * is no taller than one row. The title is the text of the name node.
+ * Fallback without ids: the largest scrollable list, and in it rows with at least two text nodes (also one level deeper, if the list
+ * has only a wrapper node). Time/date is recognized by format, the preview is the longest remainder. Not checked on a device (PLAN.md).
  */
 object ChatListParser {
-    /** [diag]: Rohangaben zur Namenswahl (nur gefuellt bei kurzen Namen), fuer das Log. */
+    /** [diag]: raw notes on the name choice (filled only for short names), for the log. */
     class Row(val entry: ChatListEntry, val bounds: Bounds, val diag: String = "")
 
     const val SHORT_NAME = 3
@@ -25,7 +25,7 @@ object ChatListParser {
     private val pinWords = Regex("(?i)angeheftet|angepinnt|fixiert|pinned")
     private val groupPreview = Regex("""^(?!(?:Du|You)\s*:)[^:\n]{1,40}:\s+\S""")
 
-    /** Anzahl sichtbarer Knoten mit einer der Marker-IDs (Namens- oder Container-ID). */
+    /** Number of visible nodes with one of the marker ids (name or container id). */
     fun markerCount(root: UiNode, markerIds: Collection<String>): Int =
         if (markerIds.isEmpty()) 0 else root.walk().count { it.viewId in markerIds && it.visible && it.bounds.area > 0 }
 
@@ -56,7 +56,7 @@ object ChatListParser {
         val out = ArrayList<Row>()
         var order = 0
         for (r in rowNodes.sortedBy { it.bounds.t }) {
-            // Mehrere Namensknoten in einer Zeile: der oberste linke gilt als Name
+            // Several name nodes in one row: the topmost left one counts as the name
             val titleNode = r.walk().filter { it.viewId in titleIds && it.hasText() && it.visible }
                 .sortedWith(compareBy({ it.bounds.t / 20 }, { it.bounds.l })).firstOrNull()
             val row = rowFrom(r, titleNode, now, order, minTexts = 1, unreadIds = unreadIds) ?: continue
@@ -66,7 +66,7 @@ object ChatListParser {
         return out
     }
 
-    /** Hoechster Vorfahr von [title], der genau einen Namensknoten enthaelt, nicht scrollbar und nicht hoeher als [maxH] ist. */
+    /** Highest ancestor of [title] that contains exactly one name node, is not scrollable, and is no taller than [maxH]. */
     private fun rowAround(root: UiNode, title: UiNode, titleIds: Collection<String>, maxH: Int): UiNode {
         val path = ArrayList<UiNode>()
         fun find(n: UiNode): Boolean {
@@ -91,7 +91,7 @@ object ChatListParser {
         val lists = root.walk().filter { it.scrollable && it.visible && it.bounds.area > 0 }.toList()
         val list = lists.maxByOrNull { it.bounds.area } ?: return emptyList()
         var rows = list.children.filter { it.visible && it.bounds.area > 0 }
-        // Nur ein Huellknoten? Dann eine Ebene tiefer suchen.
+        // Only a wrapper node? Then look one level deeper.
         if (rows.size == 1 && rows[0].children.size > 1) rows = rows[0].children.filter { it.visible && it.bounds.area > 0 }
         val out = ArrayList<Row>()
         var order = 0
@@ -113,8 +113,8 @@ object ChatListParser {
         if (title.isBlank()) return null
         var diag = ""
         if (title.length <= SHORT_NAME) {
-            // Kurzer Name: Rohtext und Umgebung festhalten. Steht in der Zeilenbeschreibung ein laengerer Name, der mit dem Kurztext beginnt
-            // (z. B. "Familie, ..." bei Anzeige "Fa"), gilt dieser (Hypothese gegen abgeschnittene Namen).
+            // Short name: record the raw text and the surroundings. If the row description contains a longer name that starts with the short text
+            // (for example "Familie, ..." when the display shows "Fa"), that one applies (a hypothesis against cut-off names).
             val descName = r.desc?.substringBefore(',')?.trim()?.takeIf { it.length > title.length && it.startsWith(title, ignoreCase = true) && it.length <= 60 }
             diag = "Rohtext=\"${titleNode.text}\" id=${titleNode.viewId} b=${titleNode.bounds} Zeilenknoten=${r.walk().count()} Textknoten=${texts.size}" +
                 " Textlaengen=${texts.map { it.text!!.length }} Beschreibungsname=${descName ?: "keiner"}"
@@ -132,9 +132,9 @@ object ChatListParser {
     private val unreadDesc = Regex("(?i)(\\d+)\\s+(ungelesene?|unread)|ungelesene?\\s+nachricht|unread\\s+message")
 
     /**
-     * Ungelesen-Hinweis einer Zeile, in drei Stufen: (1) Knoten mit einer Badge-ID, (2) Beschreibung "N ungelesene Nachrichten",
-     * (3) Rueckfall: kleiner Zahlentext (hoechstens 4 Ziffern) im rechten Teil der Zeile, der nicht die Uhrzeit ist. Alles Hinweise,
-     * am Geraet ungeprueft; false heisst nur "kein Hinweis erkannt".
+     * Unread hint of a row, in three stages: (1) a node with a badge id, (2) a description "N ungelesene Nachrichten",
+     * (3) fallback: a small number text (at most 4 digits) in the right part of the row that is not the time. All of these are hints,
+     * not checked on a device. false means only "no hint recognized".
      */
     internal fun detectUnread(r: UiNode, timeNode: UiNode?, unreadIds: Collection<String>): Pair<Boolean, Int> {
         val nodes = r.walk().filter { it.visible }.toList()

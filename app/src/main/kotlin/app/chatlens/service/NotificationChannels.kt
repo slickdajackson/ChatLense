@@ -4,9 +4,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 
 /**
- * Benachrichtigungskanaele von ChatLens. Seit 0.2.9 alle ruhig (IMPORTANCE_LOW): kein Heads-up, kein Ton, keine Vibration.
- * Bis 0.2.8 hatte der Kanal "armed" die Wichtigkeit HIGH; dessen Karte erschien oben ueber WhatsApp, genau dort, wo die Wischgesten des Lesens
- * beginnen. Einstellungen eines bestehenden Kanals lassen sich per App nicht senken, deshalb neue IDs und Loeschen der alten.
+ * ChatLens notification channels. Since 0.2.9 all of them are quiet (IMPORTANCE_LOW): no heads-up, no sound, no vibration.
+ * Until 0.2.8 the "armed" channel had importance HIGH; its card appeared at the top over WhatsApp, exactly where the reading swipes
+ * start. An app cannot lower the settings of an existing channel, so new IDs are used and the old ones are deleted.
  */
 object NotificationChannels {
     const val RUN = "run2"

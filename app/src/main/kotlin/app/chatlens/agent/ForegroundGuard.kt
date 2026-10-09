@@ -5,35 +5,35 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
-/** Messpunkt fuer die Vordergrundpruefung. Auf dem Geraet vom Bedienungshilfe-Dienst gespeist, in Tests ein Fake. */
+/** Probe for the foreground check. On the device it is fed by the accessibility service, in tests a fake. */
 interface ForegroundProbe {
-    /** Paket der Wurzel des aktiven Fensters (rootInActiveWindow), null wenn es keine gibt. Massgeblich. */
+    /** Package of the root of the active window (rootInActiveWindow), null when there is none. This is authoritative. */
     fun rootPackage(): String?
 
-    /** Paket des letzten Fensterwechsel-Ereignisses (nur Ereignisse der erlaubten Pakete werden geliefert) und dessen Alter. */
+    /** Package of the last window-change event (only events of the allowed packages are delivered) and its age. */
     fun eventPackage(): String?
     fun eventAgeMs(): Long
 
-    /** Klassenname (Aktivitaet) des letzten Fensterwechsel-Ereignisses, nur fuer das Log. */
+    /** Class name (activity) of the last window-change event, for the log only. */
     fun activity(): String?
 
-    /** Kurzuebersicht der Fenster (nur Typ, Ebene, Paket; keine Inhalte), nur fuer das Log. */
+    /** Short overview of the windows (type, layer, and package only; no contents), for the log only. */
     fun windowsSummary(): String
 
-    /** Holt die Ziel-App per Intent nach vorn (NEW_TASK + REORDER_TO_FRONT). true, wenn der Start angestossen wurde. */
+    /** Brings the target app to the front via intent (NEW_TASK + REORDER_TO_FRONT). true when the launch was started. */
     fun launch(): Boolean
 
-    /** Schliesst Benachrichtigungsleiste oder Kontrollzentrum (DISMISS_NOTIFICATION_SHADE, dann Zurueck). */
+    /** Closes the notification shade or the control center (DISMISS_NOTIFICATION_SHADE, then back). */
     fun dismissSystemUi(): Boolean = false
 
-    /** Letzter Ausweg bei festhaengender Systemoberflaeche: Home-Taste. */
+    /** Last resort when the system UI stays stuck: the home button. */
     fun goHome(): Boolean = false
 }
 
 /**
- * Stellt vor jedem Lesen, Klicken oder Zurueck sicher, dass wirklich die Ziel-App (WhatsApp) vorn ist.
- * Ist ein fremdes Fenster aktiv, wird die App hoechstens [maxAttempts] mal per Intent nach vorn geholt; danach bricht der Lauf
- * mit einer klaren Meldung ab. Es wird nie in ein fremdes Fenster geklickt: Dieser Waechter klickt gar nichts.
+ * Before every read, click, or back press, makes sure the target app (WhatsApp) is really in front.
+ * If a foreign window is active, the app is brought to the front via intent at most [maxAttempts] times; after that the run
+ * aborts with a clear message. Nothing is ever clicked in a foreign window: this guard does not click anything.
  */
 class ForegroundGuard(
     private val probe: ForegroundProbe,
@@ -48,17 +48,17 @@ class ForegroundGuard(
 ) {
     private var lastDescribed = ""
 
-    /** Fremde Pakete, die waehrend der laufenden Pruefung als aktives Fenster auftraten (in Reihenfolge), fuer eine genaue Fehlermeldung. */
+    /** Foreign packages that appeared as the active window during the current check (in order), for a precise error message. */
     private val seenForeign = LinkedHashSet<String>()
 
-    /** Anzahl der Intent-Starts insgesamt (fuer Tests und Log). */
+    /** Total number of intent launches (for tests and the log). */
     var launches = 0
         private set
 
     fun activity(): String? = probe.activity()
     fun eventAgeMs(): Long = probe.eventAgeMs()
 
-    /** Synchrone Momentpruefung ohne Warten. true nur, wenn Wurzel und (frisches) Ereignis zur Ziel-App passen. */
+    /** Synchronous instant check with no waiting. true only when the root and a (fresh) event both match the target app. */
     fun isForeground(): Boolean {
         if (probe.rootPackage() != expectedPackage) return false
         val ev = probe.eventPackage()
@@ -76,7 +76,7 @@ class ForegroundGuard(
         return "aktives Paket $root, Ereignis-Paket $ev, Aktivitaet $act"
     }
 
-    /** Schreibt die Beschreibung ins Log, wenn sie sich geaendert hat (oder [force]). */
+    /** Writes the description to the log when it has changed (or when [force] is set). */
     fun logState(tag: String, force: Boolean = false) {
         val d = describe()
         if (force || d != lastDescribed) {
@@ -86,8 +86,8 @@ class ForegroundGuard(
     }
 
     /**
-     * Wartet kurz auf den Vordergrund und holt die App sonst bis zu [maxAttempts] mal per Intent nach vorn ([allowLaunch]).
-     * Wirft [AgentException] mit klarer Meldung, wenn das nicht gelingt.
+     * Waits briefly for the foreground and otherwise brings the app to the front via intent up to [maxAttempts] times ([allowLaunch]).
+     * Throws [AgentException] with a clear message if that fails.
      */
     suspend fun ensure(allowLaunch: Boolean = true, what: String = "") {
         if (isForeground()) {
@@ -97,15 +97,15 @@ class ForegroundGuard(
         logState("Vordergrund", force = true)
         seenForeign.clear()
         probe.rootPackage()?.let { seenForeign.add(it) }
-        // Uebergang abwarten (z. B. Fensterwechsel gerade im Gange)
+        // Wait out the transition (for example a window change still in progress)
         if (waitUntilForeground(800)) {
             logState("Vordergrund")
             return
         }
         probe.rootPackage()?.let { seenForeign.add(it) }
         if (!allowLaunch) {
-            // Modus "Chat schon geoeffnet": WhatsApp wird nie per Intent geholt. Liegt aber die Systemoberflaeche (Leiste, Sperrbildschirm,
-            // Kontrollzentrum) davor, wird sie zuerst geschlossen (Schatten-Dismiss und Zurueck, nur bei systemui vorn), dann geht es weiter.
+            // Mode "Chat schon geoeffnet": WhatsApp is never brought forward via intent. If the system UI (shade, lock screen,
+            // control center) is in front of it, that is closed first (shade dismiss and back, only while systemui is in front), then the run continues.
             val cur = probe.rootPackage()
             if (isSystemUi(cur)) {
                 val d = probe.dismissSystemUi()
@@ -124,7 +124,7 @@ class ForegroundGuard(
             log("Fremdes Fenster: ${describe()}. Fenster: ${probe.windowsSummary()}. Hole ${expectedPackage} nach vorn, Versuch $attempt von $maxAttempts.")
             val cur = probe.rootPackage()
             if (isSystemSurface(cur)) {
-                // Benachrichtigungsleiste, Kontrollzentrum oder Launcher liegen oben: erst schliessen, sonst verschluckt sie den Start.
+                // The notification shade, control center, or launcher is on top: close it first, or it swallows the launch.
                 val d = probe.dismissSystemUi()
                 log("Systemoberflaeche $cur vorn: schliessen (Schatten-Dismiss und Zurueck) ausgefuehrt=$d.")
                 sleep(500)
@@ -149,16 +149,16 @@ class ForegroundGuard(
         throw NavigationException(foreignMessage(true, maxAttempts, what))
     }
 
-    /** Nur die Systemoberflaeche selbst (Benachrichtigungsleiste, Kontrollzentrum, Sperrbildschirm), nicht der Launcher. */
+    /** Only the system UI itself (notification shade, control center, lock screen), not the launcher. */
     fun isSystemUi(pkg: String?): Boolean = pkg != null && (pkg == "com.android.systemui" || pkg.endsWith(".systemui"))
 
-    /** Pakete von Systemoberflaeche und Launchern, die nach einem unguenstigen Wisch vorn sein koennen. */
+    /** Packages of the system UI and launchers that can end up in front after an unlucky swipe. */
     fun isSystemSurface(pkg: String?): Boolean =
         pkg != null && (pkg == "com.android.systemui" || pkg.endsWith(".systemui") || pkg == "com.miui.home" || pkg.contains("launcher", true) || pkg == "com.android.settings.intelligence")
 
     /**
-     * Nach einer Geste: Ist ein fremdes Fenster vorn, wird der Ausloeser ([trigger], z. B. "Wisch von (x,y) nach (x,y)") mit Paket
-     * und Fensterliste geloggt, die Systemoberflaeche geschlossen und WhatsApp zurueckgeholt ([ensure]). Kein Klick.
+     * After a gesture: if a foreign window is in front, the trigger ([trigger], for example "Wisch von (x,y) nach (x,y)") is logged with the package
+     * and the window list, the system UI is closed, and WhatsApp is brought back ([ensure]). No click.
      */
     suspend fun recoverAfter(trigger: String, allowLaunch: Boolean = true): Boolean {
         if (isForeground()) return false
@@ -186,7 +186,7 @@ class ForegroundGuard(
             p == "com.whatsapp.w4b" && expectedPackage == "com.whatsapp" -> "WhatsApp Business (com.whatsapp.w4b), ChatLens ist auf com.whatsapp eingestellt"
             else -> "ein anderes Fenster (Paket $p)"
         }
-        // Zuerst war moeglicherweise ein anderes Fenster vorn als jetzt (z. B. Sperrbildschirm, danach ChatLens): beide nennen, den Ausloeser zuerst
+        // A different window may have been in front earlier than the one now (for example the lock screen, then ChatLens): name both, the trigger first
         val first = seenForeign.firstOrNull()
         val who = when {
             first != null && pkg != null && first != pkg -> "zuerst ${name(first)}, zuletzt ${name(pkg)}"
@@ -205,7 +205,7 @@ class ForegroundGuard(
     }
 
     companion object {
-        /** Ein Ereignis einer anderen App gilt nur so lange als Gegenbeweis (danach entscheidet allein die Wurzel). */
+        /** An event from another app counts as contrary evidence only for this long (after that, the root alone decides). */
         const val EVENT_FRESH_MS = 1_500L
     }
 }

@@ -7,8 +7,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Echter Download der kleinsten Katalogdatei von Hugging Face (345 MB). Standardmaessig uebersprungen,
- * laeuft nur mit Umgebungsvariable CHATLENS_NET_TEST=1. Prueft Redirect, Pause, Fortsetzen und SHA-256 gegen den echten Server.
+ * Real download of the smallest catalog file from Hugging Face (345 MB). Skipped by default,
+ * runs only with the environment variable CHATLENS_NET_TEST=1. Checks redirect, pause, resume, and SHA-256 against the real server.
  */
 class RealDownloadTest {
     @Test fun smallestFileRealDownloadPauseResume() {

@@ -9,21 +9,21 @@ import org.junit.Test
 import java.io.File
 
 class SwipeSafetyTest {
-    // Xiaomi 15 Ultra: 1440x3200, Statusleiste ca. 130 px, Gestenzone ca. 60 px
+    // Xiaomi 15 Ultra: 1440x3200, status bar about 130 px, gesture zone about 60 px
     private val ins = ScreenInsets(1440, 3200, 130, 60)
     private val lists = listOf(
-        Bounds(0, 300, 1440, 2736),   // Listenhoehe 2436 wie im Gerätetest
-        Bounds(0, 0, 1440, 3200),     // Liste unter Statusleiste und Tab-Leiste (volle Hoehe)
+        Bounds(0, 300, 1440, 2736),   // list height 2436, as in the device test
+        Bounds(0, 0, 1440, 3200),     // list under the status bar and the tab bar (full height)
         Bounds(0, 130, 1440, 3200),
         Bounds(0, 400, 1440, 2800),
-        Bounds(0, 200, 1440, 1500),   // kleinere Liste
+        Bounds(0, 200, 1440, 1500),   // smaller list
     )
 
     private fun assertSafe(l: Bounds, older: Boolean, dist: Int) {
         val segs = SwipeSafety.plan(l, ins, older, dist)
-        assertTrue("leer fuer $l", segs.isNotEmpty())
+        assertTrue("empty for $l", segs.isNotEmpty())
         val (wt, wb) = SwipeSafety.window(l, ins)
-        val minTop = 384 // 12 Prozent von 3200
+        val minTop = 384 // 12 percent of 3200
         val maxBottom = 3200 - 384
         for (s in segs) {
             for (y in listOf(s.fromY, s.toY)) {
@@ -33,8 +33,8 @@ class SwipeSafetyTest {
                 assertTrue("y=$y in der Gestenzone", y <= 3200 - (ins.gestureBottom + 250))
                 assertTrue("y=$y ausserhalb der Liste", y in l.t..l.b)
             }
-            assertTrue("x=${s.x}", s.x in 216..1224) // 15 Prozent Rand
-            // Richtung: aeltere Nachrichten = Finger nach unten
+            assertTrue("x=${s.x}", s.x in 216..1224) // 15 percent margin
+            // direction: older messages mean the finger moves down
             if (older) assertTrue(s.toY > s.fromY) else assertTrue(s.toY < s.fromY)
             assertTrue("Segment zu lang: ${s.distance}", s.distance <= ((wb - wt) * 0.70).toInt() + 1)
         }
@@ -89,14 +89,14 @@ class SwipeSafetyTest {
         }
     }
 
-    /** Quelltext-Pruefung: die Wischgeste benutzt nur eine x-Koordinate (nur senkrecht), keine zweite. */
+    /** Source check: the swipe gesture uses only one x coordinate (vertical only), not a second one. */
     @Test fun serviceSwipeIsVerticalOnly() {
         val src = File("src/main/kotlin/app/chatlens/service/ChatAccessibilityService.kt").readText()
         assertTrue(src.contains("fun swipe(x: Int, fromY: Int, toY: Int"))
         assertTrue(src.contains("SwipeSafety.pointSafe"))
         val dev = File("src/main/kotlin/app/chatlens/agent/AndroidScrollDevice.kt").readText()
         assertTrue(dev.contains("svc.swipe(sg.x, sg.fromY, sg.toY"))
-        // LEFT/RIGHT werden nur gelesen (UiNode.scrollHoriz zum Ausschliessen waagerechter Listen), nie ausgefuehrt
+        // LEFT/RIGHT are only read (UiNode.scrollHoriz, to exclude horizontal lists), never performed
         assertTrue(!Regex("performAction\\([^)]*SCROLL_(LEFT|RIGHT)").containsMatchIn(src))
         val nav = File("src/main/kotlin/app/chatlens/agent/WhatsAppNavigator.kt").readText()
         assertTrue(File("src/main/kotlin/app/chatlens/agent/ListLocator.kt").readText().contains("Pager"))

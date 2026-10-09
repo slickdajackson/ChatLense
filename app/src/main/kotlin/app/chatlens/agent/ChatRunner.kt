@@ -53,8 +53,8 @@ import kotlin.coroutines.coroutineContext
 import kotlin.random.Random
 
 /**
- * Ablauf eines Laufs: Chat oeffnen, N-mal rueckwaerts scrollen, lesen, Bilder erfassen, LLM aufrufen.
- * Es wird nichts in WhatsApp gesendet oder geschrieben (nur Suchfeld zur Chatwahl).
+ * Flow of a run: open the chat, scroll backward N times, read, capture images, call the LLM.
+ * Nothing is sent or written in WhatsApp (only the search field, to choose the chat).
  */
 class RunResult(val messages: List<ChatMessage>, val text: String, val memory: ChatMemory?, val info: String)
 
@@ -78,10 +78,10 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
     }
 
     /**
-     * Modus "Chat ist schon geoeffnet": wartet, bis der Nutzer zu WhatsApp gewechselt hat.
-     * Ausloeser: Countdown (Einstellung Start-Verzoegerung) oder "Jetzt lesen" (Benachrichtigung oder App).
-     * Bei Start-Verzoegerung 0 gibt es keinen Countdown, nur "Jetzt lesen" (maximal 5 Minuten Wartezeit).
-     * Danach wird bis zu 60 s auf WhatsApp im Vordergrund gewartet. WhatsApp wird nie per Intent gestartet.
+     * Mode "Chat ist schon geoeffnet": waits until the user has switched to WhatsApp.
+     * Triggers: countdown (start-delay setting) or "Jetzt lesen" (notification or app).
+     * With a start delay of 0 there is no countdown, only "Jetzt lesen" (at most 5 minutes of waiting).
+     * After that, the code waits up to 60 s for WhatsApp to be in the foreground. WhatsApp is never started via intent.
      */
     private suspend fun awaitUserSwitch(s: AppSettings, nav: WhatsAppNavigator, svc: ChatAccessibilityService) {
         AgentState.update { it.copy(phase = Phase.WAITING) }
@@ -112,7 +112,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
         }
         AppLog.i("WARTEN beendet (${if (byButton) "Jetzt lesen" else "Countdown"}) nach ${System.currentTimeMillis() - started} ms.")
         AgentState.update { it.copy(phase = Phase.NAVIGATING, message = "Warte auf WhatsApp im Vordergrund ...") }
-        delay(700) // Benachrichtigungsleiste einklappen lassen
+        delay(700) // let the notification shade collapse
         if (!nav.waitForWhatsApp(60_000)) {
             nav.guard.logState("WARTEN", force = true)
             throw AgentException("WhatsApp kam nicht in den Vordergrund (60 s gewartet, ${nav.guard.describe()}). Zu WhatsApp wechseln und erneut starten. Es wurde nichts angetippt.")
@@ -133,7 +133,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
     }
 
     suspend fun run(cfg: ScrollRunConfig, s0: AppSettings): RunResult {
-        // Bildschirm waehrend des ganzen Laufs wachhalten (sonst Sperrbildschirm = com.android.systemui vorn nach der Bildschirmzeit)
+        // Keep the screen awake for the whole run (otherwise the lock screen, com.android.systemui, is in front after the screen timeout)
         app.chatlens.service.ScreenAwake.acquire()
         try {
             return runInner(cfg, s0)
@@ -143,7 +143,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
     }
 
     private suspend fun runInner(cfg: ScrollRunConfig, s0: AppSettings): RunResult {
-        // Gedaechtnis-Laeufe lesen nur Text: keine Screenshots, schneller
+        // Memory runs read text only: no screenshots, faster
         val s = if (cfg.task == TaskMode.MEMORY || cfg.task == TaskMode.SELF) s0.copy(captureImages = false) else s0
         val svc = ChatAccessibilityService.instance
             ?: throw AgentException("Bedienungshilfe ChatLens ist nicht aktiv (Systemeinstellungen, Bedienungshilfen).")
@@ -200,11 +200,11 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
         }
         try {
             if (cfg.chatAlreadyOpen) {
-                // Kein Intent-Start von WhatsApp: der geoeffnete Chat bleibt unveraendert.
+                // No intent launch of WhatsApp: the opened chat stays unchanged.
                 awaitUserSwitch(s, nav, svc)
                 log("Chat ist bereits geoeffnet (manueller Modus).")
             } else if (cfg.fromList) {
-                // Setup, Selbstanalyse: Suche zuerst, kein Raten und keine Nachfrage (unbeaufsichtigt); Rueckfall sichtbare Zeile
+                // Setup, self-analysis: search first, no guessing and no prompt (unattended); fallback is the visible row
                 nav.openChatForRun(cfg.chatTitle, { log(it) }, null)
             } else {
                 nav.openChatForRun(cfg.chatTitle, { log(it) }) { found, percent ->
@@ -215,13 +215,13 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
                 }
             }
 
-            // Vor jedem Lesen und Scrollen: ist wirklich WhatsApp vorn? Sonst (ausser im manuellen Modus) per Intent zurueckholen,
-            // nach 3 Versuchen sauber abbrechen. Im Modus "Chat schon geoeffnet" holt ChatLens WhatsApp nie selbst nach vorn.
+            // Before every read and scroll: is WhatsApp really in front? Otherwise (except in manual mode) bring it back via intent,
+            // and abort cleanly after 3 attempts. In mode "Chat schon geoeffnet", ChatLens never brings WhatsApp to the front itself.
             suspend fun ensureForeground() {
                 nav.guard.ensure(allowLaunch = !cfg.chatAlreadyOpen, what = "Lesen")
             }
 
-            // Liest den sichtbaren Ausschnitt (oder einen schon vorliegenden Schnappschuss), fuehrt zusammen, erfasst Bilder.
+            // Reads the visible slice (or an already available snapshot), merges it, and captures images.
             suspend fun readAndMerge(pre: UiNode? = null, allowGap: Boolean = true): PageRead {
                 ensureForeground()
                 val snap = pre ?: svc.snapshot() ?: throw AgentException("Kein Accessibility-Baum verfuegbar.")
@@ -237,7 +237,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
             }
 
             fun counted() = merger.messages.count { TranscriptMerger.isCountable(it) }
-            var effective = 0 // Scroll-Schritte, die den Baum tatsaechlich veraendert haben
+            var effective = 0 // scroll steps that actually changed the tree
             if (cfg.incremental) log(if (anchor.isEmpty()) "Kein Anker im Gedaechtnis: voller Lesevorgang." else "Inkrementell: lese bis zum Anker (hoechstens $target Nachrichten).")
             fun reached() = when {
                 anchor.isNotEmpty() -> MemoryUpdater.anchorReached(merger.messages, anchor) || counted() >= target
@@ -301,7 +301,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
             val atStart = ctl.atStart
             val stuck = ctl.stuck
             val hitCap = !reached() && ctl.endKind == null
-            // Abschluss: Ist die aelteste Nachricht noch angeschnitten, einen weiteren Schritt machen (sie wird dann vollstaendig sichtbar)
+            // Finish: if the oldest message is still clipped, take one more step (it then becomes fully visible)
             if (reached() && !atStart && ctl.stats.attempts < maxAttempts &&
                 merger.messages.firstOrNull { it.kind != Kind.DATE }?.incomplete == true
             ) {
@@ -341,7 +341,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
                 AgentState.update { it.copy(message = "Ende ohne Ziel: $summary") }
             }
 
-            // Nicht erfasste Bilder kennzeichnen
+            // Mark images that were not captured
             for (m in merger.messages) {
                 if (m.kind == Kind.IMAGE && m.imagePath == null && m.imageNote == null) {
                     m.imageNote = "nicht erfasst (nur teilweise sichtbar, Limit oder Bilderfassung aus)"
@@ -356,20 +356,20 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
                     imageCount = merger.messages.count { m -> m.imagePath != null },
                 )
             }
-            // Nach dem Lesen sauber zurueck zur Chatliste (Zurueck, Tab Chats, Suche zu), ausser bei Vorschlag/Berater, die im offenen Chat arbeiten
+            // After reading, go back cleanly to the chat list (back, Chats tab, close search), except for suggest/adviser, which work in the open chat
             if (!cfg.chatAlreadyOpen && (cfg.inQueue || (cfg.task != TaskMode.SUGGEST && cfg.task != TaskMode.ADVISE)) && ChatAccessibilityService.instance != null) {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { nav.returnToList { log(it) } }
             }
         }
 
-        // Sprachnachrichten: zuordnen, lokal transkribieren (vor dem LLM, damit das Modell danach wieder freigegeben ist)
-        // Gilt fuer alle Laeufe, die ueber ChatRunner gehen: Einzelchat/Punkt, Setup, Auto, Selbstanalyse, Chat per Namen.
+        // Voice messages: assign them and transcribe locally (before the LLM, so the model is released again afterward)
+        // Applies to every run that goes through ChatRunner: single chat/dot, setup, auto, self-analysis, chat by name.
         run {
             val voices = merger.messages.count { it.kind == Kind.VOICE }
             val vs = VoiceRuntime.status(ctx, s)
             val d = app.chatlens.asr.VoicePlan.decide(s.voiceTranscribe, voices, vs.modelDir != null, vs.folderSet, vs.folderGranted)
             if (!d.run) {
-                // Sauber uebersprungen: Schritt aus der Leiste, Grund und Handlungshinweis in Log und Anzeige
+                // Skipped cleanly: remove the step from the bar, and put the reason and the action hint in the log and the display
                 AgentState.dropStep(StepKind.TRANSCRIBE)
                 if (d.skipReason != null) {
                     log("STIMME: uebersprungen. ${d.skipReason} ${d.todo.orEmpty()}")
@@ -397,7 +397,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
             AgentState.update { it.copy(phase = Phase.DONE, message = "Fertig (nur Auslesen, kein LLM-Aufruf).", result = "", resultInfo = "") }
             return RunResult(all, "", null, "nur Auslesen")
         }
-        // Auswahl nach dem Sammeln ("im Kasten"): Standardprompt oder eigener Prompt. Es wird nichts still gewaehlt.
+        // Choice after collection (in the box): standard prompt or custom prompt. Nothing is chosen silently.
         var instruction = cfg.instruction
         if (cfg.askPrompt && cfg.task == TaskMode.ANALYSE) {
             AgentState.step(StepKind.CHOOSE)
@@ -436,7 +436,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
                 AgentState.step(StepKind.LLM)
             }
         }
-        // Lokales Modell zuerst laden: erst dann steht die tatsaechliche Kontextstufe fest (automatisch: groesste, die das Telefon schafft)
+        // Load the local model first: only then is the actual context level known (automatic: the largest the phone can handle)
         var ctxLevel = 0
         if (backend is LiteRtLmBackend) {
             try {
@@ -449,13 +449,13 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
             AgentState.update { it.copy(contextInfo = LiteRtLmBackend.contextInfo()) }
         }
         val maxChars = if (backend.sendsDataOffDevice) s.contextCharsApi else app.chatlens.llm.ContextPlanner.effectiveChars(s.contextCharsLocal, ctxLevel)
-        // Kurzer Ich-Block (Stil spiegeln) und Budget fuer das Chat-Gedaechtnis im Prompt (KV-Budget): hoechstens ein Drittel des Kontexts
+        // Short Ich block (mirror the style) and budget for the chat memory in the prompt (KV budget): at most one third of the context
         IchState.ensureLoaded(ctx)
         val ichText = if (s.ichEnabled && cfg.task != TaskMode.MEMORY && cfg.task != TaskMode.ANALYSE) IchState.profile.value.toPromptBlock().ifBlank { null } else null
         val memBudget = minOf(s.memoryMaxChars, maxChars / 3).coerceAtLeast(800)
         val noThink = (backend as? LiteRtLmBackend)?.wantsNoThinkSuffix == true
 
-        // Nachrichten fuer den Prompt: bei inkrementellem Gedaechtnis nur die seit dem Anker
+        // Messages for the prompt: with incremental memory, only those since the anchor
         var forPrompt = all
         var incrementalUsed = false
         var nothingNew = false
@@ -479,7 +479,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
         val mem = mem0
         val req = when (cfg.task) {
             TaskMode.SELF -> {
-                // Nur die eigenen Nachrichten mit knappem Kontext, ohne Namen und Zeiten; im Log nur Zahlen
+                // Only the user's own messages, with little context, without names and times; the log gets numbers only
                 val chunks = SelfAnalysis.packChunks(SelfAnalysis.ownBlocks(forPrompt), maxChars)
                 val n = chunks.sumOf { it.second }
                 log("SELBSTANALYSE: $n eigene Nachrichten in ${chunks.size} Abschnitt(en) (Budget $maxChars Zeichen je Abschnitt, Inhalt nicht im Log).")
@@ -487,7 +487,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
                 if (chunks.size == 1) {
                     LlmRequest(system = SelfAnalysis.chatSystem(cfg.instruction), user = SelfAnalysis.chatUser(chunks[0].first) + if (noThink) "\n\n/no_think" else "")
                 } else {
-                    // Map-Reduce: je Abschnitt ein Aufruf, danach ein Zusammenfuehren
+                    // Map-reduce: one call per section, then a merge
                     val parts = ArrayList<String>()
                     for ((i, c) in chunks.withIndex()) {
                         coroutineContext.ensureActive()
@@ -527,10 +527,10 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
             )
         }
         log("LLM-Aufruf (${cfg.task}): ${backend.name}, ${req.user.length} Zeichen, ${req.images.size} Bilder, Daten verlassen Geraet: ${backend.sendsDataOffDevice}.")
-        // Nur ein Modellaufruf zur selben Zeit
+        // Only one model call at a time
         val genStart = System.currentTimeMillis()
         val result = try { LlmGate.exclusive { backend.generate(req) } } finally { LiteRtLmBackend.loadListener = null }
-        // Messwert fuer die Modellliste: nur lokale Modelle, ohne Ladezeit, nur Zahlen
+        // Measurement for the model list: local models only, without load time, numbers only
         if (backend is LiteRtLmBackend) {
             val sec = (System.currentTimeMillis() - genStart - loadMs) / 1000.0
             runCatching { MeasuredStats.record(ctx, File(s.localModelPath).name, sec, req.user.length) }
@@ -573,8 +573,8 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
     }
 
     /**
-     * Ich-Profil nach einem Gedaechtnislauf: nur chatuebergreifende Merkmale, jeder Kandidat durch die Nachpruefung ([IchLogic.clean]) gegen Namen aus
-     * Kontaktliste, Chatnamen und Gedaechtnis sowie gegen die Fakten dieses Chats. Im Log nur Zahlen.
+     * Ich profile after a memory run: only traits that apply across chats, and every candidate goes through the check ([IchLogic.clean]) against names from
+     * the contact list, chat names, and memory, and against the facts of this chat. The log gets numbers only.
      */
     private fun updateIch(output: String, msgs: List<ChatMessage>, chatMem: ChatMemory, title: String) {
         val (found, discLine) = IchLogic.parseOutput(output)
@@ -610,7 +610,7 @@ class ChatRunner(private val ctx: Context, private val repo: SettingsRepo) {
         }
     }
 
-    /** Ein Screenshot pro Seite, Zuschnitt aller vollstaendig sichtbaren, noch nicht erfassten Bildknoten. */
+    /** One screenshot per page, cropping every fully visible image node that has not been captured yet. */
     private suspend fun captureImages(
         svc: ChatAccessibilityService,
         page: ParsedPage,

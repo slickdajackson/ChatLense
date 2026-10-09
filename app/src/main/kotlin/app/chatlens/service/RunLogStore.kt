@@ -16,9 +16,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Markdown-Log je Lauf: Kopf mit Version, Datum, Geraet, Modus und Einstellungen (ohne Schluessel), Ergebnis und alle Logzeilen des Laufs.
- * Jeder Lauf wird nach dem Ende automatisch unter runlogs/ gespeichert (die neuesten 30 bleiben). Teilen und Ablegen in Downloads
- * gehen jederzeit, auch waehrend eines Laufs.
+ * Markdown log per run: a header with version, date, device, mode, and settings (without keys), the result, and every log line of the run.
+ * Each run is saved automatically under runlogs/ after it ends (the newest 30 are kept). Sharing and saving to Downloads
+ * work at any time, including during a run.
  */
 object RunLogStore {
     private const val KEEP = 30
@@ -46,7 +46,7 @@ object RunLogStore {
         AppLog.i("EINSTELLUNGEN: " + settingsRows(s).joinToString("; ") { "${it.first}=${it.second}" })
     }
 
-    /** Beendet den Lauf, merkt das Ergebnis und speichert das Markdown-Log automatisch. */
+    /** Ends the run, records the result, and saves the Markdown log automatically. */
     fun finish(ctx: Context, s: AppSettings, outcomeText: String): File? {
         outcome = outcomeText
         AppLog.i("LAUF-ENDE: $outcomeText")
@@ -68,7 +68,7 @@ object RunLogStore {
         )
     }
 
-    /** Einstellungen als Tabelle. Der API-Schluessel fehlt absichtlich; von Pfaden steht nur der Dateiname, von der URL nur der Host. */
+    /** Settings as a table. The API key is omitted on purpose; paths show only the file name, and the URL shows only the host. */
     fun settingsRows(s: AppSettings): List<Pair<String, String>> = listOf(
         "Backend" to s.backend.name,
         "API-Host" to (runCatching { Uri.parse(s.apiBaseUrl).host }.getOrNull() ?: "?"),
@@ -131,7 +131,7 @@ object RunLogStore {
         ctx.startActivity(Intent.createChooser(send, "Log teilen").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /** Legt das Log als .md in Downloads/ChatLens ab (MediaStore, ab Android 10; davor App-Ordner). Liefert eine Beschreibung des Ortes oder null. */
+    /** Saves the log as .md in Downloads/ChatLens (MediaStore, from Android 10; before that, the app folder). Returns a description of the location, or null. */
     fun saveToDownloads(ctx: Context, s: AppSettings): String? {
         val md = markdown(ctx, s)
         val name = "ChatLens-Log-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY).format(Date()) + ".md"

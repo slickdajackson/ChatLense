@@ -12,13 +12,13 @@ interface Crypto {
 class CryptoException(msg: String, cause: Throwable? = null) : Exception(msg, cause)
 
 /**
- * AES-256-GCM. Format: Version (1 Byte) + IV (12 Byte) + Chiffrat mit Tag. Der Schluessel kommt von aussen
- * (auf dem Geraet aus dem Android Keystore, in Tests ein Zufallsschluessel). Ein manipulierter Blob wird abgelehnt.
+ * AES-256-GCM. Format: version (1 byte) + IV (12 bytes) + ciphertext with tag. The key comes from outside
+ * (on the device from the Android Keystore, in tests a random key). A tampered blob is rejected.
  *
- * WICHTIG (Keystore-Regel): Beim Verschluesseln darf der Aufrufer KEINEN IV vorgeben. Der Android Keystore erzeugt den IV selbst
- * (setRandomizedEncryptionRequired ist Standard) und wirft sonst InvalidAlgorithmParameterException "Caller-provided IV not permitted".
- * Darum: init(ENCRYPT_MODE, key) ohne Parameter, der IV wird danach aus cipher.iv gelesen und mitgespeichert. Nur beim Entschluesseln
- * wird der gespeicherte IV per GCMParameterSpec uebergeben. [newCipher] ist austauschbar, damit Tests die Keystore-Regel nachbilden koennen.
+ * IMPORTANT (Keystore rule): when encrypting, the caller must NOT supply an IV. The Android Keystore generates the IV itself
+ * (setRandomizedEncryptionRequired is the default) and otherwise throws InvalidAlgorithmParameterException "Caller-provided IV not permitted".
+ * So: init(ENCRYPT_MODE, key) without parameters, then the IV is read from cipher.iv and stored with the blob. Only when decrypting
+ * is the stored IV passed via GCMParameterSpec. [newCipher] is replaceable so tests can reproduce the Keystore rule.
  */
 class AesGcmCrypto(
     private val newCipher: () -> Cipher = { Cipher.getInstance("AES/GCM/NoPadding") },

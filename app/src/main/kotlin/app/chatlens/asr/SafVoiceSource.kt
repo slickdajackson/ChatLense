@@ -6,9 +6,9 @@ import android.net.Uri
 import android.provider.DocumentsContract
 
 /**
- * Liest den per Ordnerfreigabe (ACTION_OPEN_DOCUMENT_TREE) gewaehlten Ordner. Funktioniert ohne Speicherberechtigung.
- * Erwartet "WhatsApp Voice Notes" oder einen Oberordner; durchsucht Unterordner (Wochenordner, Sent) bis [maxDepth]
- * und, um schnell zu bleiben, nur die [maxFoldersPerLevel] namensmaessig juengsten Unterordner je Ebene (Wochenordner heissen JJJJWW).
+ * Reads the folder chosen via folder grant (ACTION_OPEN_DOCUMENT_TREE). Works without a storage permission.
+ * Expects "WhatsApp Voice Notes" or a parent folder. Searches subfolders (week folders, Sent) up to [maxDepth]
+ * and, to stay fast, only the [maxFoldersPerLevel] youngest subfolders by name at each level (week folders are named YYYYWW).
  */
 class SafVoiceSource(
     private val ctx: Context, private val treeUri: Uri,

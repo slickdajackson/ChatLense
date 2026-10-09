@@ -9,7 +9,7 @@ import app.chatlens.data.AppSettings
 import app.chatlens.service.AgentForegroundService
 import kotlinx.coroutines.Job
 
-/** Einstiegspunkt fuer Start und Notaus. Haelt die Parameter fuer den Foreground-Service. */
+/** Entry point for start and emergency stop. Holds the parameters for the foreground service. */
 object AgentController {
     @Volatile
     internal var pendingConfig: ScrollRunConfig? = null
@@ -26,7 +26,7 @@ object AgentController {
     @Volatile
     private var readNow = false
 
-    /** Aus der Benachrichtigung oder der App: Countdown beenden und jetzt lesen. */
+    /** From the notification or the app: end the countdown and read now. */
     fun requestReadNow() {
         if (isRunning()) {
             AppLog.i("\"Jetzt lesen\" ausgeloest.")
@@ -42,7 +42,7 @@ object AgentController {
 
     fun isRunning(): Boolean = job?.isActive == true
 
-    /** Startet den Service. WhatsApp wird anschliessend aus der Activity heraus geoeffnet (siehe MainActivity). */
+    /** Starts the service. WhatsApp is then opened from the activity (see MainActivity). */
     fun start(context: Context, cfg: ScrollRunConfig, settings: AppSettings): Boolean {
         if (isRunning()) return false
         pendingConfig = cfg
@@ -54,7 +54,7 @@ object AgentController {
         return true
     }
 
-    /** Startet Setup, Auto-Modus, Fortsetzen oder Chatliste lesen im Vordergrunddienst. */
+    /** Starts setup, auto mode, resume, or chat-list reading in the foreground service. */
     fun startAuto(context: Context, start: AutoStart, settings: AppSettings): Boolean {
         if (isRunning()) return false
         pendingConfig = null
@@ -67,7 +67,7 @@ object AgentController {
         return true
     }
 
-    /** Notaus: bricht den laufenden Auftrag sofort ab. */
+    /** Emergency stop: aborts the running job immediately. */
     fun cancel(reason: String = "Notaus ausgeloest.") {
         val j = job
         if (j != null && j.isActive) {

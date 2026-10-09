@@ -45,9 +45,9 @@ data class AutoUiState(
     val done: Int = 0,
     val total: Int = 0,
     val current: String = "",
-    /** Gelesene Chatliste (zum Ankreuzen im Auto-Modus). */
+    /** Chat list that was read (for checking items in auto mode). */
     val listEntries: List<ChatListEntry> = emptyList(),
-    /** Uebersicht der angelegten Chat-Profile nach dem Lauf. */
+    /** Overview of the chat profiles created after the run. */
     val overview: List<ChatMemory> = emptyList(),
     val finished: Boolean = false,
     val resumable: Boolean = false,
@@ -59,38 +59,38 @@ object AutoState {
     fun update(f: (AutoUiState) -> AutoUiState) { _state.value = f(_state.value) }
 }
 
-/** Auftrag fuer den Dienst. */
+/** Job for the service. */
 sealed class AutoStart {
-    /** Setup: neueste [count] Chats aus der Chatliste, je [target] Nachrichten, direkt aus der Liste geoeffnet. */
+    /** Setup: the newest [count] chats from the chat list, [target] messages each, opened directly from the list. */
     class Setup(
         val count: Int, val target: Int, val includeGroups: Boolean, val pinnedCounts: Boolean,
-        /** Ab 0.2.5: die im Checkup-Menue gewaehlten Chats (Listenreihenfolge). null: wie bisher die neuesten [count] aus der Liste. */
+        /** Since 0.2.5: the chats chosen in the checkup menu (list order). null: as before, the newest [count] from the list. */
         val selectedTitles: List<String>? = null,
     ) : AutoStart()
 
-    /** Checkup: nur die Chatliste lesen (bis zu [limit] Chats), keinen Chat oeffnen. Ergebnis ist das Auswahlmenue. */
+    /** Checkup: read only the chat list (up to [limit] chats), do not open a chat. The result is the selection menu. */
     class Checkup(val limit: Int) : AutoStart()
 
-    /** Auto-Modus: die Namen der Liste, inkrementell (nur neue Nachrichten seit dem Anker), Namenssuche mit Nachfrage bei Unschaerfe. */
+    /** Auto mode: the names from the list, incremental (only new messages since the anchor), name search with a prompt when the match is fuzzy. */
     class Names(val titles: List<String>, val target: Int) : AutoStart()
 
     /**
-     * Selbstanalyse: die im Checkup gewaehlten Chats [titles] (nur aus der Checkup-Liste), je [perChat] Nachrichten, nur die eigenen Nachrichten werden ausgewertet.
-     * [focus] ist der freie Auftragstext des Nutzers (nur Schwerpunkt).
+     * Self-analysis: the chats chosen in the checkup [titles] (only from the checkup list), [perChat] messages each, and only the user's own messages are evaluated.
+     * [focus] is the user's free task text (focus only).
      */
     class SelfScan(val titles: List<String>, val perChat: Int, val focus: String) : AutoStart()
 
-    /** Wiederaufnahme der gespeicherten Warteschlange. */
+    /** Resumes the stored queue. */
     class Resume(val retryFailed: Boolean) : AutoStart()
 
-    /** Nur die Chatliste lesen (zum Ankreuzen). */
+    /** Read only the chat list (for checking items). */
     object ReadList : AutoStart()
 }
 
 /**
- * Setup und Auto-Modus: arbeitet Chats seriell ab. Je Chat ein Lesevorgang (ChatRunner) und genau ein Modellaufruf
- * (LlmGate), Ergebnis ist das verschluesselte Gedaechtnis. Der Zustand der Warteschlange wird nach jedem Schritt verschluesselt
- * gespeichert, damit nach einem Abbruch fortgesetzt werden kann.
+ * Setup and auto mode: works through chats one by one. Each chat gets one read pass (ChatRunner) and exactly one model call
+ * (LlmGate), and the result is the encrypted memory. The queue state is saved encrypted after every step,
+ * so the run can resume after a cancellation.
  */
 class AutoRunner(private val ctx: Context, private val repo: SettingsRepo) {
 
@@ -169,7 +169,7 @@ class AutoRunner(private val ctx: Context, private val repo: SettingsRepo) {
         CheckupState.applyScan(items, now, note)
         runCatching { CheckupState.stored?.let { mem.saveCheckup(it) } }
         if (scan.reason == app.chatlens.checkup.StopReason.SCROLL_FAILED) {
-            // Die erste Seite bleibt waehlbar, der Lauf gilt aber als Fehler: ein Listenende ist nicht erwiesen
+            // The first page stays selectable, but the run counts as an error: the end of the list is not proven
             AutoState.update { it.copy(listEntries = scan.entries, message = "Checkup unvollstaendig: $note") }
             throw AgentException("Checkup unvollstaendig: Scrollen nicht moeglich, nur ${scan.entries.size} Zeilen gelesen. ${warn ?: ""}")
         }
@@ -186,7 +186,7 @@ class AutoRunner(private val ctx: Context, private val repo: SettingsRepo) {
         nav.guard.ensure(true, "Setup")
         delay(800)
         val picked = st.selectedTitles
-        // Reihenfolge erzwingen: Setup arbeitet nur Chats aus der Checkup-Liste ab. Kein Rueckfall mehr auf die "obersten N" der Live-Liste.
+        // Force the order: setup works only through chats from the checkup list. There is no longer a fallback to the top N of the live list.
         val cuTitles = CheckupState.state.value.items.map { it.entry.title }
         Workflow.lockReason("das Setup", cuTitles.size, picked?.size ?: 0)?.let { throw AgentException(it) }
         if (picked != null) {
@@ -253,7 +253,7 @@ class AutoRunner(private val ctx: Context, private val repo: SettingsRepo) {
         CheckupState.state.value.items.map { it.entry.title },
     )
 
-    /** Gesamtbild: ein Modellaufruf ueber die abstrakten Teilergebnisse (keine Chatinhalte), bei Fehler rechnerisch. Ergebnis ist nur ein Vorschlag. */
+    /** Overall picture: one model call over the abstract partial results (no chat contents), computed locally on error. The result is only a proposal. */
     private suspend fun finishSelf(q: AutoQueue, s: AppSettings, ok: Int, err: Int) {
         SelfState.load(ctx)
         val partials = SelfState.partials.value
@@ -325,7 +325,7 @@ class AutoRunner(private val ctx: Context, private val repo: SettingsRepo) {
                     return@run "$own eigene Nachrichten ausgewertet"
                 }
                 val n = r.messages.count { app.chatlens.parse.TranscriptMerger.isCountable(it) }
-                // Kein Erfolg ohne gelesene Nachrichten: sonst wuerde ein Chat stillschweigend als fertig zaehlen
+                // No success without messages read: otherwise a chat would silently count as done
                 if (n == 0) throw AgentException("Keine Nachrichten gelesen (${r.info.take(160)}).")
                 "$n Nachrichten gelesen, ${r.memory?.generatedLength ?: 0} Zeichen Gedächtnis"
             }

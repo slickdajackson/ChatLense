@@ -41,7 +41,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** Renderbilder der Einrichtungsseiten und des Overlay-Panels (0.2.9). Testdaten, Robolectric ohne Blur, kein Beleg fuer das Geraet. */
+/** Renders of the setup pages and the overlay panel (0.2.9). Test data, Robolectric without blur, not evidence for the device. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
@@ -92,7 +92,7 @@ class V029RenderTest {
     }
     @Test fun w6Done() = page("wizard-6-fertig", WizardStep.DONE, WizardFacts(true, true, true, 7)) { WizardUi(it.state, it.facts, overlayEnabled = true, checkupOnStart = false) }
 
-    // ---------- Overlay Panel mit langem Ergebnis ----------
+    // ---------- Overlay panel with a long result ----------
 
     private val longText = (1..60).joinToString("\n") { "Zeile $it: Dies ist ein langer Absatz der Analyse mit vielen Worten, damit das Panel scrollen muss." }
 
@@ -105,7 +105,7 @@ class V029RenderTest {
             }
         }
         snap("overlay-panel-langes-ergebnis")
-        // Begrenzte Hoehe und eigene Scrollflaeche
+        // Bounded height and its own scroll area
         rule.onNodeWithText("Punkt entfernen").assertExists()
         rule.onNodeWithText("Schließen").assertExists()
         val scroll = rule.onNode(hasScrollAction())
@@ -118,7 +118,7 @@ class V029RenderTest {
         val maxV = rule.onNode(hasScrollAction()).fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue()
         assertTrue("Inhalt ist laenger als die Flaeche", maxV > 0f)
         snap("overlay-panel-gescrollt")
-        // Kopf bleibt stehen
+        // The header stays put
         rule.onNodeWithText("Punkt entfernen").assertExists()
         AgentState.reset()
     }

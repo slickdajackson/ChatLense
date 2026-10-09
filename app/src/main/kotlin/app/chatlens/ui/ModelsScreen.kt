@@ -76,7 +76,7 @@ import java.util.Locale
 fun fmtBytes(b: Long): String =
     if (b >= 1_000_000_000L) String.format(Locale.GERMANY, "%.2f GB", b / 1e9) else String.format(Locale.GERMANY, "%d MB", b / 1_000_000L)
 
-/** Modellkatalog: Empfehlung nach Geraet, Download mit Fortschritt, Verwenden. Quelle und Lizenz je Modell. */
+/** Model catalog: a recommendation by device, download with progress, and use. Source and license for each model. */
 @Composable
 fun ModelsScreen(
     settings: AppSettings,
@@ -87,7 +87,7 @@ fun ModelsScreen(
     onUse: (ModelEntry, File) -> Unit,
     onDelete: (ModelEntry, File) -> Unit,
     onUseFile: (File) -> Unit,
-    /** Nur fuer Vorschau und Tests: feste Geraetewerte statt Messung. */
+    /** For preview and tests only: fixed device values instead of a measurement. */
     deviceOverride: DeviceInfo? = null,
     initialOpen: String? = null,
 ) {
@@ -386,7 +386,7 @@ private fun ModelCard(
     }
 }
 
-/** Punktreihe 1 bis 5: gefuellt = Akzent, leer = Umriss in Textfarbe (beides mindestens 3:1 auf der Karte). */
+/** Dot row from 1 to 5: filled means accent, empty means an outline in the text color (both at least 3:1 on the card). */
 @Composable
 fun Dots(score: Int, label: String, modifier: Modifier = Modifier) {
     Row(
@@ -400,7 +400,7 @@ fun Dots(score: Int, label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Ultrakompakte Zeile: Name, Groesse, Status und fuenf Punktreihen. Antippen klappt die Karte auf. */
+/** Ultra-compact row: name, size, status, and five dot rows. Tapping expands the card. */
 @Composable
 fun ModelRow(e: ModelEntry, state: ModelRatings.RowState, isRec: Boolean, isCmp: Boolean, expanded: Boolean, onToggle: () -> Unit) {
     val statusColor = when (state) {
@@ -438,7 +438,7 @@ fun ModelRow(e: ModelEntry, state: ModelRatings.RowState, isRec: Boolean, isCmp:
     }
 }
 
-/** Bewertung mit Begruendung je Bereich, klar als Einschaetzung gekennzeichnet; gemessene Werte stehen getrennt darunter. */
+/** Rating with a reason for each area, clearly marked as an assessment; measured values are listed separately below. */
 @Composable
 private fun RatingDetails(e: ModelEntry, measured: Measured?) {
     Text("Unsere Bewertung (Einschätzung, nicht gemessen)", style = MaterialTheme.typography.labelLarge)

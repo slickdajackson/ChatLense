@@ -61,7 +61,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** Vorschaubilder der Version 0.2.7 (Logo, Fortschritt, Modelle, Prompt-Karte, Ring, DISC, Einrichtung). Testdaten, kein Beleg fuer das Geraet. */
+/** Preview images for version 0.2.7 (logo, progress, models, prompt card, ring, DISC, setup). Test data, not evidence for the device. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h1000dp-xxhdpi")
@@ -81,7 +81,7 @@ class V027RenderTest {
         CompositionLocalProvider(LocalGlassAnimate provides false) { GlassTheme { GlassBackground { content() } } }
     }
 
-    // ---------- Fortschritt ----------
+    // ---------- Progress ----------
 
     @Config(sdk = [34], qualifiers = "w411dp-h2400dp-xhdpi")
     @Test fun progressStates() {
@@ -105,7 +105,7 @@ class V027RenderTest {
         snap("fortschritt")
     }
 
-    // ---------- Modelle ----------
+    // ---------- Models ----------
 
     @Config(sdk = [34], qualifiers = "w411dp-h2400dp-xhdpi")
     @Test fun modelsCompactAndExpanded() {
@@ -132,7 +132,7 @@ class V027RenderTest {
         snap("modelle-karte-offen")
     }
 
-    // ---------- Prompt-Karte ----------
+    // ---------- Prompt card ----------
 
     @Test fun promptCard() {
         val book = PromptBook(PromptMode.CUSTOM, "Welche Termine nennt Anna?", listOf("Welche Termine nennt Anna?", "Fasse kurz zusammen"), emptyList())
@@ -146,7 +146,7 @@ class V027RenderTest {
         snap("prompt-karte")
     }
 
-    // ---------- Ring mit rotem Entfernen ----------
+    // ---------- Ring with red remove ----------
 
     @Test fun ringWithRemove() {
         screen { Box(Modifier.padding(top = 20.dp)) { OverlayDot(expanded = true, onToggle = {}, onDrag = { _, _ -> }, onAction = {}) } }
@@ -167,7 +167,7 @@ class V027RenderTest {
         snap("disc")
     }
 
-    // ---------- Einrichtungs-Assistent, gesperrt ----------
+    // ---------- Setup wizard, locked ----------
 
     @Test fun wizardWithoutCheckup() {
         CheckupState.reset()

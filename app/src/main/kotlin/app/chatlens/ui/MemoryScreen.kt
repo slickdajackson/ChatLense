@@ -31,7 +31,7 @@ import app.chatlens.memory.ChatMemory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Gedaechtnis: Profile ansehen, eigene Notiz bearbeiten, exportieren, loeschen (je Chat und alles). */
+/** Memory: view profiles, edit your own note, export, and delete (per chat, and everything). */
 @Composable
 fun MemoryScreen(settings: app.chatlens.data.AppSettings, onSettings: (app.chatlens.data.AppSettings) -> Unit, onShareJson: (String, String) -> Unit) {
     val ctx = LocalContext.current

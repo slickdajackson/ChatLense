@@ -3,7 +3,7 @@ package app.chatlens.assist
 import app.chatlens.llm.PromptBuilder
 import app.chatlens.memory.ChatMemory
 
-/** Prompts und Auswertung fuer Berater und Antwortvorschlaege. Nichts hier sendet etwas. */
+/** Prompts and parsing for the advisor and reply suggestions. Nothing here sends anything. */
 object Assist {
 
     fun adviserSystem(title: String): String = """
@@ -11,7 +11,7 @@ Du berätst den Besitzer dieses Geräts ("Ich") zu einem WhatsApp-Chat mit "$tit
 Regeln: Deutsch. Stütze dich auf das Gedächtnis und den Verlauf. Erfinde keine Fakten. Gib konkrete, kurze nächste Schritte (höchstens 5), dazu was du dabei vermeidest und was unklar bleibt. Du sendest nichts und schreibst keine Nachricht, es sei denn Ich bittet ausdrücklich um eine Formulierung.
 """.trim()
 
-    /** Kurzer Block "Mein Stil" aus dem Ich-Profil: Stil spiegeln, keine Inhalte daraus nennen. */
+    /** Short style block from the self profile: mirror the style, do not mention contents from it. */
     fun ichBlock(ich: String?): String =
         if (ich.isNullOrBlank()) "" else "Stil von Ich (nur den Stil spiegeln, daraus keine Fakten nennen):\n" + ich.trim() + "\n\n"
 
@@ -41,7 +41,7 @@ Regeln: Deutsch. Passe Ton und Länge an Ich und das Gegenüber an. Erfinde kein
 
     private val numbered = Regex("""^\s*(?:\*\*)?(?:Entwurf|Vorschlag|Option)?\s*(\d)\s*[.):]\s*(?:\*\*)?\s*(.*)$""", RegexOption.IGNORE_CASE)
 
-    /** Zerlegt die Modellantwort in bis zu [max] Entwuerfe. Ohne Nummerierung gilt der ganze Text als ein Entwurf. */
+    /** Splits the model reply into up to [max] drafts. Without numbering, the whole text counts as one draft. */
     fun parseSuggestions(output: String, max: Int = 3): List<String> {
         val out = ArrayList<StringBuilder>()
         for (line in output.lines()) {
@@ -60,10 +60,10 @@ Regeln: Deutsch. Passe Ton und Länge an Ich und das Gegenüber an. Erfinde kein
 }
 
 /**
- * Sicherheitsregel fuer das Senden. Standard: es wird nie gesendet. Senden ist nur moeglich, wenn
- *  1. der experimentelle Schalter in den Einstellungen an ist UND
- *  2. der Nutzer genau diesen Text im Bestaetigungsdialog bestaetigt hat (Text unveraendert, nicht leer).
- * Es gibt keinen Pfad, der ohne beides sendet. Automatisches Chatten ist nicht gebaut.
+ * Safety rule for sending. Default: nothing is ever sent. Sending is possible only when
+ *  1. the experimental switch in the settings is on AND
+ *  2. the user has confirmed exactly this text in the confirmation dialog (text unchanged, not empty).
+ * There is no path that sends without both. Automatic chatting is not built.
  */
 object SendPolicy {
     fun maySend(experimentalEnabled: Boolean, confirmedText: String?, text: String): Boolean =

@@ -6,7 +6,7 @@ import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineTransducerModelConfig
 import java.io.File
 
-/** Dateien des Parakeet-Modells (INT8, sherpa-onnx) in einem Ordner. */
+/** Files of the Parakeet model (INT8, sherpa-onnx) in one folder. */
 object AsrModelFiles {
     const val ENCODER = "encoder.int8.onnx"
     const val DECODER = "decoder.int8.onnx"
@@ -18,15 +18,15 @@ object AsrModelFiles {
     fun complete(dir: File): Boolean = missing(dir).isEmpty()
 }
 
-/** Spracherkennung auf Tondaten. Eine Instanz ist nicht fuer parallele Aufrufe gedacht. */
+/** Speech recognition on audio samples. One instance is not meant for parallel calls. */
 interface AsrEngine : AutoCloseable {
     val name: String
     fun transcribe(samples: FloatArray, sampleRate: Int): String
 }
 
 /**
- * Parakeet TDT 0.6B v3 (INT8) ueber sherpa-onnx, Modelltyp nemo_transducer (Encoder, Decoder, Joiner, Tokens). Offline, ohne Streaming.
- * Die Spracherkennung waehlt unter den 25 Sprachen selbst (kein Sprachparameter). Das Laden dauert (Encoder etwa 650 MB), daher einmal je Lauf.
+ * Parakeet TDT 0.6B v3 (INT8) via sherpa-onnx, model type nemo_transducer (encoder, decoder, joiner, tokens). Offline, without streaming.
+ * Speech recognition picks among the 25 languages itself (no language parameter). Loading takes a while (encoder about 650 MB), so once per run.
  */
 class SherpaParakeetEngine(modelDir: File, threads: Int = 4) : AsrEngine {
     override val name: String = "Parakeet TDT 0.6B v3 INT8 (sherpa-onnx)"

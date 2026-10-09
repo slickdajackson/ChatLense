@@ -20,8 +20,8 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * Simulation des Geraets: ein virtueller Chat, ein Fenster darauf, und Wischgesten, die je nach Szenario zuverlaessig,
- * mit Nachschwung (zufaelliger Faktor) oder mit gelegentlichem Ueberschwingen laufen. Geprueft wird die Steuerung, nicht WhatsApp.
+ * Simulation of the device: a virtual chat, a window onto it, and swipe gestures that, depending on the scenario, run reliably,
+ * with follow-through (a random factor), or with occasional overshoot. What is checked is the controller, not WhatsApp.
  */
 class ScrollControllerTest {
 
@@ -36,7 +36,7 @@ class ScrollControllerTest {
     private class Chat(var msgs: List<Msg>, var tops: List<Int>, var total: Int) {
         var viewTop = 0
 
-        /** Aeltere Nachrichten werden oben angefuegt; der sichtbare Ausschnitt bleibt unveraendert. */
+        /** Older messages are prepended at the top; the visible slice stays unchanged. */
         fun prepend(older: List<Msg>) {
             val add = older.sumOf { it.h }
             msgs = older + msgs
@@ -109,12 +109,12 @@ class ScrollControllerTest {
         seed: Int = 1,
         val actionFraction: Double = 0.85,
         val reportsCan: Boolean = true,
-        /** Wirkungslose Seitenscrolls (Aktion meldet Erfolg, bewegt aber nichts). */
+        /** Page scrolls that do nothing (the action reports success but does not move). */
         val actionNoop: Boolean = false,
-        /** Aeltere Nachrichten, die loadDelayMs nach dem ersten Wisch am oberen Ende nachgeladen werden. */
+        /** Older messages that are loaded in loadDelayMs after the first swipe at the top end. */
         val loadMore: List<Msg>? = null,
         val loadDelayMs: Long = 150,
-        /** Nach jedem Wisch zu aelteren Nachrichten zeigt der Baum kurz eine fremde Seite (nicht ausrichtbar). */
+        /** After every swipe toward older messages the tree briefly shows a foreign page (cannot be aligned). */
         val glitch: Boolean = false,
     ) : ScrollDevice {
         private val rnd = Random(seed)
@@ -228,7 +228,7 @@ class ScrollControllerTest {
         val r = run(chat, dev)
         assertComplete(chat, r, "zuverlaessig")
         assertEquals(0, r.ctl.stats.losses)
-        // gemessener Weg ungefaehr 65 Prozent der Listenhoehe nach der Einregelung
+        // measured travel about 65 percent of the list height after settling
         val avg = r.ctl.stats.measuredSum / r.ctl.stats.measuredCount
         assertTrue("mittlerer Weg $avg px", avg in (listH * 0.45).toInt()..(listH * 0.80).toInt())
         assertTrue(r.log.lines.any { it.contains("gemessen") && it.contains("Ueberlappung") && it.contains("Zeilen") })
@@ -308,7 +308,7 @@ class ScrollControllerTest {
         assertTrue(r.ctl.atStart)
     }
 
-    // ---------- Version 0.1.4: Ende des geladenen Verlaufs, Schleifenschutz ----------
+    // ---------- Version 0.1.4: end of the loaded history, loop protection ----------
 
     @Test
     fun staticPageWithoutNoticeAndWithoutScrollStateEndsCleanlyAsLoadedEnd() {

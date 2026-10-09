@@ -3,21 +3,21 @@ package app.chatlens.asr
 import io.github.jaredmdobson.concentus.OpusDecoder
 import io.github.jaredmdobson.concentus.OpusException
 
-/** Wandelt die Bytes einer Sprachnachricht in 16-kHz-Mono-Tondaten. */
+/** Converts the bytes of a voice message into 16 kHz mono audio. */
 interface AudioDecoder {
     val name: String
     fun decode(bytes: ByteArray): DecodedAudio
 }
 
 /**
- * Opus-Dekodierung in reinem Java (Concentus, BSD-3-Clause) ueber [OggOpusReader]. Dekodiert direkt mit 16 kHz Ausgaberate
- * (Opus liefert 8, 12, 16, 24 oder 48 kHz), entfernt den Vorlauf und kuerzt am Ende laut Granule-Position.
- * Laeuft auf der JVM und auf Android gleich und ist deshalb auf dem Rechner testbar.
+ * Opus decoding in pure Java (Concentus, BSD-3-Clause) via [OggOpusReader]. Decodes directly at a 16 kHz output rate
+ * (Opus supplies 8, 12, 16, 24, or 48 kHz), drops the pre-skip, and trims the end according to the granule position.
+ * Runs the same on the JVM and on Android, so it can be tested on a computer.
  */
 object ConcentusOpusDecoder : AudioDecoder {
     override val name: String = "Concentus (Java)"
     private const val RATE = Pcm.TARGET_RATE
-    private const val MAX_FRAME = RATE * 120 / 1000 // 120 ms je Paket als Obergrenze
+    private const val MAX_FRAME = RATE * 120 / 1000 // 120 ms per packet as the upper bound
 
     override fun decode(bytes: ByteArray): DecodedAudio {
         val st = OggOpusReader.parse(bytes)

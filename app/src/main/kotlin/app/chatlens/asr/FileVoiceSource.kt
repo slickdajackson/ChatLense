@@ -2,7 +2,7 @@ package app.chatlens.asr
 
 import java.io.File
 
-/** Quelle aus einem normalen Ordner (rekursiv). Wird in Tests und fuer manuell kopierte Ordner benutzt. */
+/** Source from a normal folder (recursive). Used in tests and for folders copied by hand. */
 class FileVoiceSource(private val root: File, private val maxDepth: Int = 4) : VoiceFileSource {
     override val label: String = "Ordner"
     override fun list(): List<VoiceFile> {
@@ -20,7 +20,7 @@ class FileVoiceSource(private val root: File, private val maxDepth: Int = 4) : V
     override fun read(f: VoiceFile): ByteArray = File(f.id).readBytes()
 }
 
-/** Zwischenspeicher fertiger Transkripte als kleine Textdateien im App-Cache (nicht im Backup, loeschbar). */
+/** Cache of finished transcripts as small text files in the app cache (not in the backup, deletable). */
 class FileVoiceCache(private val dir: File) : VoiceTextCache {
     override fun get(key: String): String? = File(dir, "$key.txt").takeIf { it.isFile }?.readText(Charsets.UTF_8)
     override fun put(key: String, text: String) {

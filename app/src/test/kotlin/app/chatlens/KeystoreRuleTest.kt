@@ -26,14 +26,14 @@ import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Bildet die Regel des Android Keystore nach: Beim Verschluesseln darf der Aufrufer keinen IV vorgeben
- * (sonst InvalidAlgorithmParameterException "Caller-provided IV not permitted"). Der Keystore erzeugt den IV selbst.
- * Der Fehler aus dem Geraetelog (Version 0.2.2) wird damit reproduzierbar: Die alte Implementierung bricht in diesem Test.
+ * Reproduces the Android Keystore rule: on encrypt the caller must not supply an IV
+ * (otherwise InvalidAlgorithmParameterException "Caller-provided IV not permitted"). The keystore generates the IV itself.
+ * That makes the bug from the device log (version 0.2.2) reproducible: the old implementation fails in this test.
  */
 class KeystoreRuleTest {
     @get:Rule val tmp = TemporaryFolder()
 
-    /** Cipher-Dienst, der AES/GCM der JVM nutzt, aber die Keystore-Regel erzwingt. */
+    /** Cipher service that uses the JVM AES/GCM but enforces the keystore rule. */
     class KeystoreLikeGcm : CipherSpi() {
         private val d: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
         private var encrypting = false
@@ -88,7 +88,7 @@ class KeystoreRuleTest {
         val blob = c.encrypt("Gedaechtnis".toByteArray())
         assertEquals("Gedaechtnis", String(c.decrypt(blob)))
         assertEquals(1 + 12 + "Gedaechtnis".length + 16, blob.size)
-        // zweiter Lauf: frischer IV
+        // second run: a fresh IV
         val blob2 = c.encrypt("Gedaechtnis".toByteArray())
         assertFalse(blob.copyOfRange(1, 13).contentEquals(blob2.copyOfRange(1, 13)))
     }
@@ -103,7 +103,7 @@ class KeystoreRuleTest {
     }
 
     @Test fun oldImplementationWouldHaveFailedLikeOnTheDevice() {
-        // So verschluesselte 0.2.2: IV selbst erzeugt und vorgegeben. Unter der Keystore-Regel wirft das.
+        // This is how 0.2.2 encrypted: it generated the IV itself and then passed it in. Under the keystore rule that throws.
         val c = strictCipher()
         try {
             c.init(Cipher.ENCRYPT_MODE, key(), GCMParameterSpec(128, ByteArray(12).also { SecureRandom().nextBytes(it) }))
@@ -123,24 +123,24 @@ class KeystoreRuleTest {
         assertNotNull(store.list().firstOrNull())
         val raw = dir.listFiles()!!.joinToString("") { String(it.readBytes(), Charsets.ISO_8859_1) }
         assertFalse(raw.contains("Kollegin"))
-        // falscher Schluessel und Manipulation weiter abgelehnt
+        // a wrong key and tampering are still rejected
         val other = AesGcmCrypto({ strictCipher() }) { key() }
         try { other.decrypt(crypto.encrypt("a".toByteArray())); fail() } catch (e: CryptoException) {}
     }
 
     @Test fun noEncryptInitInSourcesPassesParameters() {
-        // Quelltextwaechter: In main darf kein init(ENCRYPT_MODE, key, <Parameter>) stehen (auch nicht ueber Zeilen hinweg).
+        // Source guard: main must not contain init(ENCRYPT_MODE, key, <parameters>), not even split across lines.
         val root = File("src/main/kotlin")
         val bad = ArrayList<String>()
         root.walkTopDown().filter { it.isFile && it.name.endsWith(".kt") }.forEach { f ->
             val t = f.readText()
             Regex("""\.init\(\s*Cipher\.ENCRYPT_MODE\s*,[^)]*\)""").findAll(t).forEach { m ->
                 val args = m.value.removePrefix(".init(").removeSuffix(")")
-                // erlaubt: genau zwei Argumente (Modus, Schluessel). Klammern im Schluessel-Ausdruck zaehlen nicht als Komma.
+                // allowed: exactly two arguments (mode, key). Parentheses inside the key expression do not count as a comma.
                 val depth0 = args.count { it == ',' }
                 if (depth0 >= 2 || m.value.contains("GCMParameterSpec") || m.value.contains("IvParameterSpec")) bad.add(f.name + ": " + m.value)
             }
-            // zusaetzlich: GCMParameterSpec darf nur mit DECRYPT_MODE vorkommen
+            // also: GCMParameterSpec may appear only with DECRYPT_MODE
             if (t.contains("ENCRYPT_MODE") && t.contains("GCMParameterSpec")) {
                 val lines = t.lines()
                 lines.forEachIndexed { i, l -> if (l.contains("ENCRYPT_MODE") && !l.contains("DECRYPT_MODE") && l.contains("GCMParameterSpec")) bad.add(f.name + ":" + (i + 1)) }

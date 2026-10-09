@@ -32,9 +32,9 @@ import app.chatlens.prompts.PromptMode
 import app.chatlens.prompts.QuickPrompts
 
 /**
- * Auswahl nach dem Sammeln: "Analysieren wie immer" oder "Eigener Prompt zur Laufzeit".
- * Zustandslos gegenueber dem Speicher: Speichern und Loeschen von Vorlagen laufen ueber die Rueckrufe.
- * [onOpenApp] bietet den Weg in die App an (Tastatur im Overlay-Fenster ist auf manchen Geraeten unzuverlaessig).
+ * Choice after collection: "Analysieren wie immer" or "Eigener Prompt zur Laufzeit".
+ * Stateless with respect to storage: saving and deleting templates goes through the callbacks.
+ * [onOpenApp] offers a way into the app (the keyboard in the overlay window is unreliable on some devices).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

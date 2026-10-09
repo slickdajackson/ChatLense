@@ -5,14 +5,14 @@ import app.chatlens.core.Kind
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Quelle der Sprachnachrichten-Dateien (bei SAF der freigegebene Ordner, in Tests ein normaler Ordner). */
+/** Source of the voice message files (for SAF the granted folder, in tests a normal folder). */
 interface VoiceFileSource {
     val label: String
     fun list(): List<VoiceFile>
     fun read(f: VoiceFile): ByteArray
 }
 
-/** Dekodieren und Erkennen, getrennt, damit ein Test beides durch Attrappen ersetzen kann. [ParakeetTranscriber] implementiert das. */
+/** Decoding and recognition, split so a test can replace both with fakes. [ParakeetTranscriber] implements this. */
 interface VoicePipeline {
     fun decode(bytes: ByteArray): DecodedAudio
     fun recognize(a: DecodedAudio): String
@@ -23,7 +23,7 @@ class ParakeetPipeline(val t: ParakeetTranscriber) : VoicePipeline {
     override fun recognize(a: DecodedAudio) = t.recognize(a)
 }
 
-/** Zwischenspeicher fertiger Transkripte je Datei (Schluessel aus Name, Groesse, Datum), damit ein erneutes Lesen nicht neu rechnet. */
+/** Cache of finished transcripts per file (key from name, size, date), so a later read does not recompute. */
 interface VoiceTextCache {
     fun get(key: String): String?
     fun put(key: String, text: String)
@@ -37,7 +37,7 @@ class MemoryVoiceCache : VoiceTextCache {
 
 class VoiceStepConfig(val maxPerChat: Int, val maxSeconds: Int, val toleranceMin: Int, val durationTolSec: Double = 3.0)
 
-/** Ergebnis fuer Log und Markdown-Log. Enthaelt weder Transkripttexte noch Dateinamen. */
+/** Result for the log and the Markdown log. Contains neither transcript text nor file names. */
 class VoiceReport {
     var voiceMessages = 0
     var considered = 0
@@ -69,8 +69,8 @@ class VoiceReport {
 }
 
 /**
- * Ablauf: Sprachnachrichten des Chats finden, den Dateien im Ordner zuordnen, dekodieren, erkennen, Text in [ChatMessage.transcript] schreiben.
- * Nur Nachrichten ohne Transkript; die neuesten zuerst, hoechstens [VoiceStepConfig.maxPerChat].
+ * Flow: find the chat's voice messages, match them to files in the folder, decode, recognize, write the text into [ChatMessage.transcript].
+ * Only messages without a transcript, newest first, at most [VoiceStepConfig.maxPerChat].
  */
 object VoiceTranscriptionStep {
     fun queries(messages: List<ChatMessage>, today: LocalDate): List<Pair<Int, VoiceQuery>> {
@@ -80,7 +80,7 @@ object VoiceTranscriptionStep {
         for ((i, m) in messages.withIndex()) {
             if (m.kind == Kind.DATE) { date = DateLabels.resolve(m.text, today); dateKnownSinceStart = true; continue }
             if (m.kind == Kind.VOICE) {
-                // Vor dem ersten sichtbaren Datumstrenner ist das Datum unbekannt
+                // Before the first visible date separator the date is unknown
                 out.add(i to VoiceQuery(i, if (dateKnownSinceStart) date else null, DateLabels.time(m.time), DateLabels.durationSec(m.text)))
             }
         }
@@ -92,7 +92,7 @@ object VoiceTranscriptionStep {
         zone: ZoneId = ZoneId.systemDefault(), today: LocalDate = LocalDate.now(zone),
         cache: VoiceTextCache = MemoryVoiceCache(), cancelled: () -> Boolean = { false },
         log: (String) -> Unit = {},
-        /** Fortschritt: (aktuelle Nachricht 1-basiert, Gesamtzahl der zu bearbeitenden Sprachnachrichten). */
+        /** Progress: (current message, 1-based, and the total number of voice messages to process). */
         progress: (Int, Int) -> Unit = { _, _ -> },
     ): VoiceReport {
         val rep = VoiceReport()

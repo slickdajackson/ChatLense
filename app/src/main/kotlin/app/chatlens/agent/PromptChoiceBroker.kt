@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class PromptChoice {
-    /** "Analysieren wie immer": Standardprompt (die Aufgabe aus den Einstellungen). */
+    /** "Analysieren wie immer": the standard prompt (the task from settings). */
     object Standard : PromptChoice()
     class Custom(val text: String) : PromptChoice()
     object Cancel : PromptChoice()
@@ -18,8 +18,8 @@ sealed class PromptChoice {
 class PromptChoiceRequest(val id: Long, val chatTitle: String, val messageCount: Int)
 
 /**
- * Auswahl nach dem Sammeln: "Analysieren wie immer" oder "Eigener Prompt zur Laufzeit". Wie [ConfirmBroker] wird nie stillschweigend
- * etwas gewaehlt: ohne Antwort in [timeoutMs] gilt Abbrechen (kein Modellaufruf). Die Karte erscheint im Overlay-Panel und in der App.
+ * Choice after collection: "Analysieren wie immer" or "Eigener Prompt zur Laufzeit". Like [ConfirmBroker], nothing is ever chosen
+ * silently: with no answer within [timeoutMs], cancel applies (no model call). The card appears in the overlay panel and in the app.
  */
 object PromptChoiceBroker {
     private val _pending = MutableStateFlow<PromptChoiceRequest?>(null)
@@ -55,7 +55,7 @@ object PromptChoiceBroker {
     }
 }
 
-/** Das Prompt-Buch im Speicher (fuer die Oberflaeche) und verschluesselt auf dem Geraet. */
+/** The prompt book in memory (for the UI) and encrypted on the device. */
 object PromptBookState {
     private val _book = MutableStateFlow(PromptBook())
     val book: StateFlow<PromptBook> = _book
@@ -69,7 +69,7 @@ object PromptBookState {
         loaded = true
     }
 
-    /** Aendert das Buch und speichert es verschluesselt. Ein Speicherfehler verliert nur die Aenderung auf der Platte, nicht im Speicher. */
+    /** Updates the book and saves it encrypted. A save error loses only the change on disk, not the one in memory. */
     @Synchronized
     fun update(ctx: Context, f: (PromptBook) -> PromptBook) {
         ensureLoaded(ctx)

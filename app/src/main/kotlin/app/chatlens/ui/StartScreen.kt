@@ -33,8 +33,8 @@ import app.chatlens.memory.ChatMemory
 import app.chatlens.service.ChatAccessibilityService
 
 /**
- * Startseite = erster Schritt des Onboardings: Checkliste und darunter, prominent, das Setup (Chat-Profile anlegen),
- * das die neuesten Chats automatisch durchgeht und je Chat ein Gedaechtnis-Profil anlegt.
+ * Start page, the first step of onboarding: a checklist and, below it and prominent, setup (create chat profiles),
+ * which walks through the newest chats automatically and creates a memory profile for each chat.
  */
 @Composable
 fun StartScreen(
@@ -50,7 +50,7 @@ fun StartScreen(
     onResume: (Boolean) -> Unit,
     onCancel: () -> Unit,
     onGoto: (Int) -> Unit,
-    /** Platz fuer Punkt-Status und letzten Lauf direkt unter dem Kopf (kommt aus MainActivity). */
+    /** Space for the dot status and the last run, directly under the header (supplied by MainActivity). */
     header: @Composable () -> Unit = {},
 ) {
     val a11y by ChatAccessibilityService.connected.collectAsState()
@@ -67,7 +67,7 @@ fun StartScreen(
 
         header()
 
-        // Zuerst Checkup und Auswahl, danach das Setup (ohne Nummerierung und Fachbegriffe, 0.3.0)
+        // Checkup and selection first, then setup (no numbering and no jargon, 0.3.0)
         CheckupSection(settings, onSettings, canRun = a11y && settings.privacyAcknowledged, onRun = onStartCheckup)
 
         Section("Setup: Chat-Profile anlegen", highlight = true) {

@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
         repo = SettingsRepo(this)
         handleIntent(intent)
         setContent {
-            // A6: Systemeinstellung "Animationen entfernen" (Animatorskala 0) wird respektiert
+            // A6: the system setting Remove animations (animator scale 0) is respected
             val animate = android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
             androidx.compose.runtime.CompositionLocalProvider(app.chatlens.ui.LocalGlassAnimate provides animate) {
                 GlassTheme {
@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
         val auto by AutoState.state.collectAsState()
         var memoryCount by remember { mutableIntStateOf(0) }
 
-        // Debug ist nur mit eingeschalteter Entwickleroption erreichbar
+        // Debug is reachable only with the developer option turned on
         androidx.compose.runtime.LaunchedEffect(tab, settings.developerMode) { if (tab == 5 && !settings.developerMode) tab = 4 }
         androidx.compose.runtime.LaunchedEffect(tabReq) { tabReq?.let { tab = it; tabReq = null; settings = repo.load() } }
         androidx.compose.runtime.LaunchedEffect(auto.running, auto.finished) {
@@ -171,14 +171,14 @@ class MainActivity : ComponentActivity() {
                 AutoState.update { it.copy(resumable = q != null && !q.finished && !it.running) }
             }
         }
-        // Gespeicherte Checkup-Auswahl laden (nur Namen) und das Speichern der Haken anbinden
+        // Load the stored checkup selection (names only) and hook up saving the checks
         androidx.compose.runtime.LaunchedEffect(Unit) {
             val r = MemoryRepo.get(this@MainActivity)
             val io = java.util.concurrent.Executors.newSingleThreadExecutor()
             app.chatlens.agent.CheckupState.saver = { st -> io.execute { runCatching { r.saveCheckup(st) } } }
             withContext(Dispatchers.IO) { runCatching { r.loadCheckup() }.getOrNull() }?.let { app.chatlens.agent.CheckupState.restore(it) }
-            // Auto-Checkup beim Start: einmal je Prozessstart, nur nach abgeschlossenem Assistenten, bewusst eingeschaltetem Schalter (Standard aus), bestaetigtem Datenschutzhinweis, aktiver Bedienungshilfe,
-            // hoechstens alle 10 Minuten (der Checkup holt WhatsApp nach vorn).
+            // Auto checkup at start: once per process start, only after a finished wizard, the switch turned on on purpose (default off), an acknowledged privacy notice, an active accessibility service,
+            // at most every 10 minutes (the checkup brings WhatsApp to the front).
             val s0 = repo.load()
             if (app.chatlens.wizard.StartPolicy.mayAutoCheckup(s0.checkupOnStart, s0.wizardDone, s0.privacyAcknowledged) && !autoCheckupTried && !AutoState.state.value.running) {
                 autoCheckupTried = true
@@ -192,7 +192,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        // Punkt wurde im Ring oder in der Benachrichtigung entfernt: Schalter in den Einstellungen nachziehen
+        // The dot was removed in the ring or in the notification: update the switch in the settings
         val removedTick by app.chatlens.service.OverlayEvents.removed.collectAsState()
         androidx.compose.runtime.LaunchedEffect(removedTick) {
             if (removedTick > 0 && settings.overlayEnabled) settings = settings.copy(overlayEnabled = repo.load().overlayEnabled)
@@ -207,7 +207,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val notifPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-        // 0.3.0 (U3): keine Abfrage beim allerersten Start. Erst nach dem Assistenten, mit einem Satz Begruendung, genau einmal.
+        // 0.3.0 (U3): no prompt on the very first start. Only after the wizard, with one sentence of explanation, exactly once.
         val notifMissing = Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!wizardOpen && !settings.notifAsked && notifMissing) {
@@ -279,13 +279,13 @@ class MainActivity : ComponentActivity() {
                     val f = e?.let { app.chatlens.models.ModelStorage.locate(this@MainActivity, it) }
                     if (e != null && f != null) update(useModel(repo.load(), e, f))
                 },
-                // Erst hier (nach Ansage und zweitem Tipp im Assistenten) oeffnet sich WhatsApp
+                // Only here (after the notice and the second tap in the wizard) does WhatsApp open
                 startCheckup = { startAutoJob(AutoStart.Checkup(settings.checkupCount.coerceIn(5, 200)), repo.load()) },
                 close = { goSetup -> wizardOpen = false; if (goSetup) tab = 0 },
             ),
         ) else Scaffold(
             containerColor = Color.Transparent, contentColor = GlassColors.Text,
-            // Fuenf Ziele unten (Material 3); Debug ist eine Entwickleroption und hat keinen Platz in der Leiste (ab 0.3.0)
+            // Five destinations at the bottom (Material 3). Debug is a developer option and has no place in the bar (from 0.3.0).
             bottomBar = {
                 androidx.compose.material3.NavigationBar(containerColor = GlassColors.BgBottom, contentColor = GlassColors.Text) {
                     val items = listOf("Start", "Update", "Gedächtnis", "Modelle", "Einstellungen")
@@ -470,7 +470,7 @@ class MainActivity : ComponentActivity() {
 
     private var showPrivacy by mutableStateOf(false)
 
-    /** Mit hinterlegter URL (Gradle-Property privacyUrl) im Browser, sonst als Text in der App. */
+    /** With a configured URL (Gradle property privacyUrl) in the browser, otherwise as text in the app. */
     private fun openPrivacy() {
         val url = BuildConfig.PRIVACY_URL
         if (url.isNotBlank()) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) else showPrivacy = true
@@ -483,9 +483,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Traegt einen Entwurf ins WhatsApp-Eingabefeld ein (ACTION_SET_TEXT). Nach der Wartezeit muss WhatsApp mit dem Chat vorne sein.
-     * Mit [send] (nur wenn der experimentelle Schalter an ist und der Nutzer den Text im Dialog bestaetigt hat) wird danach der
-     * Senden-Knopf gedrueckt. Ohne [send] wird nie gesendet.
+     * Puts a draft into the WhatsApp input field (ACTION_SET_TEXT). After the wait, WhatsApp must be in front with the chat.
+     * With [send] (only when the experimental switch is on and the user confirmed the text in the dialog) the
+     * send button is pressed afterwards. Without [send], nothing is ever sent.
      */
     private fun insertLater(text: String, send: Boolean, settings: AppSettings) {
         val svc = ChatAccessibilityService.instance
@@ -531,14 +531,14 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (cfg.chatAlreadyOpen) {
-            // Kein Intent-Start: ein Neustart von WhatsApp wuerde die offene Chat-Ansicht verlieren.
+            // No intent start: restarting WhatsApp would lose the open chat view.
             toast(
                 if (s.startDelaySec > 0) "Jetzt zu WhatsApp wechseln. Lesen startet in ${s.startDelaySec} s oder per \"Jetzt lesen\" in der Benachrichtigung."
                 else "In WhatsApp den Chat öffnen, dann in der Benachrichtigung \"Jetzt lesen\" tippen.",
             )
             return
         }
-        // WhatsApp aus der sichtbaren Activity heraus starten (umgeht Hintergrundstart-Einschraenkungen)
+        // Start WhatsApp from the visible activity (avoids background-start restrictions)
         val pkg = runCatching { ProfileStore.load(this).launchPackage }.getOrDefault("com.whatsapp")
         val intent = packageManager.getLaunchIntentForPackage(pkg)
         if (intent == null) {
@@ -576,8 +576,8 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    /** Kopiert die gewaehlte .litertlm-Datei in den App-Speicher (SAF liefert keinen direkten Dateipfad). */
-    /** Setzt einen Katalogeintrag als lokales Backend. Die Beschleunigung GPU nur fuer Eintraege, die als GPU-optimiert gelten (ungetestet). */
+    /** Copies the chosen .litertlm file into app storage (SAF does not provide a direct file path). */
+    /** Sets a catalog entry as the local backend. GPU acceleration only for entries that count as GPU-optimized (untested). */
     private fun useModel(s: AppSettings, e: ModelEntry, f: File): AppSettings {
         LiteRtLmBackend.release()
         val lim = ModelAdvisor.limitsFor(e, 8192, 12_000)
@@ -588,7 +588,7 @@ class MainActivity : ComponentActivity() {
             localModelPath = f.absolutePath,
             localVision = e.vision,
             localAccel = if (e.prefersGpu) app.chatlens.data.LocalAccel.GPU else app.chatlens.data.LocalAccel.CPU,
-            // Grosse Modelle: automatische Stufe (0). Kleine Modelle behalten die feste Grenze aus ihrer Karte.
+            // Large models: automatic level (0). Small models keep the fixed limit from their card.
             localMaxTokens = if (lim.note.isBlank()) 0 else lim.maxTokens,
             contextCharsLocal = if (lim.note.isBlank()) 0 else lim.contextChars,
         )
@@ -611,7 +611,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Der Auto-Checkup laeuft hoechstens einmal je Prozessstart. */
+        /** The auto checkup runs at most once per process start. */
         @Volatile
         var autoCheckupTried = false
         const val EXTRA_TAB = "app.chatlens.TAB"

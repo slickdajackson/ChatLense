@@ -47,16 +47,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Schaltet die Endlos-Animationen ab (fuer Bildschirmfotos im Test). */
+/** Turns off the infinite animations (for screenshots in tests). */
 val LocalGlassAnimate = androidx.compose.runtime.compositionLocalOf { true }
 
 /**
- * Farben des Glas-Designs: dunkler Hintergrund, ein Akzent (Tuerkis), ein zweiter Akzent (Violett) fuer Verlaeufe.
+ * Colors of the glass design: a dark background, one accent (turquoise), and a second accent (violet) for gradients.
  *
- * Kontrast (ab 0.2.3): Alle Schriftfarben stehen HIER und werden ueber [glassColorScheme] und LocalContentColor im Theme gesetzt.
- * Karten sind eine dunkle Toenung mit [CardAlpha] (70 Prozent) ueber dem Hintergrund, Schrift ist hell (fast weiss). Der Test
- * ThemeContrastTest prueft alle Schrift/Hintergrund-Paare nach WCAG AA (mindestens 4,5:1), auch ueber den hellsten Hintergrundflecken.
- * Wer eine neue Schriftfarbe braucht, nimmt eine der Text-Farben hier und ergaenzt sie im Test.
+ * Contrast (from 0.2.3): all text colors live HERE and are set through [glassColorScheme] and LocalContentColor in the theme.
+ * Cards are a dark tint at [CardAlpha] (70 percent) over the background, and the text is light (almost white). The test
+ * ThemeContrastTest checks every text/background pair against WCAG AA (at least 4.5:1), including over the brightest background blob.
+ * If a new text color is needed, take one of the text colors here and add it to the test.
  */
 object GlassColors {
     val BgTop = Color(0xFF0B1020)
@@ -64,32 +64,32 @@ object GlassColors {
     val Accent = Color(0xFF4DE3D0)
     val Accent2 = Color(0xFF8B7CFF)
 
-    /** Aufgehelltes Violett fuer SCHRIFT (Accent2 selbst ist nur fuer Flaechen und Verlaeufe). */
+    /** Lightened violet for TEXT (Accent2 itself is only for fills and gradients). */
     val Accent2Text = Color(0xFFCFC9FF)
     val Ok = Color(0xFF6EE7A8)
     val Warn = Color(0xFFFFC46B)
     val Bad = Color(0xFFFF8D9A)
 
-    /** Rote Schrift fuer zerstoerende Aktionen (Punkt entfernen). Kontrast steht im ThemeContrastTest. */
+    /** Red text for destructive actions (remove the dot). Contrast is covered by ThemeContrastTest. */
     val Danger = Color(0xFFFF8A8A)
     val Text = Color(0xFFEAF0FF)
     val TextDim = Color(0xFFC3CCE6)
 
-    /** Dunkle Schrift auf hellen Flaechen (Akzentknopf, Fehlerknopf, violette Flaeche). */
+    /** Dark text on light fills (accent button, error button, violet fill). */
     val OnAccent = Color(0xFF00201C)
     val OnBad = Color(0xFF1A0A0C)
     val OnAccent2 = Color(0xFF0B1020)
 
-    /** Karte: dunkle Toenung (70 Prozent deckend) plus ganz leichter heller Schimmer. */
+    /** Card: a dark tint (70 percent opaque) plus a very slight light sheen. */
     val CardTint = Color(0xFF080C1C)
     const val CardAlpha = 0.70f
     const val CardSheenAlpha = 0.08f
     val CardFill = CardTint.copy(alpha = CardAlpha)
 
-    /** Schwebendes Fenster (Overlay) liegt ueber fremden, evtl. weissen Apps: fast deckend. */
+    /** The floating window (overlay) sits over other apps, which may be white: nearly opaque. */
     val PanelFill = Color(0xEB080C1C)
 
-    /** Dialoge und Menues: deckend. */
+    /** Dialogs and menus: opaque. */
     val DialogSurface = Color(0xFF161C36)
     val SurfaceHigh = Color(0xFF1D2442)
     const val ChipSelectedAlpha = 0.18f
@@ -99,7 +99,7 @@ object GlassColors {
     val GlassEdgeBottom = Color(0x1AFFFFFF)
 }
 
-/** Vollstaendiges Farbschema. Keine Rolle bleibt auf dem Standardwert (dort waere Schrift schwarz oder fast durchsichtig). */
+/** Complete color scheme. No role stays on the default (there, text would be black or almost transparent). */
 fun glassColorScheme(): androidx.compose.material3.ColorScheme = darkColorScheme(
     primary = GlassColors.Accent, onPrimary = GlassColors.OnAccent,
     primaryContainer = Color(0xFF14504A), onPrimaryContainer = GlassColors.Text,
@@ -133,9 +133,9 @@ private val GlassTypography = Typography().let { t ->
 }
 
 /**
- * Das Theme setzt die Schriftfarbe zentral: LocalContentColor ist hell. Ohne das wuerde jeder Text ohne explizite Farbe
- * (Scaffold mit transparentem Hintergrund, Overlay ohne Surface) in Standard-Schwarz gezeichnet, also schwarz auf dunklem Glas (Fehler in 0.2.2).
- * Gilt fuer die App, das Overlay (OverlayService nutzt GlassTheme) und Dialoge (Compose-Dialoge erben die CompositionLocals).
+ * The theme sets the text color in one place: LocalContentColor is light. Without that, any text without an explicit color
+ * (a scaffold with a transparent background, an overlay without a surface) would be drawn in default black, so black on dark glass (bug in 0.2.2).
+ * Applies to the app, the overlay (OverlayService uses GlassTheme), and dialogs (Compose dialogs inherit the CompositionLocals).
  */
 @Composable
 fun GlassTheme(content: @Composable () -> Unit) {
@@ -151,9 +151,9 @@ fun GlassTheme(content: @Composable () -> Unit) {
 }
 
 /**
- * Hintergrund: Verlauf plus weiche, farbige Flecken. Auf Android 12+ (API 31) werden die Flecken mit Modifier.blur wirklich
- * unscharf gezeichnet, darunter nur als Radialverlauf. Ein echtes Unschaerfe-Fenster HINTER jeder Karte gibt Compose nicht her;
- * der Glaseindruck entsteht aus Verlauf, Flecken, Transparenz und heller Kante.
+ * Background: a gradient plus soft colored blobs. On Android 12+ (API 31) the blobs are really
+ * blurred with Modifier.blur; on older versions they are only a radial gradient. Compose cannot provide a real blur window BEHIND each card;
+ * the glass look comes from the gradient, the blobs, transparency, and a light edge.
  */
 @Composable
 fun GlassBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
@@ -175,7 +175,7 @@ fun GlassBackground(modifier: Modifier = Modifier, content: @Composable BoxScope
     }
 }
 
-/** Karte aus dunklem Glas (70 Prozent deckende Toenung, leichter Schimmer, helle Kante). [highlight] hebt die Karte mit Akzentkante hervor (z. B. Setup). */
+/** Card of dark glass (70 percent opaque tint, slight sheen, light edge). [highlight] emphasizes the card with an accent edge (for example setup). */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -222,7 +222,7 @@ fun GlassChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: M
     Box(
         modifier.clip(RoundedCornerShape(50)).background(bg)
             .border(1.dp, if (selected) GlassColors.Accent.copy(alpha = 0.7f) else Color(0x33FFFFFF), RoundedCornerShape(50))
-            // A2: mindestens 48 dp hoch, Rolle Knopf, Auswahlzustand fuer TalkBack
+            // A2: at least 48 dp tall, button role, selected state for TalkBack
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
             .semantics { this.selected = selected }
             .heightIn(min = 48.dp).padding(horizontal = 14.dp, vertical = 8.dp),
@@ -230,7 +230,7 @@ fun GlassChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: M
     ) { Text(label, color = fg, style = MaterialTheme.typography.labelLarge) }
 }
 
-/** Kleine Statuszeile mit pulsierendem Punkt, solange etwas laeuft. */
+/** Small status line with a pulsing dot while something is running. */
 @Composable
 fun StatusPill(text: String, running: Boolean, error: Boolean = false) {
     val a = if (LocalGlassAnimate.current && running) {
@@ -247,7 +247,7 @@ fun StatusPill(text: String, running: Boolean, error: Boolean = false) {
 
 @Composable
 fun StepRow(done: Boolean, title: String, hint: String) {
-    // A3: Zustand nicht nur ueber die Farbe, sondern auch als Text fuer TalkBack und als Haken im Kreis
+    // A3: the state is not only color, but also text for TalkBack and a checkmark in the circle
     Row(
         Modifier.semantics(mergeDescendants = true) { stateDescription = if (done) "erledigt" else "offen" },
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp),

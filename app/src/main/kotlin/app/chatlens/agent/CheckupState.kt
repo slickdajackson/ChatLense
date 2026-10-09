@@ -9,16 +9,16 @@ import java.time.LocalDateTime
 
 data class CheckupUiState(
     val items: List<CheckupItem> = emptyList(),
-    /** Zeitpunkt des letzten Scans oder des gespeicherten Stands (Millisekunden), 0 = keiner. */
+    /** Time of the last scan or of the stored snapshot (milliseconds), 0 means none. */
     val lastAt: Long = 0,
-    /** true: Menue stammt nur aus dem gespeicherten Stand (Namen, keine Vorschau), noch kein Scan in dieser Sitzung. */
+    /** true: the menu comes only from the stored snapshot (names, no preview), and there has been no scan in this session yet. */
     val storedOnly: Boolean = false,
     val note: String = "",
 )
 
 /**
- * Zustand des Auswahlmenues. Aenderungen der Haken werden ueber [saver] sofort verschluesselt gespeichert (nur Namen).
- * Der Scan selbst laeuft im AutoRunner (Auftrag Checkup).
+ * State of the selection menu. Changes to the checkmarks are saved immediately through [saver], encrypted (names only).
+ * The scan itself runs in AutoRunner (checkup job).
  */
 object CheckupState {
     private val _state = MutableStateFlow(CheckupUiState())
@@ -28,11 +28,11 @@ object CheckupState {
     var stored: CheckupStored? = null
         private set
 
-    /** Wird vom Start der App gesetzt: speichert asynchron. */
+    /** Set at app start: saves asynchronously. */
     @Volatile
     var saver: ((CheckupStored) -> Unit)? = null
 
-    /** Liste leeren (Tests und "Alles loeschen"): danach sind Setup und Selbstanalyse wieder gesperrt. */
+    /** Clears the list (tests and "Alles loeschen"): after that, setup and self-analysis are locked again. */
     fun reset() { stored = null; _state.value = CheckupUiState() }
 
     fun restore(s: CheckupStored?) {
@@ -42,7 +42,7 @@ object CheckupState {
         }
     }
 
-    /** Ergebnis eines Scans uebernehmen: fruehere Auswahl vorwaehlen, Neue markieren, speichern. */
+    /** Applies a scan result: preselect the previous selection, mark new items, and save. */
     fun applyScan(items: List<CheckupItem>, now: Long, note: String) {
         _state.value = CheckupUiState(items, now, storedOnly = false, note = note)
         persist(items, now)
@@ -67,7 +67,7 @@ object CheckupState {
 
     fun selectedTitles(): List<String> = CheckupSelection.selectedTitles(_state.value.items)
 
-    /** Kurzfassung ohne volle Namen fuer das Markdown-Log. */
+    /** Short summary without full names, for the markdown log. */
     fun summary(): String {
         val it = _state.value
         if (it.items.isEmpty()) return ""

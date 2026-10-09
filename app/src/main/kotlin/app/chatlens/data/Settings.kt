@@ -8,13 +8,13 @@ import app.chatlens.core.StopMode
 enum class BackendChoice { API, LOCAL, EXTRACT_ONLY }
 
 /**
- * Ausgabe-Richtlinie (ab 0.3.0): Die Play-Ausgabe hat keinen API-Modus ([app.chatlens.BuildConfig.API_MODE] ist dort falsch).
- * Ein gespeicherter Modus API wird dort beim Laden zu Nur Auslesen, damit nie Chatinhalt an einen Server geht.
+ * Release policy (from 0.3.0): the Play build has no API mode ([app.chatlens.BuildConfig.API_MODE] is false there).
+ * A stored API mode becomes "Nur Auslesen" on load, so chat content never goes to a server.
  */
 object BackendPolicy {
     val apiAllowed: Boolean get() = app.chatlens.BuildConfig.API_MODE
     fun effective(c: BackendChoice, allowed: Boolean = apiAllowed): BackendChoice = if (c == BackendChoice.API && !allowed) BackendChoice.EXTRACT_ONLY else c
-    /** Experimentelles Senden (Senden-Knopf) gibt es nur im Full-Flavor. Der Play-Flavor fuehrt nie eine Sendeaktion aus. */
+    /** Experimental sending (send button) exists only in the full flavor. The Play flavor never performs a send action. */
     val sendAllowed: Boolean get() = app.chatlens.BuildConfig.API_MODE
     fun choices(allowed: Boolean = apiAllowed): List<BackendChoice> = BackendChoice.entries.filter { allowed || it != BackendChoice.API }
 }
@@ -22,8 +22,8 @@ object BackendPolicy {
 enum class LocalAccel { CPU, GPU }
 
 /**
- * AUTO: geregelter Swipe; bei wiederholtem Ueberlappungsverlust Genau, bei Wirkungslosigkeit ACTION_SCROLL_BACKWARD.
- * SWIPE: nur geregelter Swipe. ACTION: nur ACTION_SCROLL_BACKWARD. GENAU: nur Mikro-Wischer (langsam, lueckenlos).
+ * AUTO: controlled swipe; on repeated loss of overlap, precise; when it has no effect, ACTION_SCROLL_BACKWARD.
+ * SWIPE: controlled swipe only. ACTION: ACTION_SCROLL_BACKWARD only. GENAU: micro-swipes only (slow, without gaps).
  */
 enum class ScrollMethod { AUTO, SWIPE, ACTION, GENAU }
 
@@ -36,86 +36,86 @@ data class AppSettings(
     val localModelPath: String = "",
     val localAccel: LocalAccel = LocalAccel.CPU,
     val localVision: Boolean = true,
-    /** Kontextstufe des lokalen Modells in Token. 0 = automatisch maximal (Standard ab 0.2.9), sonst manuelle Obergrenze 4096, 8192, 16384 oder 32768. */
+    /** Context level of the local model in tokens. 0 = "automatisch" maximum (default from 0.2.9), otherwise a manual cap of 4096, 8192, 16384, or 32768. */
     val localMaxTokens: Int = 0,
     val captureImages: Boolean = true,
     val ocrImages: Boolean = true,
     val maxImages: Int = 6,
     val groupChat: Boolean = false,
-    /** Zusatzpause nach jedem Scroll. Standard 0 = maximal schnell, keine Zufallspausen. */
+    /** Extra pause after every scroll. Default 0 = as fast as possible, no random pauses. */
     val pauseMinMs: Int = 0,
     val pauseMaxMs: Int = 0,
     val scrollMethod: ScrollMethod = ScrollMethod.AUTO,
-    /** Schrittweite des Swipes in Prozent der Listenhoehe, hoechstens 70, damit Nachrichten ueberlappen. */
+    /** Swipe step size in percent of the list height, at most 70, so messages overlap. */
     val scrollStepPercent: Int = 60,
-    /** Dauer der Wischbewegung. Lang und gleichmaessig, damit kein Nachschwung (Fling) entsteht. */
+    /** Duration of the swipe. Long and steady, so no fling builds up. */
     val swipeDurMs: Int = 450,
-    /** Fingerhaltezeit am Ende der Bewegung. */
+    /** Finger hold time at the end of the movement. */
     val holdMs: Int = 80,
-    /** Wischstrecke aus gemessenem Scrollweg nachregeln (Selbstkalibrierung). Aus: feste Schrittweite. */
+    /** Adjust the swipe distance from the measured scroll travel (self-calibration). Off: fixed step size. */
     val selfCalibrate: Boolean = true,
-    /** Gewuenschte Ueberlappung zweier Seiten in Prozent der Listenhoehe (30 bis 50). */
+    /** Desired overlap of two pages in percent of the list height (30 to 50). */
     val targetOverlapPercent: Int = 35,
-    /** EXPERIMENTELL, standardmaessig aus: erlaubt einen Senden-Knopf in der App (nur mit Bestaetigung je Text). Kann gegen die WhatsApp-AGB verstossen. */
+    /** EXPERIMENTAL, off by default: allows a send button in the app (only with confirmation per text). Can violate the WhatsApp terms. */
     val experimentalSend: Boolean = false,
-    /** Schwebender Punkt (Overlay) beim Start der App einblenden. */
+    /** Show the floating dot (overlay) when the app starts. */
     val overlayEnabled: Boolean = false,
-    /** Checkup beim Start der App (einmal je Prozessstart, hoechstens alle 10 Minuten) und Anzahl X der gelesenen Chats. */
-    val checkupOnStart: Boolean = false, // ab 0.2.9 aus; laeuft zudem nur nach abgeschlossenem Assistenten
-    /** Einrichtungsassistent: aktuelle Seite (fortsetzbar), abgeschlossen, ueberspringen gewaehlt. */
+    /** Checkup when the app starts (once per process start, at most every 10 minutes) and the count X of chats read. */
+    val checkupOnStart: Boolean = false, // off from 0.2.9; also runs only after the wizard is finished
+    /** Setup wizard: current page (resumable), finished, skip chosen. */
     val wizardStep: String = "WELCOME",
     val wizardDone: Boolean = false,
     val wizardSkipped: Boolean = false,
-    /** Ausdrückliche Zustimmung zur Bedienungshilfe (Offenlegung im Assistenten, ab 0.3.0). Nachweis fuer die Play-Erklaerung. */
+    /** Explicit consent for the accessibility service (disclosure in the wizard, from 0.3.0). Evidence for the Play declaration. */
     val a11yConsent: Boolean = false,
-    /** Benachrichtigungserlaubnis wurde schon (mit Begruendung) angefragt. */
+    /** Notification permission was already requested (with a reason). */
     val notifAsked: Boolean = false,
-    /** Entwickleroption: zeigt den Tab Debug (ab 0.3.0 versteckt; siebenmal auf die Version tippen). */
+    /** Developer option: shows the Debug tab (hidden from 0.3.0; tap the version seven times). */
     val developerMode: Boolean = false,
-    /** Freigegebene Messenger, Kennungen mit Komma getrennt (Vorgabe nur whatsapp). Siehe MessengerRegistry. */
+    /** Allowed messengers, ids separated by commas (default is whatsapp only). See MessengerRegistry. */
     val enabledMessengers: String = "whatsapp",
-    /** Position des schwebenden Punktes: Seite (0 links, 1 rechts) und Hoehenanteil 0..1, wird gemerkt und rastet am Rand ein. */
+    /** Position of the floating dot: side (0 left, 1 right) and height fraction 0..1, remembered, and it snaps to the edge. */
     val dotSide: Int = 1,
     val dotYFraction: Float = 0.33f,
     val checkupCount: Int = 50,
-    /** Sprachnachrichten lokal transkribieren (Parakeet ueber sherpa-onnx). Braucht das geladene Modell und den freigegebenen Ordner. */
-    val voiceTranscribe: Boolean = true, // ab 0.2.9 standardmaessig an (Migration bei Bestandsnutzern)
-    /** Per Ordnerfreigabe (SAF) gewaehlter Ordner "WhatsApp Voice Notes" (Tree-URI), leer = keiner. */
+    /** Transcribe voice messages locally (Parakeet via sherpa-onnx). Needs the loaded model and the granted folder. */
+    val voiceTranscribe: Boolean = true, // on by default from 0.2.9 (migration for existing users)
+    /** Folder "WhatsApp Voice Notes" chosen via folder grant (SAF) (tree URI), empty = none. */
     val voiceTreeUri: String = "",
-    /** Hoechstzahl transkribierter Sprachnachrichten je Lauf und Chat, die neuesten zuerst. */
+    /** Maximum number of transcribed voice messages per run and chat, newest first. */
     val voiceMaxPerChat: Int = 20,
-    /** Laengere Sprachnachrichten werden nicht transkribiert (Sekunden). */
+    /** Longer voice messages are not transcribed (seconds). */
     val voiceMaxSeconds: Int = 180,
-    /** Zeitabweichung in Minuten zwischen der Uhrzeit der Nachricht und dem Aenderungsdatum der Datei. */
+    /** Time difference in minutes between the message time and the file's modification time. */
     val voiceToleranceMin: Int = 3,
     val voiceThreads: Int = 4,
-    /** Setup: Anzahl der neuesten Chats (Schnellwahl im Checkup-Menue). */
+    /** Setup: number of newest chats (quick pick in the checkup menu). */
     val setupCount: Int = 20,
     val setupTarget: Int = 100,
     val setupIncludeGroups: Boolean = false,
     val setupPinnedCounts: Boolean = true,
-    /** Auto-Modus: Zielmenge je Chat. */
+    /** Auto mode: target count per chat. */
     val autoTarget: Int = 100,
     val autoNames: String = "",
     val lastTask: app.chatlens.core.TaskMode = app.chatlens.core.TaskMode.ANALYSE,
     val lastGoal: String = "",
     val setupDone: Boolean = false,
-    /** Bei unveraendertem Inhalt (Ende des geladenen Verlaufs) nach Warten und Wiederholung sauber beenden und mit dem Erfassten weiterarbeiten. */
+    /** When the content is unchanged (end of the loaded transcript), finish cleanly after waiting and retrying, and continue with what was captured. */
     val endOnStatic: Boolean = true,
-    /** Maximale Wartezeit nach einem Scroll, bis sich der Baum aendert und beruhigt hat. */
+    /** Maximum wait after a scroll until the tree changes and settles. */
     val settleMaxMs: Int = 2500,
-    /** Abstand der Baumabfragen beim Warten (adaptives Polling). */
+    /** Interval of tree reads while waiting (adaptive polling). */
     val pollMs: Int = 40,
     val maxScrollCap: Int = 100,
-    /** Obergrenze des Steckbriefs je Chat in Zeichen (1500 bis 12000). */
+    /** Cap of the profile card per chat in characters (1500 to 12000). */
     val memoryMaxChars: Int = 6000,
-    /** DISC-Einschaetzung des Gegenuebers im Gedaechtnis (vorsichtig, nur Einzelchats). */
+    /** DISC estimate of the other person in memory (cautious, one-to-one chats only). */
     val memoryDisc: Boolean = true,
-    /** Ich-Profil nutzen: chatuebergreifende Merkmale des Nutzers sammeln und kurz in Berater und Vorschlaege geben. */
+    /** Use the self profile: collect traits of the user that hold across chats and pass a short form into the advisor and suggestions. */
     val ichEnabled: Boolean = true,
     val maxRunsPerHour: Int = 10,
     val contextCharsApi: Int = 24_000,
-    /** Zeichenbudget des Verlaufs im lokalen Prompt. 0 = automatisch aus der Kontextstufe (3 Zeichen je Token). */
+    /** Character budget of the transcript in the local prompt. 0 = "automatisch" from the context level (3 characters per token). */
     val contextCharsLocal: Int = 0,
     val maskDebugText: Boolean = true,
     val privacyAcknowledged: Boolean = false,
@@ -125,9 +125,9 @@ data class AppSettings(
     val lastChatAlreadyOpen: Boolean = false,
     val lastStopMode: StopMode = StopMode.TARGET,
     val lastTargetMessages: Int = 100,
-    /** Modus "Chat schon geoeffnet": Sekunden Countdown nach Start, in denen zu WhatsApp gewechselt wird. 0 = nur per "Jetzt lesen". */
+    /** Mode "Chat schon geoeffnet": seconds of countdown after start, during which the user switches to WhatsApp. 0 = only via "Jetzt lesen". */
     val startDelaySec: Int = 5,
-    /** Maximale Wartezeit auf Suchtreffer nach dem Tippen im Suchfeld, in Millisekunden. */
+    /** Maximum wait for search hits after tapping in the search field, in milliseconds. */
     val searchWaitMs: Int = 4000,
 )
 
@@ -150,7 +150,7 @@ class SettingsRepo(context: Context) {
             ocrImages = sp.getBoolean("ocrImages", d.ocrImages),
             maxImages = sp.getInt("maxImages", d.maxImages),
             groupChat = sp.getBoolean("groupChat", d.groupChat),
-            // neue Schluessel: alte Standardpausen (1200 bis 2800 ms) aus Version 0.1.0/0.1.1 werden bewusst nicht uebernommen
+            // new keys: the old default pauses (1200 to 2800 ms) from version 0.1.0/0.1.1 are deliberately not carried over
             pauseMinMs = sp.getInt("scrollPauseMinMs", d.pauseMinMs),
             pauseMaxMs = sp.getInt("scrollPauseMaxMs", d.pauseMaxMs),
             scrollMethod = runCatching { ScrollMethod.valueOf(sp.getString("scrollMethod", d.scrollMethod.name)!!) }.getOrDefault(d.scrollMethod),
@@ -286,7 +286,7 @@ class SettingsRepo(context: Context) {
             .apply()
     }
 
-    /** Ratenlimit: Zeitstempel der letzten Laeufe (Millisekunden). */
+    /** Rate limit: timestamps of the last runs (milliseconds). */
     fun runTimestamps(): List<Long> =
         (sp.getString("runTimes", "") ?: "").split(",").mapNotNull { it.toLongOrNull() }
 

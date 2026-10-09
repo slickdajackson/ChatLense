@@ -68,7 +68,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Alles, was die Seiten anzeigen. Die Seiten selbst halten keinen Zustand (deshalb als Renderbild testbar). */
+/** Everything the pages display. The pages themselves hold no state (so they can be tested as render images). */
 class WizardUi(
     val state: WizardState,
     val facts: WizardFacts,
@@ -83,7 +83,7 @@ class WizardUi(
     val checkupOnStart: Boolean = false,
 )
 
-/** Handlungen der Seiten, die ueber den Zustandsautomaten hinausgehen. */
+/** Page actions that go beyond the state machine. */
 class WizardActions(
     val dispatch: (WizardAction) -> Unit = {},
     val loadGemma: () -> Unit = {},
@@ -129,7 +129,7 @@ private fun Body(t: String) = Text(t, style = MaterialTheme.typography.bodyLarge
 @Composable
 private fun Done(t: String) = Text(t, style = MaterialTheme.typography.titleMedium, color = GlassColors.Ok, fontWeight = FontWeight.SemiBold)
 
-/** Eine Seite des Assistenten mit Kopf (Punkte, "k von 6", Ueberspringen), Inhalt und Fuss (Zurueck, Weiter). */
+/** One wizard page with a header (dots, "k von 6", skip), content, and a footer (back, next). */
 @Composable
 fun WizardScreen(ui: WizardUi, act: WizardActions, modifier: Modifier = Modifier) {
     val s = ui.state
@@ -166,7 +166,7 @@ fun WizardScreen(ui: WizardUi, act: WizardActions, modifier: Modifier = Modifier
                     Body("ChatLens braucht sie, um Chats auf dem Bildschirm zu lesen.")
                     if (ui.facts.a11y) Done("Eingeschaltet")
                     else {
-                        // U2: Offenlegung vor dem Systemdialog, mit eigener Zustimmung (Play-Anforderung "Prominent Disclosure")
+                        // U2: disclosure before the system dialog, with separate consent (Play requirement "Prominent Disclosure")
                         GlassCard(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("Was ChatLens mit der Bedienungshilfe tut", style = MaterialTheme.typography.titleMedium, color = GlassColors.Text)
@@ -294,7 +294,7 @@ fun WizardScreen(ui: WizardUi, act: WizardActions, modifier: Modifier = Modifier
     }
 }
 
-/** Anbindung an die App (Berechtigungen, Download, WhatsApp-Start). Jede Handlung kommt von einem Tipp des Nutzers. */
+/** Integration with the app (permissions, download, WhatsApp launch). Every action comes from a user tap. */
 class WizardHostActions(
     val openA11y: () -> Unit,
     val openOverlay: () -> Unit,
@@ -302,9 +302,9 @@ class WizardHostActions(
     val pickModelFile: () -> Unit,
     val pickVoiceFolder: () -> Unit,
     val useDownloadedGemma: () -> Unit,
-    /** Startet den Checkup. Oeffnet WhatsApp. Wird nur nach der Ansage und dem zweiten Tipp aufgerufen. */
+    /** Starts the checkup. Opens WhatsApp. Called only after the announcement and the second tap. */
     val startCheckup: () -> Unit,
-    /** Schliesst den Assistenten. [goSetup]: danach zur Startseite mit dem Setup. */
+    /** Closes the wizard. [goSetup]: then go to the start page with setup. */
     val close: (goSetup: Boolean) -> Unit,
 )
 
@@ -348,12 +348,12 @@ fun WizardHost(settings: AppSettings, onSettings: (AppSettings) -> Unit, host: W
 
     LaunchedEffect(a11y, overlay) { dispatch(WizardAction.Observe) }
 
-    // Nach dem Gemma Download: Datei als aktives Modell setzen
+    // After the Gemma download: set the file as the active model
     val gemmaDl = dl[ModelCatalog.DEFAULT_ID]
     LaunchedEffect(gemmaDl?.status, modelReady) {
         if (gemmaDl?.status == DlStatus.DONE && !modelReady) host.useDownloadedGemma()
     }
-    // Parakeet lädt automatisch (wie beschlossen), aber erst nachdem der Gemma Download nicht mehr läuft
+    // Parakeet downloads automatically (as decided), but only after the Gemma download is no longer running
     val gemmaBusy = gemmaDl?.status == DlStatus.RUNNING || gemmaDl?.status == DlStatus.VERIFYING
     LaunchedEffect(st.step, settings.voiceTranscribe, gemmaBusy, parakeetReady) {
         if (st.step != WizardStep.MODEL || !settings.voiceTranscribe || parakeetReady || gemmaBusy) return@LaunchedEffect
@@ -396,7 +396,7 @@ fun WizardHost(settings: AppSettings, onSettings: (AppSettings) -> Unit, host: W
             host.close(true)
         },
     )
-    // U9: Assistent liegt ausserhalb des Scaffold; ab Android 15 (Edge to Edge) Statusleiste, Navigationsleiste und Ausschnitt aussparen
+    // U9: the wizard sits outside the scaffold; from Android 15 (edge-to-edge) inset the status bar, navigation bar, and cutout
     WizardScreen(ui, act, Modifier.windowInsetsPadding(WindowInsets.safeDrawing))
     if (askMetered) {
         AlertDialog(

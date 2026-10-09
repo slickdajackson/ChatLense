@@ -1,6 +1,6 @@
 package app.chatlens.core
 
-/** Bildschirmkoordinaten in Pixeln (wie Rect, aber ohne Android-Abhaengigkeit, damit JVM-testbar). */
+/** Screen coordinates in pixels (like Rect, but without an Android dependency, so JVM-testable). */
 data class Bounds(val l: Int, val t: Int, val r: Int, val b: Int) {
     val width: Int get() = r - l
     val height: Int get() = b - t
@@ -16,8 +16,8 @@ data class Bounds(val l: Int, val t: Int, val r: Int, val b: Int) {
 }
 
 /**
- * Unveraenderlicher Schnappschuss eines Accessibility-Knotens.
- * Alle Parser arbeiten nur auf diesem Typ, nie auf AccessibilityNodeInfo.
+ * Immutable snapshot of an accessibility node.
+ * All parsers work only on this type, never on AccessibilityNodeInfo.
  */
 data class UiNode(
     val className: String,
@@ -30,11 +30,11 @@ data class UiNode(
     val editable: Boolean = false,
     val visible: Boolean = true,
     val children: List<UiNode> = emptyList(),
-    /** Eingabefokus (isFocused). Die aktive Suche hat Fokus, ein ruhendes Suchfeld der Chatliste nicht. */
+    /** Input focus (isFocused). The active search has focus, a resting search field of the chat list does not. */
     val focused: Boolean = false,
-    /** isSelected (z. B. der gewaehlte Tab der unteren Leiste). */
+    /** isSelected (for example the selected tab of the bottom bar). */
     val selected: Boolean = false,
-    /** Gemeldete Scrollaktionen des Knotens (ACTION_SCROLL_UP/DOWN senkrecht, LEFT/RIGHT waagerecht, FORWARD/BACKWARD allgemein). */
+    /** Reported scroll actions of the node (ACTION_SCROLL_UP/DOWN vertical, LEFT/RIGHT horizontal, FORWARD/BACKWARD generic). */
     val scrollUp: Boolean = false,
     val scrollDown: Boolean = false,
     val scrollHoriz: Boolean = false,
@@ -45,7 +45,7 @@ data class UiNode(
 
     val shortClass: String get() = className.substringAfterLast('.')
 
-    /** Tiefensuche in Dokumentreihenfolge, inklusive this. */
+    /** Depth-first walk in document order, including this. */
     fun walk(): Sequence<UiNode> = sequence {
         yield(this@UiNode)
         for (c in children) yieldAll(c.walk())

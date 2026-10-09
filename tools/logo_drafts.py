@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Zeichnet Logo-Entwuerfe (Sprechblase mit KI-Sternen, ohne Lupe) als PNG, ohne Android: python3 tools/logo_drafts.py [Ausgabeordner].
-Idee 1: drei Sterne statt der drei Punkte, von gross zu klein. Idee 2: ein grosser und zwei kleine Sterne (Sparkle-Anordnung).
-Alles im 48er Raster wie make_logo.py; 3 Pixel je dp (xxhdpi)."""
+"""Draws logo drafts (speech bubble with AI stars, no magnifying glass) as PNG, without Android: python3 tools/logo_drafts.py [output folder].
+Idea 1: three stars instead of the three dots, large to small. Idea 2: one large star and two small ones (sparkle layout).
+Everything on the 48 dp grid, like make_logo.py; 3 pixels per dp (xxhdpi)."""
 import sys, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -9,9 +9,9 @@ from PIL import Image, ImageDraw, ImageFont
 OUT = sys.argv[1] if len(sys.argv) > 1 else "renders"
 TEAL, VIOLET, ICE, NAVY = (0x4D, 0xE3, 0xD0), (0x8B, 0x7C, 0xFF), (0xEA, 0xF0, 0xFF), (0x0B, 0x10, 0x20)
 LAV = (0xB6, 0xAB, 0xFF)
-SS = 4  # Ueberabtastung
+SS = 4  # oversampling
 
-# ---------- Geometrie (48er Raster) ----------
+# ---------- Geometry (48 dp grid) ----------
 def bez(p0, p1, p2, n=12):
     return [((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0], (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]) for t in [i / n for i in range(n)]]
 
@@ -34,13 +34,13 @@ def bubble():
     pts += arc(13, 27, r, 90, 180)[1:] + [(4, 15)] + arc(13, 15, r, 180, 270)[1:]
     return pts
 
-# Sterne je Entwurf: Liste (cx, cy, r)
-ROW = [(14, 21, 7.2), (27, 21, 4.8), (37, 21, 3.0)]            # Idee 1: gross nach klein in einer Reihe
-DIAG = [(13.5, 25, 7.2), (26, 20, 4.8), (36.5, 15.5, 3.0)]     # Idee 1: gross nach klein steigend
-SPARK = [(19.5, 22.5, 10.0), (33.0, 14.5, 4.8), (32.5, 29.0, 3.6)]  # Idee 2: ein grosser, zwei kleine daneben
+# Stars per draft: list of (cx, cy, r)
+ROW = [(14, 21, 7.2), (27, 21, 4.8), (37, 21, 3.0)]            # idea 1: large to small in one row
+DIAG = [(13.5, 25, 7.2), (26, 20, 4.8), (36.5, 15.5, 3.0)]     # idea 1: large to small, rising
+SPARK = [(19.5, 22.5, 10.0), (33.0, 14.5, 4.8), (32.5, 29.0, 3.6)]  # idea 2: one large star and two small ones beside it
 SPARK2 = [(18.5, 24, 9.0), (31.5, 13.5, 4.6), (34, 27.5, 3.2)]
 
-# ---------- Zeichnen ----------
+# ---------- Drawing ----------
 def mask_poly(size, pts, scale):
     m = Image.new("L", (size * SS, size * SS), 0)
     ImageDraw.Draw(m).polygon([(x * scale * SS, y * scale * SS) for x, y in pts], fill=255)
@@ -97,7 +97,7 @@ def draw_mark(kind, size, stars, mono=False):
         add(solid(size, ICE), mask_poly(size, B, sc))
         for m, c in zip(sm, [None, VIOLET, (0x2F, 0xBF, 0xAE)]):
             add(grad(size, TEAL, VIOLET, scale=sc) if c is None else solid(size, c), m)
-    elif kind == "glass":  # dunkle Glasflaeche mit hellem Rand und hellen Sternen
+    elif kind == "glass":  # dark glass surface with a light edge and light stars
         add(solid(size, (0x2A, 0x2F, 0x5E)), mask_poly(size, B, sc))
         add(grad(size, TEAL, VIOLET, scale=sc), mask_outline(size, B, sc, 2.0))
         for m, c in zip(sm, [ICE, ICE, ICE]): add(solid(size, c), m)
@@ -112,10 +112,10 @@ def bg_layer(size, style):
     return g.resize((size, size), Image.LANCZOS).convert("RGBA")
 
 def adaptive(kind, stars, dp, mask, mono=False, mpx=3):
-    S = int(108 * dp / 72 * mpx)   # Ebene so gross, dass der sichtbare Teil (72 dp) dp * mpx Pixel misst
+    S = int(108 * dp / 72 * mpx)   # layer sized so the visible part (72 dp) measures dp * mpx pixels
     vis = int(dp * mpx)
     layer = bg_layer(S, 0) if not mono else Image.new("RGBA", (S, S), (0x2B, 0x3A, 0x55, 255))
-    markpx = int(60 * dp / 72 * mpx)  # Marke fuellt 60 von 108 dp (Gruppe: Verschiebung 24, Skalierung 1,25)
+    markpx = int(60 * dp / 72 * mpx)  # mark fills 60 of 108 dp (group: translation 24, scale 1.25)
     m = draw_mark(kind, markpx, stars, mono)
     if mono:
         t = Image.new("RGBA", m.size, (0xA8, 0xC7, 0xFA, 255)); t.putalpha(m.split()[3]); m = t
@@ -154,7 +154,7 @@ def sheet(name, title, sub, kind, stars):
     dot.alpha_composite(draw_mark(kind, 120, stars), (30, 30)); im.paste(dot, (x, y), dot); x += 210
     m48 = draw_mark(kind, 144, stars); im.paste(m48, (x, y + 18), m48); x += 180
     st = draw_mark(kind, 72, stars, mono=True); im.paste(st, (x, y + 40), st); x += 110
-    # grosse Marke
+    # large mark
     y += 210
     d.text((30, y), "Marke gross", fill=(0xB8, 0xC2, 0xD6), font=font(26)); y += 44
     big = draw_mark(kind, 480, stars); im.paste(big, (30, y), big)
@@ -174,7 +174,7 @@ DRAFTS = [
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     ims = [sheet(*d) for d in DRAFTS]
-    # Uebersicht: alle Marken gross auf dunklem Grund plus 48 dp im Kreis
+    # Overview: all marks large on a dark background, plus 48 dp inside a circle
     W = 411 * 3; cell = 400; H = 60 + 3 * (cell + 40) + 40
     ov = Image.new("RGB", (W, 40 + 3 * (cell + 70)), (0x10, 0x14, 0x1C)); d = ImageDraw.Draw(ov)
     for i, (n, t, s, k, st) in enumerate(DRAFTS):

@@ -1,25 +1,25 @@
 package app.chatlens.asr
 
-/** Fehler beim Lesen oder Dekodieren einer Audiodatei. Die Meldung ist fuer das Log gedacht (ohne Dateinamen). */
+/** Error while reading or decoding an audio file. The message is meant for the log (without file names). */
 class AudioDecodeException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/** Inhalt einer Ogg-Opus-Datei: Kopfdaten und die Opus-Pakete in Reihenfolge. */
+/** Contents of an Ogg Opus file: header data and the Opus packets in order. */
 class OggOpusStream(
     val channels: Int,
-    /** Vorlauf in Abtastwerten bei 48 kHz, der am Anfang zu verwerfen ist. */
+    /** Pre-skip in samples at 48 kHz, to be discarded at the start. */
     val preSkip48: Int,
     val inputRate: Int,
     val packets: List<ByteArray>,
-    /** Granule-Position der letzten Seite (Abtastwerte bei 48 kHz einschliesslich Vorlauf), -1 wenn unbekannt. */
+    /** Granule position of the last page (samples at 48 kHz including pre-skip), -1 if unknown. */
     val lastGranule: Long,
 ) {
-    /** Gesamtdauer der Tonspur in Sekunden laut Granule-Position, null wenn unbekannt. */
+    /** Total duration of the audio track in seconds according to the granule position, null if unknown. */
     val durationSec: Double? get() = if (lastGranule >= 0) ((lastGranule - preSkip48).coerceAtLeast(0L)) / 48000.0 else null
 }
 
 /**
- * Kleiner Ogg-Opus-Leser (RFC 3533 und RFC 7845), nur fuer Kanalzuordnung 0 (Mono oder Stereo), wie sie WhatsApp-Sprachnachrichten nutzen.
- * Liest die erste logische Spur, setzt Pakete ueber Seitengrenzen zusammen, ueberspringt OpusTags. Die CRC wird nicht geprueft.
+ * Small Ogg Opus reader (RFC 3533 and RFC 7845), only for channel mapping family 0 (mono or stereo), as used by WhatsApp voice messages.
+ * Reads the first logical stream, reassembles packets across page boundaries, skips OpusTags. The CRC is not checked.
  */
 object OggOpusReader {
     private const val HEADER_MIN = 27
@@ -33,7 +33,7 @@ object OggOpusReader {
         var pages = 0
         while (pos + HEADER_MIN <= data.size) {
             if (data[pos] != 'O'.code.toByte() || data[pos + 1] != 'g'.code.toByte() || data[pos + 2] != 'g'.code.toByte() || data[pos + 3] != 'S'.code.toByte()) {
-                // Synchronisation verloren: bis zur naechsten Seite suchen
+                // Sync lost: search ahead to the next page
                 val next = indexOfCapture(data, pos + 1)
                 if (next < 0) break
                 pos = next
@@ -47,7 +47,7 @@ object OggOpusReader {
             var bodyLen = 0
             for (i in 0 until nseg) bodyLen += data[pos + HEADER_MIN + i].toInt() and 0xff
             val bodyStart = pos + HEADER_MIN + nseg
-            if (bodyStart + bodyLen > data.size) break // abgeschnittene letzte Seite
+            if (bodyStart + bodyLen > data.size) break // truncated last page
             if (serial == null) serial = ser
             if (ser == serial) {
                 pages++
@@ -77,7 +77,7 @@ object OggOpusReader {
         return OggOpusStream(channels, preSkip, rate, packets.subList(firstAudio, packets.size).filter { it.isNotEmpty() }, lastGranule)
     }
 
-    /** Nur die Dauer (Sekunden) aus Kopf und letzter Seite, ohne Dekodierung. Null, wenn nicht lesbar. */
+    /** Duration only (seconds) from the header and the last page, without decoding. Null if it cannot be read. */
     fun durationSec(data: ByteArray): Double? = runCatching { parse(data).durationSec }.getOrNull()
 
     private fun indexOfCapture(d: ByteArray, from: Int): Int {

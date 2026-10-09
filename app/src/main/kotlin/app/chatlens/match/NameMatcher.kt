@@ -4,13 +4,13 @@ import java.text.Normalizer
 import kotlin.math.max
 import kotlin.math.min
 
-/** Ein Kandidat mit Uebereinstimmung in Prozent (0 bis 100). */
+/** A candidate with a match in percent (0 to 100). */
 class NameCandidate(val text: String, val percent: Int, val index: Int)
 
 /**
- * Namensabgleich fuer Chattitel. Normalisiert (Kleinschreibung, Akzente, Emojis, Satzzeichen, Mehrfachleerzeichen)
- * und nimmt die beste von drei Messungen: Zeichenabstand, Wortmenge (Reihenfolge egal) und Teilstring.
- * 100 Prozent gibt es nur bei gleichem normalisierten Text; sonst hoechstens 99.
+ * Name matching for chat titles. Normalizes (lowercase, accents, emoji, punctuation, repeated spaces)
+ * and takes the best of three measures: character distance, word set (order does not matter), and substring.
+ * 100 percent only when the normalized text is equal; otherwise at most 99.
  */
 object NameMatcher {
 
@@ -31,7 +31,7 @@ object NameMatcher {
         return sb.toString().trim()
     }
 
-    /** Gleicher Titel im strengen Sinn (nur Leerraum am Rand und Gross/Klein egal): kein Nachfragen noetig. */
+    /** Same title in the strict sense (only surrounding whitespace and case do not matter): no need to ask. */
     fun isExact(query: String, candidate: String): Boolean = query.trim().equals(candidate.trim(), ignoreCase = true)
 
     private fun lev(a: String, b: String): Int {
@@ -67,7 +67,7 @@ object NameMatcher {
         val tokens = ratio(ta, tb)
         val (shortS, longS) = if (a.length <= b.length) a to b else b to a
         val contain = if (shortS.length >= 3 && longS.contains(shortS)) 0.6 + 0.4 * shortS.length.toDouble() / longS.length else 0.0
-        // Teilmenge der Woerter (Vorname gegen vollen Namen) etwas niedriger bewerten
+        // Score a subset of the words (first name against the full name) a bit lower
         val wa = a.split(' ').toSet()
         val wb = b.split(' ').toSet()
         val subset = if ((wa.size < wb.size && wb.containsAll(wa)) || (wb.size < wa.size && wa.containsAll(wb))) {
@@ -77,7 +77,7 @@ object NameMatcher {
         return min(99, (best * 100).toInt())
     }
 
-    /** Bester Kandidat oder null, wenn die Liste leer ist. Bei Gleichstand gewinnt der frueheste. */
+    /** Best candidate, or null when the list is empty. On a tie the earliest one wins. */
     fun best(query: String, candidates: List<String>): NameCandidate? {
         var bestC: NameCandidate? = null
         candidates.forEachIndexed { i, c ->
@@ -87,7 +87,7 @@ object NameMatcher {
         return bestC
     }
 
-    /** Kuerzere Suchanfrage fuer einen zweiten Versuch (erstes Wort, sonst die erste Haelfte), oder null, wenn keine sinnvoll ist. */
+    /** Shorter search query for a second try (first word, otherwise the first half), or null when none is useful. */
     fun shorterQuery(title: String): String? {
         val t = title.trim()
         val tokens = t.split(Regex("\\s+"))
@@ -96,6 +96,6 @@ object NameMatcher {
         return null
     }
 
-    /** Empfohlene Mindestuebereinstimmung, unter der gar nicht erst nachgefragt wird (zu unaehnlich). */
+    /** Recommended minimum match, below which there is no point in asking (too dissimilar). */
     const val MIN_ASK_PERCENT = 55
 }

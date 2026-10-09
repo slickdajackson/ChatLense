@@ -22,7 +22,7 @@ import org.junit.Test
 import java.io.File
 import java.time.LocalDateTime
 
-/** Listenwahl (0.2.8): nachgebildete Baeume zum Fehler "Checkup scrollt nicht" aus 0.2.7, plus Quelltext-Waechter gegen waagerechtes Scrollen. */
+/** List selection (0.2.8): reconstructed trees for the "checkup does not scroll" failure from 0.2.7, plus a source guard against horizontal scrolling. */
 class ListLocatorTest {
     private val profile = SelectorProfile.parse(File("src/main/assets/profiles/whatsapp.json").readText())
     private val NAME = "com.whatsapp:id/conversations_row_contact_name"
@@ -50,7 +50,7 @@ class ListLocatorTest {
 
     private fun choose(root: UiNode) = ListLocator.choose(root, rowBounds(root))
 
-    /** Der Baum aus dem Fehlerlog: ViewPager mit scrollbarer Hille, Zeilen darunter, keine senkrechte Aktion irgendwo. */
+    /** The tree from the error log: a ViewPager with a scrollable wrapper, rows below it, and no vertical action anywhere. */
     @Test fun listInsideViewPagerWithoutVerticalActionUsesRowGeometryAndNeverThePager() {
         val pager = n("androidx.viewpager.widget.ViewPager", screen, scroll = true, horiz = true, kids = listOf(n("android.view.ViewGroup", listB, kids = rows())))
         val root = n("android.widget.FrameLayout", screen, kids = listOf(pager))
@@ -129,7 +129,7 @@ class ListLocatorTest {
         assertTrue(lines[0], lines[0].contains("LEFT/RIGHT"))
     }
 
-    // ---------- Scanner: kein falsches Listenende ----------
+    // ---------- Scanner: no false end of the list ----------
 
     private fun entry(i: Int) = ChatListEntry("Chat $i", "V$i", "12:00", false, false, false, i)
 
@@ -183,23 +183,23 @@ class ListLocatorTest {
         assertNull(lim.warning(10))
     }
 
-    // ---------- Quelltext-Waechter ----------
+    // ---------- Source guard ----------
 
     private val nav = File("src/main/kotlin/app/chatlens/agent/WhatsAppNavigator.kt").readText()
     private val locator = File("src/main/kotlin/app/chatlens/agent/ListLocator.kt").readText()
 
     @Test fun sourceNeverScrollsHorizontally() {
         assertFalse(nav.contains("SCROLL_LEFT") || nav.contains("SCROLL_RIGHT") || nav.contains("SCROLL_TO_POSITION"))
-        // Allgemeines FORWARD/BACKWARD nur in listAction und nur hinter allowGeneric
+        // Generic FORWARD/BACKWARD only inside listAction and only behind allowGeneric
         val outside = nav.replace(nav.substringAfter("private fun listAction").substringBefore("/** Ein Scrollschritt aufwaerts"), "")
         assertFalse(outside.contains("ACTION_SCROLL_FORWARD") || outside.contains("ACTION_SCROLL_BACKWARD"))
         val la = nav.substringAfter("private fun listAction").substringBefore("/** Ein Scrollschritt aufwaerts")
         assertTrue(la.contains("ch.allowGeneric && generic in ids"))
-        // die Wischgeste hat nur eine x-Koordinate: senkrecht
+        // the swipe gesture has only one x coordinate: vertical
         val svc = File("src/main/kotlin/app/chatlens/service/ChatAccessibilityService.kt").readText()
         assertTrue(svc.contains("suspend fun swipe(x: Int, fromY: Int, toY: Int, durationMs: Long, holdMs: Long)"))
         assertFalse(svc.contains("fromX") || svc.contains("toX"))
-        // Seitenwechsler und waagerechte Knoten sind aus der Listenwahl ausgeschlossen
+        // Pagers and horizontal nodes are excluded from list selection
         assertTrue(locator.contains("\"Pager\"") && locator.contains("HorizontalScrollView") && locator.contains("val usable"))
         assertTrue(File("src/main/kotlin/app/chatlens/agent/AndroidScrollDevice.kt").readText().contains("\"ViewPager\""))
     }

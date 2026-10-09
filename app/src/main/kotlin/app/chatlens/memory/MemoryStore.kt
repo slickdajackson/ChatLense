@@ -5,8 +5,8 @@ import java.io.File
 import java.security.MessageDigest
 
 /**
- * Verschluesselte Ablage: eine Datei je Chat im App-internen Speicher. Dateiname ist ein Hash des Chat-Schluessels,
- * der Name steht nur im verschluesselten Inhalt. Kein Backup (allowBackup=false, Datenextraktion ausgeschlossen).
+ * Encrypted storage: one file per chat in app-private storage. The file name is a hash of the chat key,
+ * the name exists only inside the encrypted content. No backup (allowBackup=false, data extraction excluded).
  */
 class MemoryStore(private val dir: File, private val crypto: Crypto) {
 
@@ -58,7 +58,7 @@ class MemoryStore(private val dir: File, private val crypto: Crypto) {
         return n
     }
 
-    /** Klartext-Export fuer den Nutzer (JSON). Wird nur auf ausdruecklichen Wunsch erzeugt und geteilt. */
+    /** Plaintext export for the user (JSON). Created and shared only on an explicit request. */
     fun exportJson(key: String? = null): String {
         val items = if (key != null) listOfNotNull(load(key)) else list()
         return org.json.JSONArray(items.map { org.json.JSONObject(MemoryCodec.toJson(it)) }).toString(2)

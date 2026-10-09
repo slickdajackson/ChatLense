@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** Finale Renderbilder des Logos (Entwurf 2a) aus den echten Vektordateien. Testdaten, kein Beleg fuer das Geraet. */
+/** Final renders of the logo (draft 2a) from the real vector files. Test data, not evidence for the device. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h1000dp-xxhdpi")
@@ -53,7 +53,7 @@ class LogoRenderTest {
         File(out, "$name.png").outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    /** Adaptive Icon wie der Launcher: Ebenen 108 dp, sichtbar 72 dp, Form als Maske. */
+    /** Adaptive icon as the launcher shows it: layers 108 dp, visible 72 dp, shape as a mask. */
     @Composable private fun Masked(size: Dp, shape: Shape, mono: Boolean = false) {
         Box(Modifier.size(size).clip(shape), contentAlignment = Alignment.Center) {
             Box(Modifier.requiredSize(size * 1.5f)) {
@@ -77,11 +77,11 @@ class LogoRenderTest {
         snap(name)
     }
 
-    @Test fun kreis() = show("final-kreis", "Adaptive Icon, Kreismaske, 160 dp") { Masked(160.dp, CircleShape) }
+    @Test fun circle() = show("final-kreis", "Adaptive Icon, Kreismaske, 160 dp") { Masked(160.dp, CircleShape) }
 
-    @Test fun quadrat() = show("final-quadrat", "Adaptive Icon, abgerundetes Quadrat, 160 dp") { Masked(160.dp, RoundedCornerShape(40.dp)) }
+    @Test fun square() = show("final-quadrat", "Adaptive Icon, abgerundetes Quadrat, 160 dp") { Masked(160.dp, RoundedCornerShape(40.dp)) }
 
-    @Test fun einfarbig() = show("final-einfarbig", "Themed Icon (monochrome Ebene), Kreis und Quadrat, 160 dp") {
+    @Test fun monochrome() = show("final-einfarbig", "Themed Icon (monochrome Ebene), Kreis und Quadrat, 160 dp") {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Masked(160.dp, CircleShape, mono = true)
             Masked(160.dp, RoundedCornerShape(40.dp), mono = true)
@@ -98,7 +98,7 @@ class LogoRenderTest {
         }
     }
 
-    @Test fun punktUndKopfzeile() = show("final-punkt-kopfzeile", "Overlay-Punkt (60 dp, Marke 36 dp) und App-Kopfzeile (Marke 40 dp)") {
+    @Test fun dotAndHeader() = show("final-punkt-kopfzeile", "Overlay-Punkt (60 dp, Marke 36 dp) und App-Kopfzeile (Marke 40 dp)") {
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(60.dp).clip(CircleShape).background(Color(0xFF1B2230)), contentAlignment = Alignment.Center) { LogoMark(Modifier.size(36.dp)) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {

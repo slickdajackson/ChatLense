@@ -3,13 +3,13 @@ package app.chatlens.asr
 import app.chatlens.models.DlStatus
 
 /**
- * Wird "Sprachnachrichten transkribieren" eingeschaltet und Parakeet ist nicht vollstaendig und geprueft vorhanden, startet der Download von selbst.
- * Standard nur im WLAN; bei mobilen Daten (oder unbekanntem Netz) wird einmal nachgefragt. Reine Logik, deshalb ohne Android testbar.
+ * When "Sprachnachrichten transkribieren" is turned on and Parakeet is not fully present and verified, the download starts by itself.
+ * Default is Wi-Fi only. On mobile data (or an unknown network) it asks once. Pure logic, so testable without Android.
  */
 object VoiceAutoDownload {
     enum class Action { NOTHING, ALREADY_RUNNING, START, ASK_METERED }
 
-    /** [modelReady]: alle Dateien da und geprueft. [dl]: Zustand des laufenden oder letzten Downloads. [unmetered]: true = WLAN, false = Mobilfunk, null = unbekannt. */
+    /** [modelReady]: all files present and verified. [dl]: state of the current or last download. [unmetered]: true = Wi-Fi, false = mobile data, null = unknown. */
     fun decide(modelReady: Boolean, dl: DlStatus, unmetered: Boolean?): Action = when {
         modelReady -> Action.NOTHING
         dl == DlStatus.RUNNING || dl == DlStatus.VERIFYING -> Action.ALREADY_RUNNING
@@ -19,7 +19,7 @@ object VoiceAutoDownload {
 
     fun sizeText(sizeBytes: Long): String = "${sizeBytes / 1_000_000L} MB"
 
-    /** Kurzer Hinweis beim Einschalten. */
+    /** Short hint when turning it on. */
     fun hint(sizeBytes: Long, action: Action): String = when (action) {
         Action.START -> "Parakeet wird geladen (${sizeText(sizeBytes)}, WLAN erkannt). Die Transkription startet erst nach erfolgreicher Prüfung."
         Action.ASK_METERED -> "Parakeet braucht einmalig ${sizeText(sizeBytes)}. Empfehlung: WLAN."
@@ -28,8 +28,8 @@ object VoiceAutoDownload {
     }
 
     /**
-     * Fuehrt die Entscheidung aus. [start] bekommt "mobile Daten erlaubt". Bei ASK_METERED passiert nichts, bis [confirmMetered] aufgerufen wird.
-     * Das Log nennt nur Groesse und Netzart, keine Inhalte.
+     * Carries out the decision. [start] receives whether mobile data is allowed. On ASK_METERED nothing happens until [confirmMetered] is called.
+     * The log names only the size and the network type, no contents.
      */
     fun trigger(
         modelReady: Boolean, dl: DlStatus, unmetered: Boolean?, sizeBytes: Long,
@@ -50,6 +50,6 @@ object VoiceAutoDownload {
         start(true)
     }
 
-    /** Fehlermeldung mit Wiederholen-Hinweis. */
+    /** Error message with a retry hint. */
     fun failedText(message: String): String = "Download fehlgeschlagen: " + message.trim().ifEmpty { "unbekannter Fehler" } + " Mit Wiederholen erneut versuchen, Geladenes bleibt erhalten."
 }

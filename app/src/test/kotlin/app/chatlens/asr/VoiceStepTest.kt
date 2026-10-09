@@ -53,7 +53,7 @@ class VoiceStepTest {
         )
         val q = VoiceTranscriptionStep.queries(msgs, today)
         assertEquals(3, q.size)
-        assertNull(q[0].second.date) // vor dem ersten Datumstrenner unbekannt
+        assertNull(q[0].second.date) // unknown before the first date separator
         assertEquals(today.minusDays(1), q[1].second.date)
         assertEquals(today, q[2].second.date)
         assertEquals(6, q[2].second.durationSec)
@@ -64,7 +64,7 @@ class VoiceStepTest {
     fun transcribesMatchedMessageAndAppearsInContext() {
         val dir = tmp.newFolder("voice")
         voiceFile(File(dir, "202640"), "PTT-20261003-WA0001.opus", stamp(11, 0, 20))
-        voiceFile(File(dir, "202640"), "PTT-20261003-WA0002.opus", stamp(15, 0, 5), ByteArray(0)) // kaputt, anderer Zeitpunkt
+        voiceFile(File(dir, "202640"), "PTT-20261003-WA0002.opus", stamp(15, 0, 5), ByteArray(0)) // broken, different time
         File(dir, "202640/readme.txt").writeText("x")
         val m = msg(Kind.VOICE, "0:06", "11:00")
         val msgs = listOf(msg(Kind.DATE, "Heute", null), m)
@@ -72,7 +72,7 @@ class VoiceStepTest {
         assertEquals(1, rep.voiceMessages); assertEquals(1, rep.matched); assertEquals(1, rep.transcribed)
         assertEquals("Hallo Welt 1", m.transcript)
         assertNotNull(m.audioRef)
-        assertEquals(2, rep.filesListed) // nur .opus
+        assertEquals(2, rep.filesListed) // only .opus
         val ctx = ContextBuilder.build(msgs, "Anna", 10000, true, 1000).transcript
         assertTrue(ctx, ctx.contains("Transkript: Hallo Welt 1"))
         val s = rep.summary()
@@ -98,7 +98,7 @@ class VoiceStepTest {
     @Test
     fun existingTranscriptIsKeptAndNothingIsDone() {
         val m = msg(Kind.VOICE, "0:06", "11:00").also { it.transcript = "schon da" }
-        val src = object : VoiceFileSource { override val label = "x"; override fun list(): List<VoiceFile> = throw AssertionError("nicht aufrufen"); override fun read(f: VoiceFile) = ByteArray(0) }
+        val src = object : VoiceFileSource { override val label = "x"; override fun list(): List<VoiceFile> = throw AssertionError("do not call"); override fun read(f: VoiceFile) = ByteArray(0) }
         val rep = VoiceTranscriptionStep.run(listOf(m), cfg, src, FakePipe(), zone, today)
         assertEquals("schon da", m.transcript)
         assertEquals(1, rep.voiceMessages); assertEquals(0, rep.considered)
@@ -130,7 +130,7 @@ class VoiceStepTest {
             msg(Kind.VOICE, "0:06", "09:00"), msg(Kind.VOICE, "0:06", "10:00"), msg(Kind.VOICE, "0:06", "11:00"), msg(Kind.VOICE, "0:06", "13:00"),
         )
         val rep = VoiceTranscriptionStep.run(msgs, VoiceStepConfig(20, 3, 3), FileVoiceSource(dir), FakePipe(failOn = 1), zone, today)
-        // maxSeconds 3: die 6-s-Dateien sind alle zu lang
+        // maxSeconds 3: the 6-second files are all too long
         assertEquals(3, rep.tooLong); assertEquals(1, rep.unmatched); assertEquals(0, rep.transcribed)
         val rep2 = VoiceTranscriptionStep.run(msgs, VoiceStepConfig(20, 180, 3), FileVoiceSource(dir), FakePipe(failOn = 1), zone, today)
         assertEquals(1, rep2.failed); assertEquals(2, rep2.transcribed); assertEquals(1, rep2.unmatched)

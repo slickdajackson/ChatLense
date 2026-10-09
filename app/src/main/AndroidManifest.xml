@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Paketsichtbarkeit (Android 11+): WhatsApp starten -->
+    <!-- Package visibility (Android 11+): launch WhatsApp -->
     <queries>
         <package android:name="com.whatsapp" />
     </queries>
@@ -27,7 +27,7 @@
         android:usesCleartextTraffic="${cleartext}"
         tools:targetApi="36">
 
-        <!-- GPU-Backend von LiteRT-LM (laut Google-Doku noetig, wenn die GPU genutzt wird) -->
+        <!-- LiteRT-LM GPU backend (required by the Google docs when the GPU is used) -->
         <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
 

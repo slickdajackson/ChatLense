@@ -21,9 +21,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * Echter Test mit dem Parakeet-Modell und der sherpa-onnx-Bibliothek fuer Linux (JVM). Laeuft nur, wenn das Modell vorhanden ist:
- * Ordner aus der Umgebungsvariable CHATLENS_ASR_DIR (Standard asr-model im Arbeitsverzeichnis) mit den vier Dateien und test_wavs/de.wav, en.wav.
- * Die Opus-Datei wird mit ffmpeg aus der WAV erzeugt (nur wenn ffmpeg vorhanden ist). Sonst wird der Test uebersprungen.
+ * Real test with the Parakeet model and the sherpa-onnx library for Linux (JVM). Runs only when the model is present:
+ * folder from the CHATLENS_ASR_DIR environment variable (default asr-model in the working directory) with the four files and test_wavs/de.wav, en.wav.
+ * The Opus file is produced from the WAV with ffmpeg (only when ffmpeg is present). Otherwise the test is skipped.
  */
 class ParakeetRealModelTest {
     @get:Rule val tmp = TemporaryFolder()
@@ -47,7 +47,7 @@ class ParakeetRealModelTest {
         }
     }
 
-    /** Liest eine 16-Bit-Mono-WAV mit 44-Byte-Kopf; die Abtastrate steht im Kopf (de.wav 22,05 kHz, en.wav 24 kHz) und wird auf 16 kHz gewandelt. */
+    /** Reads a 16-bit mono WAV with a 44-byte header. The sample rate is in the header (de.wav 22.05 kHz, en.wav 24 kHz) and is converted to 16 kHz. */
     private fun wav(name: String): FloatArray {
         val b = File(dir, "test_wavs/$name").readBytes()
         val bb = ByteBuffer.wrap(b, 44, b.size - 44).order(ByteOrder.LITTLE_ENDIAN)
@@ -56,7 +56,7 @@ class ParakeetRealModelTest {
         return Pcm.resampleTo16k(FloatArray((b.size - 44) / 2) { bb.short / 32768f }, rate)
     }
 
-    /** WAV -> Ogg Opus Mono 48 kHz mit 16 kbit/s, aehnlich einer WhatsApp-Sprachnachricht. */
+    /** WAV to Ogg Opus mono, 48 kHz at 16 kbit/s, similar to a WhatsApp voice message. */
     private fun opusOf(name: String, out: File, bitrate: String = "16k") {
         val p = ProcessBuilder("ffmpeg", "-loglevel", "error", "-y", "-i", File(dir, "test_wavs/$name").path, "-ac", "1", "-ar", "48000", "-c:a", "opus", "-strict", "-2", "-b:a", bitrate, out.path)
             .redirectErrorStream(true).start()
@@ -64,14 +64,14 @@ class ParakeetRealModelTest {
         assertEquals(msg, 0, p.waitFor())
     }
 
-    /** Der Satz muss vollstaendig und in der richtigen Reihenfolge erkannt sein. Ein einzelnes kurzes Fuellwort am Ende ("rah") kommt beim Modell sporadisch vor und zaehlt nicht als Fehler. */
+    /** The sentence must be recognized in full and in the right order. A single short filler word at the end ("rah") shows up sporadically with this model and does not count as an error. */
     private fun assertSentence(text: String) {
         val want = "alles hat ein ende nur die wurst hat zwei"
         val got = norm(text)
         assertTrue(text, got.startsWith(want) && got.length <= want.length + 6)
     }
 
-    /** Fuer Eingaben mit starker Kompression: mindestens 6 der 8 Woerter des Satzes muessen vorkommen. Die Erkennung ist bei gleicher Eingabe nicht immer bitgleich (int8, mehrere Threads). */
+    /** For heavily compressed input: at least 6 of the 8 words in the sentence must appear. Recognition of the same input is not always bit-identical (int8, several threads). */
     private fun assertMostWords(text: String) {
         val hits = listOf("alles", "hat", "ein", "ende", "nur", "die", "wurst", "zwei").count { norm(text).contains(it) }
         assertTrue(text, hits >= 6)

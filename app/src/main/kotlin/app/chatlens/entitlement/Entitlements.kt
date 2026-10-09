@@ -1,19 +1,19 @@
 package app.chatlens.entitlement
 
 /**
- * Platzhalter fuer Pro (ab 0.3.0, ohne Kauf). Die Schnittstelle gibt es, damit Funktionen schon heute ueber eine Frage laufen
- * ("darf das?") und spaeter Play Billing dahinter haengt (MONETARISIERUNG.md 4.3). Solange kein Kauf eingebaut ist, ist ALLES freigeschaltet:
- * [DevEntitlements] meldet [Tier.PRO_VERIFIED] und setzt keine Grenzen. Es gibt weder Bezahlschranke noch Netzwerkzugriff.
+ * Placeholder for Pro (from 0.3.0, without a purchase). The interface exists so features already go through one question
+ * ("is this allowed?") and Play Billing can sit behind it later (MONETARISIERUNG.md 4.3). Until a purchase is built in, EVERYTHING is unlocked:
+ * [DevEntitlements] reports [Tier.PRO_VERIFIED] and sets no limits. There is neither a paywall nor network access.
  */
 enum class Tier { FREE, PRO_PENDING, PRO_VERIFIED, PRO_CACHED }
 
-/** Funktionen, die spaeter Pro sein koennen (Aufteilung in MONETARISIERUNG.md 2.2). Heute entscheidet nichts daran. */
+/** Features that can become Pro later (split in MONETARISIERUNG.md 2.2). Nothing decides on them today. */
 enum class Feature { UNLIMITED_CHATS, LARGE_MEMORY, DISC, SELF_PROFILE, SELF_ANALYSIS, MULTI_MESSENGER }
 
 interface Entitlements {
     val tier: Tier
     fun allows(f: Feature): Boolean
-    /** Kurzer Satz fuer die Einstellungen. */
+    /** Short sentence for the settings. */
     fun describe(): String
 }
 
@@ -23,12 +23,12 @@ object DevEntitlements : Entitlements {
     override fun describe() = "Entwicklungsstand: alle Funktionen sind freigeschaltet. Einen Kauf gibt es noch nicht."
 }
 
-/** Zentrale Stelle. Spaeter wird hier der Play-Billing-Anbieter eingesetzt (Tests setzen eigene). */
+/** Central point. The Play Billing provider will be plugged in here later (tests supply their own). */
 object EntitlementProvider {
     @Volatile var current: Entitlements = DevEntitlements
 }
 
-/** Rechenregel fuer die spaetere Schonfrist (MONETARISIERUNG.md 4.3): leere Antwort von Play setzt erst nach 7 Tagen auf FREE, Fehler aendern nichts. */
+/** Calculation rule for the later grace period (MONETARISIERUNG.md 4.3): an empty reply from Play switches to FREE only after 7 days, errors change nothing. */
 object EntitlementRules {
     const val GRACE_MS = 7L * 24 * 60 * 60 * 1000
 

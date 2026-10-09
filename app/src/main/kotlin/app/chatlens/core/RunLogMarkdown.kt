@@ -1,6 +1,6 @@
 package app.chatlens.core
 
-/** Baut das Markdown-Log eines Laufs: Kopf (Version, Datum, Geraet, Modus), Einstellungen, Ergebnis und die Logzeilen. Reine Textlogik. */
+/** Builds the Markdown log of a run: header (version, date, device, mode), settings, result, and the log lines. Pure text logic. */
 object RunLogMarkdown {
     fun build(
         header: List<Pair<String, String>>,

@@ -1,6 +1,6 @@
 package app.chatlens.models
 
-/** Gemessene oder angegebene Eigenschaften des Geraets. [unmetered] = null: unbekannt. */
+/** Measured or stated properties of the device. [unmetered] = null: unknown. */
 data class DeviceInfo(
     val totalRamMb: Long,
     val availRamMb: Long,
@@ -15,10 +15,10 @@ enum class Focus { CLASSIFY, SUMMARY, PROFILE }
 class Assessment(
     val fit: Fit,
     val ramNeededMb: Int,
-    /** true = Schaetzung (keine Messung auf der Herstellerkarte). */
+    /** true = estimate (no measurement on the vendor card). */
     val ramEstimated: Boolean,
     val storageOk: Boolean,
-    /** Platz reicht zum Laden, aber ohne Reserve fuer den Laufzeit-Cache. */
+    /** Space is enough to download, but without a reserve for the runtime cache. */
     val storageTight: Boolean,
     val reasons: List<String>,
 )
@@ -30,18 +30,18 @@ class Limits(val maxTokens: Int, val contextChars: Int, val note: String)
 class DownloadCheck(val allowed: Boolean, val blockReason: String?, val warnings: List<String>, val needsMeteredConfirm: Boolean)
 
 /**
- * Empfehlungslogik. Reine Funktionen ohne Android-Abhaengigkeit, damit sie als JVM-Test laufen.
- * Die RAM-Werte sind Messungen der Herstellerkarten auf anderen Geraeten oder Schaetzungen, keine Messung auf diesem Geraet.
+ * Recommendation logic. Pure functions without an Android dependency, so they run as a JVM test.
+ * The RAM figures are measurements from vendor cards on other devices, or estimates, not a measurement on this device.
  */
 object ModelAdvisor {
     const val LARGE_FILE_BYTES = 200L * 1_000_000L
     private const val MARGIN_BYTES = 100L * 1_000_000L
 
-    /** Geplanter Arbeitsspeicherbedarf in MB fuer den Rechenweg [gpu]. Zweiter Wert: true = Schaetzung. */
+    /** Planned memory need in MB for the compute path [gpu]. Second value: true = estimate. */
     fun planRamMb(e: ModelEntry, gpu: Boolean): Pair<Int, Boolean> {
         val measured = if (gpu) e.ramGpuMb else e.ramCpuMb
         if (measured != null) return measured to false
-        // Ohne Messung fuer diesen Weg: die andere Messung als Anhalt nehmen, sonst Dateigroesse mal 2 plus 1 GB.
+        // No measurement for this path: use the other measurement as a guide, otherwise file size times 2 plus 1 GB.
         val other = if (gpu) e.ramCpuMb else e.ramGpuMb
         val estimate = (e.sizeMb * 2 + 1024).toInt()
         return (if (other != null) maxOf(other, estimate / 2) else estimate) to true
@@ -78,9 +78,9 @@ object ModelAdvisor {
     }
 
     /**
-     * Rangfolge der Textmodelle fuer dieses Geraet: erst nach Passung (GUT vor KNAPP), nie ZU_WENIG oder ohne Speicher
-     * (ausser installiert), dann stabil vor experimentell, dann Eignung fuer [focus], CPU-Rechenweg vor GPU (der ist erprobter),
-     * dann kleinerer Bedarf. Gated und Vorschau-Eintraege nehmen nicht teil.
+     * Ranking of text models for this device: first by fit (GUT before KNAPP), never ZU_WENIG or without storage
+     * (unless installed), then stable before experimental, then suitability for [focus], CPU path before GPU (that one is better tried),
+     * then smaller need. Gated and preview entries do not take part.
      */
     fun rank(models: List<ModelEntry>, d: DeviceInfo, focus: Focus = Focus.PROFILE, installedIds: Set<String> = emptySet()): List<Recommendation> {
         val cand = models.filter { it.kind == ModelKind.LLM && !it.gated && it.status != ModelStatus.PREVIEW }
@@ -105,8 +105,8 @@ object ModelAdvisor {
     }
 
     /**
-     * Empfehlung: Der Standard (Gemma 4 E4B) bleibt, solange er auf das Geraet passt (GUT oder KNAPP) und Platz da ist.
-     * Sonst das beste passende Modell der Rangfolge; passt gar nichts, das kleinste mit Hinweis.
+     * Recommendation: the default (Gemma 4 E4B) stays as long as it fits the device (GUT or KNAPP) and there is space.
+     * Otherwise the best fitting model from the ranking. If nothing fits, the smallest one, with a note.
      */
     fun recommend(models: List<ModelEntry>, d: DeviceInfo, focus: Focus = Focus.PROFILE, installedIds: Set<String> = emptySet()): Recommendation? {
         val ranked = rank(models, d, focus, installedIds)
@@ -123,8 +123,8 @@ object ModelAdvisor {
     }
 
     /**
-     * Vergleichskandidat zum Standard: nur wenn der Standard empfohlen wird, der Kandidat (Katalogfeld comparison) aufs Geraet passt
-     * (nicht ZU_WENIG, Speicher ok oder installiert) und kein Standard, gated oder Vorschau ist. Sonst null.
+     * Comparison candidate next to the default: only when the default is recommended, the candidate (catalog field comparison) fits the device
+     * (not ZU_WENIG, storage ok or installed), and it is not the default, gated, or a preview. Otherwise null.
      */
     fun comparisonFor(models: List<ModelEntry>, d: DeviceInfo, installedIds: Set<String> = emptySet()): Recommendation? {
         val e = models.firstOrNull { it.comparison && it.kind == ModelKind.LLM && !it.gated && it.status != ModelStatus.PREVIEW && it.status != ModelStatus.STANDARD } ?: return null
@@ -133,7 +133,7 @@ object ModelAdvisor {
         return Recommendation(e, a, "Zum Vergleich mit dem Standard: ${a.fit.name.lowercase()} auf diesem Gerät. Gleiche Aufgabe mit beiden Modellen laufen lassen und die Ergebnisse vergleichen.")
     }
 
-    /** Pruefung vor dem Download: Speicher (hart), WLAN-Hinweis (bei grossen Dateien auf Mobilfunk oder unbekanntem Netz). */
+    /** Check before download: storage (hard), Wi-Fi warning (for large files on mobile data or an unknown network). */
     fun downloadCheck(e: ModelEntry, d: DeviceInfo, partBytes: Long): DownloadCheck {
         if (!e.canDownload) {
             val why = when {
@@ -156,7 +156,7 @@ object ModelAdvisor {
         return DownloadCheck(true, null, warns, metered)
     }
 
-    /** Grenzen fuer Token und Kontextzeichen, damit der Prompt ins Kontextfenster des Modells passt. Nur senken, wenn das Modell klein ist. */
+    /** Limits for tokens and context characters so the prompt fits the model's context window. Lower them only when the model is small. */
     fun limitsFor(e: ModelEntry, defaultMaxTokens: Int = 8192, defaultContextChars: Int = 12_000): Limits {
         val assumed = e.contextTokens <= 0
         val ctx = if (assumed) 4096 else e.contextTokens

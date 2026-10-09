@@ -12,7 +12,7 @@ import app.chatlens.models.ModelDownloads
 import app.chatlens.models.ModelStorage
 import java.io.File
 
-/** Zustand der Voraussetzungen fuer die Sprachnachrichten-Transkription, fuer Einstellungen und Log. */
+/** State of the prerequisites for voice message transcription, for settings and the log. */
 class VoiceStatus(val modelDir: File?, val folderGranted: Boolean, val folderSet: Boolean, val enabled: Boolean) {
     val ready: Boolean get() = enabled && modelDir != null && folderGranted
     fun text(): String = buildString {
@@ -29,7 +29,7 @@ object VoiceRuntime {
 
     fun modelDir(ctx: Context): File? {
         val e = runCatching { ModelCatalog.load(ctx).byId(MODEL_ID) }.getOrNull() ?: return null
-        // Waehrend des Downloads oder der Pruefung gilt das Modell als nicht vorhanden: Transkription erst nach erfolgreicher Pruefung
+        // During download or verification the model counts as absent: transcription starts only after a successful check
         if (ModelDownloads.get(MODEL_ID).status.let { it == DlStatus.RUNNING || it == DlStatus.VERIFYING }) return null
         return ModelStorage.locate(ctx, e)?.takeIf { AsrModelFiles.complete(it) }
     }
@@ -42,8 +42,8 @@ object VoiceRuntime {
     private fun transcriber(dir: File, threads: Int) = ParakeetTranscriber({ SherpaParakeetEngine(dir, threads) }, listOf(ConcentusOpusDecoder, MediaCodecAudioDecoder()))
 
     /**
-     * Schritt im Lesevorgang: Transkribiert die Sprachnachrichten in [messages]. Gibt null zurueck, wenn der Schalter aus ist oder Voraussetzungen fehlen
-     * (dann bleibt es bei "nicht transkribiert"). Das Modell wird nur fuer diesen Schritt geladen und danach freigegeben.
+     * Step in the read: transcribes the voice messages in [messages]. Returns null when the switch is off or prerequisites are missing
+     * (then it stays at "nicht transkribiert"). The model is loaded only for this step and released afterwards.
      */
     fun transcribeMessages(ctx: Context, s: AppSettings, messages: List<ChatMessage>, log: (String) -> Unit, cancelled: () -> Boolean, progress: (Int, Int) -> Unit = { _, _ -> }): VoiceReport? {
         val voices = messages.count { it.kind == app.chatlens.core.Kind.VOICE }
@@ -82,8 +82,8 @@ object VoiceRuntime {
     }
 
     /**
-     * Selbsttest fuer die Einstellungen: neueste Datei im Ordner lesen, dekodieren, erkennen. Zeigt Dauer, Dekoder und Zeiten, nicht den Text
-     * (der Text bleibt auf dem Geraet; die Anzeige nennt nur die Laenge und die ersten drei Woerter nicht).
+     * Self-test for the settings: read the newest file in the folder, decode it, recognize it. Shows duration, decoder, and timings, not the text
+     * (the text stays on the device; the display names only the length and not the first three words).
      */
     fun selfTest(ctx: Context, s: AppSettings): String {
         val st = status(ctx, s)

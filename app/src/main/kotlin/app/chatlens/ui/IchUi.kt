@@ -30,8 +30,8 @@ import app.chatlens.memory.IchLogic
 import app.chatlens.memory.IchProfile
 
 /**
- * Ich-Profil: chatuebergreifende Merkmale des Nutzers (Stil, Ton, Formulierungen, Humor, Sprachen, Werte, Interessen, Arbeitsweise, Entscheidungsstil, DISC).
- * Ansehen, Eintraege festpinnen oder loeschen, eigene Eintraege hinzufuegen (haben Vorrang), Schalter, Loeschen. Enthaelt nie Fakten aus einzelnen Chats.
+ * Self profile: traits of the user that span chats (style, tone, phrasing, humor, languages, values, interests, way of working, decision style, DISC).
+ * View entries, pin or delete them, add your own entries (they take priority), a switch, and delete. Never contains facts from individual chats.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -94,7 +94,7 @@ fun IchProfileSection(settings: AppSettings, onSettings: (AppSettings) -> Unit) 
     )
 }
 
-/** Vorschlag der Selbstanalyse: erst nach Bestaetigung geht etwas ins Ich-Profil. */
+/** Self-analysis proposal: nothing goes into the self profile until it is confirmed. */
 @Composable
 fun SelfProposalSection(pr: IchProfile) {
     val ctx = LocalContext.current

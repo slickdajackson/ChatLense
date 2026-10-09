@@ -29,7 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 
 @Composable
 fun SwitchRow(label: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
-    // A4: die ganze Zeile ist der Schalter (Tippflaeche, TalkBack liest Text und Zustand als ein Element)
+    // A4: the whole row is the switch (tap target; TalkBack reads the text and the state as one element)
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp)
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
@@ -42,7 +42,7 @@ fun SwitchRow(label: String, checked: Boolean, enabled: Boolean = true, onChange
 
 @Composable
 fun IntField(label: String, value: Int, onChange: (Int) -> Unit) {
-    // N7: das Feld darf beim Tippen leer sein; erst der Wert 0 wird nach aussen gegeben, "0" wird nicht erzwungen
+    // N7: the field may be empty while typing; only the value 0 is emitted outward, and "0" is not forced
     var text by remember { mutableStateOf(value.toString()) }
     LaunchedEffect(value) { if ((text.toIntOrNull() ?: 0) != value) text = value.toString() }
     OutlinedTextField(
@@ -55,7 +55,7 @@ fun IntField(label: String, value: Int, onChange: (Int) -> Unit) {
     )
 }
 
-/** Datenschutzhinweis; im Play-Flavor ohne API-Modus entfaellt der API-Absatz (0.3.0). */
+/** Privacy notice; in the Play flavor without API mode, the API paragraph is omitted (0.3.0). */
 val PRIVACY_TEXT: String get() = privacyText(app.chatlens.data.BackendPolicy.apiAllowed)
 
 fun privacyText(apiAllowed: Boolean): String =

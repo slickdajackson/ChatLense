@@ -18,7 +18,7 @@ import kotlin.concurrent.thread
 import java.security.MessageDigest
 import java.util.Random
 
-/** Download mit Range, Pause/Fortsetzen, Pruefsumme gegen einen kleinen lokalen HTTP-Server (ServerSocket). Kein Netzzugriff. */
+/** Download with range, pause and resume, and checksum against a small local HTTP server (ServerSocket). No network access. */
 class DownloaderTest {
     private lateinit var server: ServerSocket
     private lateinit var dir: File
@@ -95,7 +95,7 @@ class DownloaderTest {
         val t = File(dir, "m.litertlm")
         val partF = ModelDownloader.partFile(t)
         try {
-            // Pause, sobald mindestens 1 MB auf der Platte liegt (die Abbruchfrage laeuft vor jedem Lesen)
+            // Pause once at least 1 MB is on disk (the cancel check runs before every read)
             dl(t, cancel = { partF.length() >= 1_000_000 })
             fail("Abbruch erwartet")
         } catch (_: DownloadCancelled) {}

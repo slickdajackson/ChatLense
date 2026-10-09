@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
 
-/** Kategorien des Ich-Profils: nur chatuebergreifende Eigenschaften des Nutzers, nie Fakten aus einem Chat. */
+/** Categories of the self profile: only traits of the user that hold across chats, never facts from one chat. */
 enum class IchCat(val key: String, val label: String) {
     STYLE("STIL", "Schreibstil"),
     TONE("TON", "Ton"),
@@ -18,12 +18,12 @@ enum class IchCat(val key: String, val label: String) {
     DECIDE("ENTSCHEIDUNG", "Entscheidungsstil"),
 }
 
-/** [pinned]: vom Nutzer festgepinnt oder selbst eingetragen. Nutzerkorrektur hat Vorrang: gepinnte Eintraege werden nie verdraengt oder ueberschrieben. */
+/** [pinned]: pinned by the user or entered by the user. A user correction wins: pinned entries are never displaced or overwritten. */
 data class IchEntry(val cat: IchCat, val text: String, val pinned: Boolean = false, val addedAt: Long = 0L)
 
 /**
- * Ich-Profil des Nutzers, getrennt vom Chat-Gedaechtnis und verschluesselt gespeichert. [suppressed] sind vom Nutzer geloeschte Eintraege (normalisiert),
- * die nicht wieder aufgenommen werden. [chatHashes] zaehlt, aus wie vielen Chats es stammt, ohne Chatnamen zu speichern.
+ * The user's self profile, stored separately from chat memory and encrypted. [suppressed] are entries the user deleted (normalized),
+ * which are not taken in again. [chatHashes] counts how many chats it came from, without storing chat names.
  */
 data class IchProfile(
     val entries: List<IchEntry> = emptyList(),
@@ -70,11 +70,11 @@ object IchLogic {
     private val tokenRe = Regex("""[\p{L}]{5,}""")
 
     /**
-     * Pruefung eines Kandidaten gegen Durchsickern aus einem Chat. Gibt den bereinigten Text oder null (abgelehnt) zurueck. Abgelehnt wird, wenn der Text
-     *  - eine Ziffer, Adresse oder Mailadresse enthaelt (Termine, Zahlen, Nummern, Links),
-     *  - einen Namen aus [blockedNames] enthaelt (Kontakte, Chatnamen, Gedaechtnisnamen; Vergleich ohne Gross/Klein, auch Teilnamen mit mindestens drei Buchstaben),
-     *  - mindestens zwei auffaellige Woerter (fuenf Buchstaben oder mehr) mit den chatspezifischen Texten [chatTexts] teilt (Fakten, Themen, Offenes aus diesem Chat),
-     *  - leer oder laenger als [MAX_ENTRY] Zeichen ist.
+     * Checks a candidate for leakage from a chat. Returns the cleaned text, or null (rejected). Rejected when the text
+     *  - contains a digit, address, or email address (appointments, numbers, ids, links),
+     *  - contains a name from [blockedNames] (contacts, chat names, memory names; comparison ignores case, including name parts of at least three letters),
+     *  - shares at least two distinctive words (five letters or more) with the chat-specific texts [chatTexts] (facts, topics, open items from this chat),
+     *  - is empty or longer than [MAX_ENTRY] characters.
      */
     fun clean(raw: String, blockedNames: Set<String>, chatTexts: List<String>): String? {
         val t = raw.replace(Regex("\\s+"), " ").trim().trim('-', '*', ' ', '.').trim()
@@ -97,9 +97,9 @@ object IchLogic {
     }
 
     /**
-     * Zusammenfuehrung nach einem Lauf. [found] sind die Kandidaten des Modells (Kategorie zu Texten). Jeder Kandidat laeuft durch [clean];
-     * geloeschte Eintraege kommen nicht zurueck; Duplikate werden zusammengelegt (gepinnt gewinnt). Ueber der Obergrenze fallen zuerst die aeltesten
-     * nicht gepinnten Eintraege weg. [chatKey] fliesst nur als Hash in den Zaehler "aus wie vielen Chats".
+     * Merge after a run. [found] is the model's candidates (category to texts). Each candidate goes through [clean].
+     * Deleted entries do not come back. Duplicates are folded together (pinned wins). Above the cap, the oldest
+     * unpinned entries go first. [chatKey] enters the "how many chats" counter only as a hash.
      */
     fun merge(
         old: IchProfile, found: Map<IchCat, List<String>>, ownDisc: DiscProfile?, chatKey: String,
@@ -112,11 +112,11 @@ object IchLogic {
             if (old.suppressed.contains(norm(t))) continue
             val ex = entries.indexOfFirst { it.cat == cat && dup(it.text, t) }
             if (ex >= 0) {
-                // Bestehender Eintrag bleibt (gepinnt unveraendert); nur der Zeitstempel rueckt vor, damit er nicht zuerst fliegt
+                // Existing entry stays (pinned unchanged). Only the timestamp moves forward, so it is not the first to be dropped.
                 entries[ex] = entries[ex].copy(addedAt = now)
             } else { entries.add(IchEntry(cat, t, false, now)); added++ }
         }
-        // Obergrenze: aelteste nicht gepinnte zuerst
+        // Cap: oldest unpinned first
         var total = entries.sumOf { it.text.length }
         if (total > maxChars) {
             val victims = entries.filter { !it.pinned }.sortedBy { it.addedAt }
@@ -129,7 +129,7 @@ object IchLogic {
         )
     }
 
-    /** Vorschlag der Selbstanalyse nach Bestaetigung uebernehmen: wie ein Lauf, aber ohne Chatnamen; die Chats des Vorschlags zaehlen mit. */
+    /** Apply the self-analysis proposal after confirmation: like a run, but without chat names. The proposal's chats still count. */
     fun adopt(old: IchProfile, proposal: IchProfile, blockedNames: Set<String>, now: Long, maxChars: Int = MAX_CHARS): IchProfile {
         val found = proposal.entries.groupBy({ it.cat }, { it.text })
         val m = merge(old, found, proposal.disc, "", blockedNames, emptyList(), now, maxChars)
@@ -138,24 +138,24 @@ object IchLogic {
 
     fun pin(p: IchProfile, e: IchEntry, pinned: Boolean): IchProfile = p.copy(entries = p.entries.map { if (it == e) it.copy(pinned = pinned) else it })
 
-    /** Loeschen durch den Nutzer: der Eintrag wird gemerkt und nicht wieder aufgenommen. */
+    /** Deletion by the user: the entry is remembered and not taken in again. */
     fun delete(p: IchProfile, e: IchEntry): IchProfile = p.copy(entries = p.entries - e, suppressed = p.suppressed + norm(e.text))
 
-    /** Eigener Eintrag des Nutzers: immer gepinnt, hebt eine fruehere Loeschung dieses Textes auf. Gleiche Pruefung nur auf Laenge. */
+    /** The user's own entry: always pinned, and it lifts an earlier deletion of this text. The same check applies to length only. */
     fun addByUser(p: IchProfile, cat: IchCat, text: String, now: Long): IchProfile {
         val t = text.replace(Regex("\\s+"), " ").trim().take(MAX_ENTRY)
         if (t.isEmpty() || p.entries.any { it.cat == cat && norm(it.text) == norm(t) }) return p
         return p.copy(entries = p.entries + IchEntry(cat, t, true, now), suppressed = p.suppressed - norm(t), updatedAt = now)
     }
 
-    /** Namen, die nie im Ich-Profil stehen duerfen: Chatnamen, Kontakte aus der Checkup-Liste und Namen aus dem Gedaechtnis. */
+    /** Names that must never appear in the self profile: chat names, contacts from the checkup list, and names from memory. */
     fun blockedFrom(vararg lists: Collection<String>): Set<String> = lists.flatMap { it }.map { it.trim() }.filter { it.length >= 3 }.toSet()
 
-    /** Nachrichtenfreier Text der Chat-Abschnitte, gegen den auf Durchsickern geprueft wird. */
+    /** Message-free text of the chat sections, checked for leakage. */
     fun chatTextsOf(m: ChatMemory?): List<String> = if (m == null) emptyList() else listOf(m.profile, m.topics, m.facts, m.openTopics, m.relationship, m.preferences, m.moodHistory, m.userNote)
 
     /**
-     * Kandidaten aus der Modellantwort: Zeilen "ICH-STIL: a; b", "ICH-TON: ..." usw. Gibt auch die DISC-Zeile "ICH-DISC: ..." zurueck.
+     * Candidates from the model reply: lines "ICH-STIL: a; b", "ICH-TON: ...", and so on. Also returns the DISC line "ICH-DISC: ...".
      */
     fun parseOutput(output: String): Pair<Map<IchCat, List<String>>, String?> {
         val out = LinkedHashMap<IchCat, MutableList<String>>()

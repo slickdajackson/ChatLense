@@ -32,10 +32,10 @@ import app.chatlens.agent.StepKind
 import kotlinx.coroutines.delay
 
 /**
- * Fortschrittsanzeige fuer alles, was laeuft: Wartesymbol, Schrittleiste mit Zaehler ("3/5 erledigt") und Name des aktuellen Schritts,
- * bei Setup und Auto zusaetzlich "Chat i von n", im Modellschritt ein unbestimmter Balken mit verstrichenen Sekunden.
- * Nach Abbruch oder Fehler friert die Leiste ein und nennt den Schritt ("Abgebrochen bei: ..."), das Wartesymbol verschwindet.
- * [nowMs] fixiert die Uhr (fuer Tests und Renderbilder); sonst tickt die Anzeige jede Sekunde.
+ * Progress display for everything that is running: a spinner, a step bar with a counter ("3/5 erledigt") and the name of the current step.
+ * For setup and auto, also "Chat i von n". In the model step, an indeterminate bar with elapsed seconds.
+ * After cancel or error the bar freezes and names the step ("Abgebrochen bei: ..."), and the spinner disappears.
+ * [nowMs] fixes the clock (for tests and render images); otherwise the display ticks every second.
  */
 @Composable
 fun RunStatus(agent: AgentUiState, auto: AutoUiState? = null, compact: Boolean = false, nowMs: Long? = null, modifier: Modifier = Modifier) {
@@ -45,7 +45,7 @@ fun RunStatus(agent: AgentUiState, auto: AutoUiState? = null, compact: Boolean =
     val animate = LocalGlassAnimate.current
     val running = end == RunProgress.End.RUNNING && (agent.running || queueRunning)
     if (!p.active) {
-        // Noch kein Plan (Start, Warten auf den Chat) oder kein Lauf: Statuszeile mit Wartesymbol, solange etwas laeuft.
+        // No plan yet (start, waiting for the chat) or no run: a status line with a spinner while something is running.
         Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (agent.running || queueRunning) Spinner(animate)
             StatusPill(agent.message.ifEmpty { auto?.message.orEmpty() }.ifEmpty { "Bereit." }, agent.running || queueRunning, agent.error.isNotEmpty())
@@ -115,7 +115,7 @@ private fun QueueLine(auto: AutoUiState) {
     )
 }
 
-/** Wartesymbol. Ohne Animation (Renderbilder) ein feststehender Viertelkreis, damit nichts haengt. */
+/** Spinner. Without animation (render images), a fixed quarter circle, so nothing hangs. */
 @Composable
 fun Spinner(animate: Boolean, modifier: Modifier = Modifier.size(22.dp)) {
     val d = Modifier.semantics { contentDescription = "Läuft" }
@@ -139,8 +139,8 @@ private fun StepBar(p: ProgressUi, end: RunProgress.End, current: Color) {
 }
 
 /**
- * Fortschritt eines Downloads (Parakeet, Modelle): Wartesymbol, Balken mit Prozent und Megabyte, Pruefung, klare Fehlermeldung mit Wiederholen,
- * Pause mit Fortsetzen. Gleiche Gestaltung wie [RunStatus].
+ * Download progress (Parakeet, models): spinner, a bar with percent and megabytes, verification, a clear error with retry,
+ * and pause with resume. Same design as [RunStatus].
  */
 @Composable
 fun DownloadStatus(ui: app.chatlens.models.DlUi, name: String, onRetry: () -> Unit, onPause: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {

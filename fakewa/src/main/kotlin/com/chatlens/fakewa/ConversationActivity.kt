@@ -21,7 +21,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-/** Verlauf mit scrollbarer Nachrichtenliste (RecyclerView), Datumstrennern, Sprachnachrichten (SeekBar), Eingabefeld. Startet unten. */
+/** Thread with a scrollable message list (RecyclerView), date separators, voice messages (SeekBar), and an input field. Starts at the bottom. */
 class ConversationActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -104,7 +104,7 @@ class ArchiveActivity : Activity() {
     }
 }
 
-/** Loest per Broadcast eine Heads-up-Benachrichtigung (hohe Wichtigkeit, Ton) aus, um Eingriffe von oben zu provozieren. */
+/** Fires a heads-up notification (high importance, sound) via broadcast, to provoke interruptions from the top. */
 class NotifyReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         val nm = c.getSystemService(NotificationManager::class.java)

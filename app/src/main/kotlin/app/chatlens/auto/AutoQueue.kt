@@ -10,7 +10,7 @@ import kotlin.coroutines.coroutineContext
 
 enum class ItemStatus { WARTET, LAEUFT, FERTIG, FEHLER, UEBERSPRUNGEN }
 
-/** Art des Laufs: SETUP = erstmaliges Anlegen aller Profile (aus der Chatliste), AUTO = Liste von Namen, inkrementell. */
+/** Kind of run: SETUP = first-time creation of all profiles (from the chat list), AUTO = a list of names, incremental. */
 enum class QueueKind { SETUP, AUTO, SELF }
 
 class QueueItem(
@@ -18,18 +18,18 @@ class QueueItem(
     var status: ItemStatus = ItemStatus.WARTET,
     var error: String = "",
     var finishedAt: Long = 0L,
-    /** Kurzinfo zum Ergebnis (z. B. Anzahl gelesener Nachrichten), nur zur Anzeige. */
+    /** Short note on the result (for example the number of messages read), for display only. */
     var info: String = "",
 )
 
-/** Warteschlange mit Zustand, der gespeichert und nach einem Abbruch wieder aufgenommen werden kann. */
+/** Queue with state that can be saved and resumed after a cancel. */
 class AutoQueue(
     val kind: QueueKind,
     val items: MutableList<QueueItem>,
     val targetPerChat: Int,
     val createdAt: Long,
     val fromList: Boolean,
-    /** Freier Schwerpunkt der Selbstanalyse (Text des Nutzers), sonst leer. */
+    /** Free-form focus of the self-analysis (the user's text), otherwise empty. */
     var note: String = "",
 ) {
     fun nextPending(): QueueItem? = items.firstOrNull { it.status == ItemStatus.WARTET }
@@ -38,7 +38,7 @@ class AutoQueue(
     val done: Int get() = items.count { it.status == ItemStatus.FERTIG || it.status == ItemStatus.FEHLER || it.status == ItemStatus.UEBERSPRUNGEN }
     val finished: Boolean get() = items.none { it.status == ItemStatus.WARTET || it.status == ItemStatus.LAEUFT }
 
-    /** Fehlgeschlagene Eintraege wieder auf WARTET setzen (fuer "Fehler erneut versuchen"). */
+    /** Set failed entries back to WARTET (for retrying errors). */
     fun retryFailed(): Int {
         var n = 0
         for (i in items) if (i.status == ItemStatus.FEHLER) { i.status = ItemStatus.WARTET; i.error = ""; n++ }
@@ -65,7 +65,7 @@ class AutoQueue(
             val a = o.getJSONArray("items")
             val items = (0 until a.length()).map {
                 val x = a.getJSONObject(it)
-                // Ein beim Abbruch laufender Eintrag wird beim Laden wieder zu "wartet"
+                // An entry that was running when cancelled becomes "wartet" again on load
                 val st = ItemStatus.valueOf(x.getString("s")).let { st -> if (st == ItemStatus.LAEUFT) ItemStatus.WARTET else st }
                 QueueItem(x.getString("t"), st, x.optString("e"), x.optLong("f"), x.optString("i"))
             }.toMutableList()
@@ -78,30 +78,30 @@ class AutoQueue(
 }
 
 /**
- * Art eines Fehlers eines Warteschlangeneintrags. Die Pause nach mehreren Fehlern in Folge gilt nur bei gleicher Art:
- * "Chat nicht gefunden" (Name/Suche) und "Navigationsfehler" (WhatsApp nicht vorn, Systemoberflaeche) haben verschiedene Ursachen.
+ * Kind of a queue-item failure. The pause after several failures in a row applies only to the same kind:
+ * "Chat nicht gefunden" (name/search) and "Navigationsfehler" (WhatsApp not in front, system UI) have different causes.
  */
 interface KindedFailure {
     val kindName: String
 }
 
-/** Fehler, nach dem die ganze Warteschlange nicht sinnvoll weiterlaufen kann (z. B. Bedienungshilfe aus). */
+/** Failure after which the whole queue cannot usefully continue (for example the accessibility service is off). */
 class FatalAutoException(message: String) : Exception(message)
 
-/** Eine Sperre fuer alle Modellaufrufe: es laeuft hoechstens ein Aufruf gleichzeitig. */
+/** A lock for all model calls: at most one call runs at a time. */
 object LlmGate {
     val mutex = Mutex()
     suspend fun <T> exclusive(block: suspend () -> T): T = mutex.withLock { block() }
 }
 
-/** Warteschlange hat nach mehreren Fehlern in Folge angehalten (nicht verworfen): Rest bleibt "wartet", Fortsetzen ist moeglich. */
+/** The queue stopped after several failures in a row (not discarded): the rest stays "wartet", resume is possible. */
 class PausedAutoException(message: String) : Exception(message)
 
 object AutoQueueRunner {
     /**
-     * Arbeitet die Warteschlange seriell ab. Fehler eines Eintrags werden vermerkt, der naechste laeuft weiter.
-     * Bei Abbruch (Coroutine-Cancellation) wird der laufende Eintrag wieder "wartet", der Zustand gespeichert und neu geworfen:
-     * so setzt ein erneuter Start genau dort fort. [onChange] wird nach jeder Zustandsaenderung aufgerufen (Anzeige, Speichern).
+     * Works through the queue one item at a time. A failure on one item is recorded, and the next one continues.
+     * On cancel (coroutine cancellation) the running item becomes "wartet" again, the state is saved, and the exception is rethrown:
+     * a later start then continues exactly there. [onChange] is called after every state change (display, save).
      */
     suspend fun run(
         queue: AutoQueue,
@@ -140,12 +140,12 @@ object AutoQueueRunner {
                 item.error = e.message ?: e.javaClass.simpleName
                 item.finishedAt = now()
                 val kind = (e as? KindedFailure)?.kindName ?: "Fehler"
-                // Nur gleichartige Fehler in Folge zaehlen: eine andere Ursache beginnt die Zaehlung neu
+                // Only failures of the same kind in a row count: a different cause starts the count over
                 consecutive = if (kind == lastKind) consecutive + 1 else 1
                 lastKind = kind
                 onFailure(item, consecutive)
                 onChange(queue)
-                // Nach mehreren Fehlern in Folge anhalten statt weiterzuhetzen: Ursache beheben, dann Fortsetzen
+                // After several failures in a row, stop instead of rushing on: fix the cause, then resume
                 if (maxConsecutiveFailures > 0 && consecutive >= maxConsecutiveFailures && queue.nextPending() != null) {
                     throw PausedAutoException(
                         "Setup pausiert nach $consecutive Fehlern in Folge mit gleicher Ursache ($kind; zuletzt \"${item.title}\": ${item.error.take(300)}). " +

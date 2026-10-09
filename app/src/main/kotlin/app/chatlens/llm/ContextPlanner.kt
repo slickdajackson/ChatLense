@@ -1,8 +1,8 @@
 package app.chatlens.llm
 
 /**
- * Gemerkter Zustand je Modell und Beschleunigung. [okLevel]: zuletzt erfolgreich geladene Stufe (0 = unbekannt).
- * [failedLevel]: kleinste Stufe, die zuletzt scheiterte (0 = keine). [probedAt]: wann zuletzt eine hoehere Stufe neu getestet wurde.
+ * Remembered state per model and acceleration. [okLevel]: level last loaded successfully (0 = unknown).
+ * [failedLevel]: smallest level that failed last time (0 = none). [probedAt]: when a higher level was last tried again.
  */
 data class RememberedLevel(val okLevel: Int = 0, val failedLevel: Int = 0, val probedAt: Long = 0L) {
     fun encode() = "$okLevel,$failedLevel,$probedAt"
@@ -15,43 +15,43 @@ data class RememberedLevel(val okLevel: Int = 0, val failedLevel: Int = 0, val p
     }
 }
 
-/** Ergebnis der Planung: Stufen in der Reihenfolge der Versuche, dazu eine kurze Begruendung fuers Log. */
+/** Planning result: levels in the order they will be tried, plus a short reason for the log. */
 class ContextPlan(val candidates: List<Int>, val reason: String)
 
 /**
- * Waehlt die Kontextstufe (Token) fuer das lokale Modell. Reine Logik (JVM-testbar).
- * Stufen 32768, 16384, 8192, 4096; nach oben begrenzt durch die Modellobergrenze, durch den verfuegbaren Arbeitsspeicher
- * (Heuristik fuer den KV-Cache, KEINE Messung) und, bei manueller Wahl, durch diese Wahl. Bei Fehlern geht es Stufe fuer Stufe nach unten.
+ * Chooses the context level (tokens) for the local model. Pure logic (JVM-testable).
+ * Levels 32768, 16384, 8192, 4096, capped above by the model limit, by available memory
+ * (a heuristic for the KV cache, NOT a measurement), and, on a manual choice, by that choice. On errors it steps down one level at a time.
  */
 object ContextPlanner {
     val LEVELS = listOf(32768, 16384, 8192, 4096)
 
-    /** Annahme: KV-Cache in MB je Token (Hypothese, nicht gemessen; vorsichtig hoch angesetzt). */
+    /** Assumption: KV cache in MB per token (a hypothesis, not measured; set cautiously high). */
     const val KV_MB_PER_TOKEN = 0.10
 
-    /** Basis der Messung auf der Herstellerkarte war Kontext 2048. */
+    /** The measurement on the vendor card was based on a context of 2048. */
     const val BASE_CONTEXT = 2048
 
-    /** Eine hoehere Stufe wird hoechstens alle 7 Tage neu getestet. */
+    /** A higher level is retested at most every 7 days. */
     const val PROBE_INTERVAL_MS = 7L * 24 * 3600 * 1000
 
-    /** Stufen, die das Modell kann: alle ab [modelCtx] abwaerts; bei kleinerem Modell genau seine Obergrenze; unbekannt (<= 0) gilt 4096. */
+    /** Levels the model can do: every level from [modelCtx] downward. A smaller model uses exactly its limit. Unknown (<= 0) means 4096. */
     fun modelLevels(modelCtx: Int): List<Int> {
         val ctx = if (modelCtx <= 0) 4096 else modelCtx
         val l = LEVELS.filter { it <= ctx }
         return l.ifEmpty { listOf(ctx) }
     }
 
-    /** Geschaetzter Arbeitsspeicherbedarf in MB fuer die Stufe. */
+    /** Estimated memory need in MB for the level. */
     fun neededMb(baseRamMb: Int, level: Int): Double = baseRamMb + (level - BASE_CONTEXT).coerceAtLeast(0) * KV_MB_PER_TOKEN
 
-    /** Stufen, deren geschaetzter Bedarf in den freien Speicher passt (85 Prozent des freien, 70 Prozent des gesamten Arbeitsspeichers). */
+    /** Levels whose estimated need fits in free memory (85 percent of free, 70 percent of total memory). */
     fun ramAllowed(levels: List<Int>, baseRamMb: Int, availMb: Long, totalMb: Long): List<Int> =
         levels.filter { neededMb(baseRamMb, it) <= availMb * 0.85 && neededMb(baseRamMb, it) <= totalMb * 0.7 }
 
     /**
-     * @param manual 0 = automatisch, sonst die vom Nutzer gewaehlte Obergrenze
-     * @param availMb freier Arbeitsspeicher, negativ = unbekannt (dann keine RAM-Begrenzung)
+     * @param manual 0 = "automatisch", otherwise the cap chosen by the user
+     * @param availMb free memory, negative = unknown (then no RAM cap)
      */
     fun plan(modelCtx: Int, manual: Int, baseRamMb: Int, availMb: Long, totalMb: Long, remembered: RememberedLevel, now: Long): ContextPlan {
         val model = modelLevels(modelCtx)
@@ -67,7 +67,7 @@ object ContextPlanner {
         if (ok > 0 && ok in cand) {
             val higher = cand.filter { it > ok }
             val probeDue = now - remembered.probedAt >= PROBE_INTERVAL_MS
-            // Hoehere Stufen: nur neu testen, wenn sie nicht zuletzt scheiterten oder der Testabstand um ist
+            // Higher levels: retest only if they did not fail last time, or the retest interval has elapsed
             val tryHigher = higher.filter { remembered.failedLevel == 0 || it < remembered.failedLevel || probeDue }
             cand = if (higher.isNotEmpty() && probeDue && tryHigher.isNotEmpty()) {
                 reason += ", gemerkte Stufe $ok, hoehere wird neu getestet"
@@ -80,19 +80,19 @@ object ContextPlanner {
         return ContextPlan(cand, reason)
     }
 
-    /** Zeichenbudget fuer den Verlauf im Prompt: konservativ 3 Zeichen je Token (Deutsch), abzueglich Reserve fuer Anweisung und Antwort. */
+    /** Character budget for the transcript in the prompt: a conservative 3 characters per token (German), minus a reserve for the instruction and the reply. */
     fun charsFor(level: Int, reserveTokens: Int = 1500): Int = ((level - reserveTokens) * 3).coerceAtLeast(1500)
 
-    /** Einstellung laden: Altwert 8192 aus 0.2.8 (frueherer Standard) wird einmalig zu "automatisch". */
+    /** Load the setting: the old value 8192 from 0.2.8 (the previous default) becomes "automatisch" once. */
     fun loadTokens(raw: Int, migrated: Boolean): Int = if (raw <= 0 || (!migrated && raw == 8192)) 0 else raw.coerceIn(1024, 32768)
 
-    /** Altwert 12000 aus 0.2.8 (frueherer Standard) wird einmalig zu "automatisch". */
+    /** Old value 12000 from 0.2.8 (the previous default) becomes "automatisch" once. */
     fun loadChars(raw: Int, migrated: Boolean): Int = if (raw <= 0 || (!migrated && raw == 12_000)) 0 else raw.coerceIn(500, 100_000)
 
-    /** Zeichenbudget des Verlaufs: eingestellter Wert, bei 0 aus der genutzten Stufe. */
+    /** Character budget of the transcript: the configured value, or, at 0, derived from the level in use. */
     fun effectiveChars(setting: Int, level: Int): Int = if (setting > 0) setting else charsFor(level)
 
-    /** Neue Merkung nach einem Ladeversuch. */
+    /** New remembered state after a load attempt. */
     fun afterSuccess(r: RememberedLevel, level: Int, topCandidate: Int, now: Long): RememberedLevel =
         RememberedLevel(okLevel = level, failedLevel = if (level >= topCandidate) 0 else r.failedLevel, probedAt = now)
 

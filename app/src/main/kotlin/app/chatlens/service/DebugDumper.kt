@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Exportiert den Accessibility-Baum der gerade aktiven Ansicht (mit Vorlaufzeit zum Wechseln in WhatsApp). */
+/** Exports the accessibility tree of the view that is currently active (with a lead time for switching to WhatsApp). */
 object DebugDumper {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -24,7 +24,7 @@ object DebugDumper {
     fun listDumps(ctx: Context): List<File> =
         dumpDir(ctx).listFiles { f -> f.isFile && f.name.endsWith(".txt") }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
-    /** Wartet [delaySeconds] Sekunden, dann Export. Danach Benachrichtigung. */
+    /** Waits [delaySeconds] seconds, then exports. A notification follows. */
     fun dumpAfter(ctx: Context, delaySeconds: Int, mask: Boolean) {
         val appCtx = ctx.applicationContext
         scope.launch {
@@ -58,8 +58,8 @@ object DebugDumper {
     }
 
     /**
-     * Schreibt den Baum des aktiven Fensters. Standard: nur wenn WhatsApp (Ziel-App) vorn ist, sonst null (und ein Logeintrag mit dem
-     * aktiven Paket). [anyApp] gilt nur fuer den manuellen Export im Tab Debug.
+     * Writes the tree of the active window. Default: only if WhatsApp (the target app) is in front, otherwise null (and a log entry with the
+     * active package). [anyApp] applies only to the manual export on the Debug tab.
      */
     fun dumpNow(ctx: Context, mask: Boolean, anyApp: Boolean = false, tag: String = "tree"): File? {
         val svc = ChatAccessibilityService.instance ?: return null
@@ -85,7 +85,7 @@ object DebugDumper {
         val f = File(dumpDir(ctx), "$tag-" + SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.GERMANY).format(Date()) + ".txt")
         f.writeText(text)
         AppLog.i("Baum exportiert: ${f.name} (${snap.walk().count()} Knoten, maskiert=$mask)")
-        // Aelteste Dateien aufraeumen (hoechstens MAX_DUMPS behalten), Debug-Tab aktualisieren
+        // Clean up the oldest files (keep at most MAX_DUMPS) and refresh the Debug tab
         listDumps(ctx).drop(MAX_DUMPS).forEach { runCatching { it.delete() } }
         AgentState.update { it.copy(dumpPaths = listDumps(ctx).map { x -> x.absolutePath }) }
         return f

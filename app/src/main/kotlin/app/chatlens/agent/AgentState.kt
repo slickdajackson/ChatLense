@@ -10,27 +10,27 @@ data class AgentUiState(
     val message: String = "Bereit.",
     val scrollDone: Int = 0,
     val scrollTotal: Int = 0,
-    /** Zielmenge an Nachrichten (0 = Modus feste Scroll-Anzahl). */
+    /** Target number of messages (0 means fixed scroll-count mode). */
     val targetMessages: Int = 0,
-    /** Kurzstatus der Scrollsteuerung (Modus, Verluste, offene angeschnittene Nachrichten). */
+    /** Short status of scroll control (mode, losses, open clipped messages). */
     val scrollInfo: String = "",
     val messageCount: Int = 0,
     val imageCount: Int = 0,
     val transcript: String = "",
     val contextPreview: String = "",
     val result: String = "",
-    /** Antwortentwuerfe (nur Vorschlag-Modus). Werden nie automatisch gesendet. */
+    /** Reply drafts (suggest mode only). They are never sent automatically. */
     val suggestions: List<String> = emptyList(),
-    /** Name des Chats, auf den sich Ergebnis und Entwuerfe beziehen. */
+    /** Name of the chat that the result and drafts refer to. */
     val resultChat: String = "",
     val resultInfo: String = "",
-    /** Tatsaechlich genutzte Kontextstufe des lokalen Modells, leer = nicht lokal oder noch nicht geladen. */
+    /** Context level actually used by the local model, empty means not local or not loaded yet. */
     val contextInfo: String = "",
-    /** Hinweis zur Sprachnachrichten-Transkription dieses Laufs (uebersprungen und warum, oder Ergebnis). Leer, wenn nichts zu melden ist. */
+    /** Note about voice-message transcription for this run (skipped and why, or the result). Empty when there is nothing to report. */
     val voiceNote: String = "",
     val error: String = "",
     val dumpPaths: List<String> = emptyList(),
-    /** Schrittleiste des laufenden oder zuletzt beendeten Laufs (ein Chat). */
+    /** Step bar of the running or most recently finished run (one chat). */
     val progress: ProgressUi = ProgressUi(),
 ) {
     val running: Boolean
@@ -45,7 +45,7 @@ object AgentState {
         _state.value = f(_state.value)
     }
 
-    /** Legt den Plan eines neuen Laufs an. */
+    /** Creates the plan for a new run. */
     fun beginProgress(steps: List<StepKind>, llmLabel: String = StepKind.LLM.label) {
         update { it.copy(progress = RunProgress.begin(steps, System.currentTimeMillis(), llmLabel)) }
     }

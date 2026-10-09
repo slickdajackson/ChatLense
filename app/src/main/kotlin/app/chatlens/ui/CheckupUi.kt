@@ -31,8 +31,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Checkup und Auswahlmenue: liest die obersten X Chats (nur die Liste, kein Chat wird geoeffnet) und zeigt sie mit Haken.
- * Die Auswahl bestimmt, welche Chats das Setup abarbeitet. Gespeichert werden nur Namen (verschluesselt).
+ * Checkup and selection menu: reads the top X chats (the list only; no chat is opened) and shows them with checkmarks.
+ * The selection decides which chats setup works through. Only names are stored (encrypted).
  */
 @Composable
 fun CheckupSection(settings: AppSettings, onSettings: (AppSettings) -> Unit, canRun: Boolean, onRun: () -> Unit) {

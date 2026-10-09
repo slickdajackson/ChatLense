@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import app.chatlens.data.SettingsRepo
 import app.chatlens.service.RunLogStore
 
-/** Knoepfe zum Log des letzten (oder laufenden) Laufs als Markdown: teilen und in Downloads/ChatLens ablegen. */
+/** Buttons for the log of the last (or current) run as Markdown: share it, and save it under Downloads/ChatLens. */
 @Composable
 fun RunLogButtons() {
     val ctx = LocalContext.current

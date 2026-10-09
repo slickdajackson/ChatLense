@@ -10,8 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // sherpa-onnx (Spracherkennung): AAR und Linux-Bibliothek fuer JVM-Tests kommen von JitPack, Version v1.13.8
-        // (SHA-256 des AAR 633c2432...bd96, identisch mit dem GitHub-Release-Asset).
+        // sherpa-onnx (speech recognition): the AAR and the Linux library for JVM tests come from JitPack, version v1.13.8
+        // (SHA-256 of the AAR 633c2432...bd96, identical to the GitHub release asset).
         maven {
             url = uri("https://jitpack.io")
             content { includeGroup("com.github.k2-fsa.sherpa-onnx") }

@@ -32,8 +32,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Sprachnachrichten: Schalter, Ordnerfreigabe, Grenzen, Selbsttest. Alles lokal; das Modell (Parakeet) wird im Tab Modelle geladen.
- * Der Ordner liegt unter Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes und wird ueber die Systemauswahl freigegeben.
+ * Voice messages: switch, folder grant, limits, self-test. Everything stays local; the model (Parakeet) is loaded on the Models tab.
+ * The folder is under Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes and is granted through the system picker.
  */
 @Composable
 fun VoiceSection(settings: AppSettings, onSettings: (AppSettings) -> Unit, onPickFolder: () -> Unit) {
@@ -119,7 +119,7 @@ fun VoiceSection(settings: AppSettings, onSettings: (AppSettings) -> Unit, onPic
     }
 }
 
-/** Wiederholen nach Fehler oder Pause: gleiche Regeln wie beim Einschalten (WLAN direkt, sonst einmal nachfragen). Geladenes bleibt, Fortsetzen per Range. */
+/** Retry after an error or a pause: same rules as when turning it on (Wi-Fi right away, otherwise ask once). What is already downloaded stays; resume uses Range requests. */
 private suspend fun retryDownload(ctx: android.content.Context, ask: (Long) -> Unit) {
     val e = withContext(Dispatchers.IO) { runCatching { ModelCatalog.load(ctx).byId(VoiceRuntime.MODEL_ID) }.getOrNull() } ?: return
     val unmetered = withContext(Dispatchers.IO) { DeviceProbe.read(ctx).unmetered }

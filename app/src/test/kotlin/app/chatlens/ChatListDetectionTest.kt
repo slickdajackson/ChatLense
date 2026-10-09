@@ -30,7 +30,7 @@ class ChatListDetectionTest {
 
     private fun txt(b: Bounds, t: String, id: String? = null) = n("android.widget.TextView", b, id, t)
 
-    /** Eine Zeile der Chatliste mit Container-ID, verschachtelt wie in einer echten App (Container, Layout, Texte). */
+    /** One row of the chat list with a container id, nested as in a real app (container, layout, texts). */
     private fun row(top: Int, title: String, time: String, preview: String, withContainerId: Boolean = true, nested: Boolean = true): UiNode {
         val b = Bounds(0, top, 1080, top + 190)
         val texts = listOf(
@@ -44,7 +44,7 @@ class ChatListDetectionTest {
 
     private val screen = Bounds(0, 0, 1080, 2400)
 
-    /** Chatliste: ruhende Suchleiste oben (editierbar, ohne Fokus), Liste mit einem Huellknoten. */
+    /** Chat list: a quiet search bar at the top (editable, without focus), and a list with one wrapper node. */
     private fun listScreen(rowsN: Int = 6, withContainerIds: Boolean = true): UiNode {
         val rows = (0 until rowsN).map { row(300 + it * 200, "Person $it", "1$it:00", "Nachricht $it", withContainerIds) }
         val searchPill = n("android.widget.EditText", Bounds(40, 120, 1040, 240), id = "com.whatsapp:id/search_pill", editable = true)
@@ -115,7 +115,7 @@ class ChatListDetectionTest {
         assertEquals(4, rows.size)
     }
 
-    // ---------- Zurueck-Regeln ----------
+    // ---------- Back rules ----------
 
     private class Fake(val profile: SelectorProfile, val screens: List<UiNode?>, val backMoves: Boolean = true, val leavesOnBack: Boolean = false) : ListDevice {
         var idx = 0
@@ -178,7 +178,7 @@ class ChatListDetectionTest {
     }
 
     @Test fun leavingWhatsAppOnBackAbortsAfterTwoLeaves() {
-        // Jede Zurueck-Taste verlaesst WhatsApp; die Wiederherstellung (ensureForeground) wird hier nicht gespielt
+        // Every back press leaves WhatsApp; recovery (ensureForeground) is not played out here
         val f = object {
             var left = false
         }
@@ -222,7 +222,7 @@ class ChatListDetectionTest {
         assertTrue(profile.chatListMarkerIds.contains(CONT))
     }
 
-    // ---------- Tab Chats ----------
+    // ---------- Chats tab ----------
 
     private fun tab(label: String, l: Int, selected: Boolean): UiNode =
         UiNode("android.widget.FrameLayout", null, null, label, Bounds(l, 2950, l + 270, 3150), clickable = true, selected = selected)
@@ -277,7 +277,7 @@ class ChatListDetectionTest {
     }
 
     @Test fun listMustBeSeenTwiceBeforeItCounts() = runBlocking {
-        // Erster Lesevorgang Liste, zweiter Uebergangszustand (unbekannt), danach stabil Liste: es braucht zwei Listen in Folge
+        // First read is the list, the second is a transition state (unknown), then a stable list: two lists in a row are required
         var reads = 0
         val dev = object : ListDevice {
             override suspend fun ensureForeground() {}
@@ -294,7 +294,7 @@ class ChatListDetectionTest {
         assertEquals(4, reads)
     }
 
-    // ---------- Namen ----------
+    // ---------- Names ----------
 
     @Test fun shortNameGetsDiagnosisAndPrefersDescriptionName() {
         val b = Bounds(0, 300, 1080, 490)

@@ -10,8 +10,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Einfaches Logging: Ringpuffer fuer die UI plus Logdatei im App-Speicher (rotiert bei 1 MB).
- * Es werden keine Chatinhalte geloggt, nur Zaehler und Statusmeldungen.
+ * Simple logging: a ring buffer for the UI plus a log file in app storage (rotates at 1 MB).
+ * No chat contents are logged, only counters and status messages.
  */
 object AppLog {
     private const val TAG = "ChatLens"
@@ -34,17 +34,17 @@ object AppLog {
 
     fun logFile(): File? = file
 
-    // Alle Zeilen seit Beginn des laufenden (oder letzten) Laufs, fuer das Markdown-Log. Obergrenze, damit der Speicher nicht waechst.
+    // All lines since the start of the current (or last) run, for the Markdown log. A cap so memory does not grow.
     private const val MAX_RUN_LINES = 30_000
     private val runLines = ArrayList<String>()
 
-    /** Beginnt einen neuen Lauf: der Laufpuffer wird geleert. */
+    /** Starts a new run: the run buffer is cleared. */
     @Synchronized
     fun beginRun() {
         runLines.clear()
     }
 
-    /** Zeilen des Laufs mit vollem Zeitstempel (yyyy-MM-dd HH:mm:ss Stufe Text). Ohne Lauf: leer. */
+    /** Lines of the run with a full timestamp (yyyy-MM-dd HH:mm:ss level text). Without a run: empty. */
     @Synchronized
     fun runSnapshot(): List<String> = ArrayList(runLines)
 

@@ -7,8 +7,8 @@ import android.media.MediaFormat
 import java.nio.ByteOrder
 
 /**
- * Rueckfall-Dekoder ueber die Android-Bordmittel (MediaExtractor und MediaCodec, "audio/opus"). Auf dem Zielgeraet nicht erprobt.
- * Liefert PCM 16 Bit, wird auf Mono und 16 kHz umgerechnet. Nicht auf der JVM testbar.
+ * Fallback decoder via Android's built-in tools (MediaExtractor and MediaCodec, "audio/opus"). Not tried on the target device.
+ * Returns 16-bit PCM, converted to mono and 16 kHz. Not testable on the JVM.
  */
 class MediaCodecAudioDecoder : AudioDecoder {
     override val name: String = "MediaCodec"

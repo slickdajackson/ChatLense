@@ -39,9 +39,9 @@ object Sha256 {
 }
 
 /**
- * Download mit Fortsetzen. Die Teildatei heisst `<ziel>.part` und bleibt bei Abbruch (Pause) erhalten. Fortsetzen per HTTP-Range.
- * Umleitungen werden von Hand verfolgt (Hugging Face leitet auf ein CDN um), es wird kein Zugangsschluessel mitgeschickt.
- * Nach dem Laden wird die Groesse und, wenn vorhanden, die SHA-256 geprueft; bei Abweichung wird die Teildatei geloescht.
+ * Download with resume. The partial file is named `<target>.part` and is kept on cancel (pause). Resume via HTTP Range.
+ * Redirects are followed by hand (Hugging Face redirects to a CDN), and no access token is sent along.
+ * After the download, the size and, if present, the SHA-256 are checked. On a mismatch the partial file is deleted.
  */
 object ModelDownloader {
     private const val MAX_REDIRECTS = 6
@@ -122,7 +122,7 @@ object ModelDownloader {
             val code = c.responseCode
             when {
                 code == 416 -> {
-                    // Bereich unzulaessig: Teildatei passt nicht zur Datei auf dem Server. Einmal frisch beginnen.
+                    // Range not acceptable: the partial file does not match the file on the server. Start fresh once.
                     c.disconnect()
                     if (retriedFresh || start == 0L) throw DownloadException("Server lehnt den Bereich ab (HTTP 416).", 416)
                     part.delete()
@@ -142,7 +142,7 @@ object ModelDownloader {
                 total = m.groupValues[3].toLongOrNull() ?: expectedSize
                 append = true
             } else {
-                // Server ignoriert Range: von vorn beginnen
+                // Server ignores Range: start from the beginning
                 if (start > 0) { part.delete(); start = 0L }
                 total = c.contentLengthLong.takeIf { it > 0 } ?: expectedSize
                 append = false
@@ -168,7 +168,7 @@ object ModelDownloader {
                 }
             }
             onProgress(DlProgress(DlPhase.DOWNLOAD, done, total))
-            // Verbindung vor dem Ende geschlossen: Teildatei behalten, Fortsetzen ist moeglich
+            // Connection closed before the end: keep the partial file, resume is possible
             if (total > 0 && done < total) throw DownloadException("Verbindung vor dem Ende geschlossen ($done von $total Byte). Fortsetzen ist möglich.")
             return done
         } finally {

@@ -10,9 +10,9 @@ import app.chatlens.core.UiNode
 import app.chatlens.profile.SelectorProfile
 
 /**
- * Liest die sichtbaren Nachrichten aus einem Accessibility-Baum-Schnappschuss.
- * Alle Annahmen ueber den WhatsApp-Aufbau stehen im Profil bzw. sind hier als Heuristik markiert
- * und muessen mit dem Debug-Baum-Export auf dem Geraet kalibriert werden.
+ * Reads the visible messages from an accessibility-tree snapshot.
+ * All assumptions about the WhatsApp layout live in the profile or are marked here as a heuristic
+ * and must be calibrated with the debug tree export on the device.
  */
 class ChatParser(
     private val p: SelectorProfile,
@@ -20,13 +20,13 @@ class ChatParser(
     private val groupChat: Boolean,
 ) {
 
-    /** Heuristik: groesster scrollbarer Knoten mit Zeit-Texten darin, sonst groesster scrollbarer Knoten. */
+    /** Heuristic: largest scrollable node that contains time texts, otherwise the largest scrollable node. */
     fun findMessageList(root: UiNode): UiNode? {
         val scrollables = root.walk().filter { it.scrollable && it.bounds.area > 0 }.toList()
         if (scrollables.isEmpty()) return null
         val withTimes = scrollables.filter { n -> n.walk().any { it.hasText() && p.isTimeText(it.text!!) } }
         val pool = withTimes.ifEmpty { scrollables }
-        // Klassenhinweise nur als Tiebreaker (gleiche Flaeche)
+        // Class hints only as a tiebreaker (same area)
         return pool.maxWithOrNull(
             compareBy<UiNode>({ it.bounds.area }, { n -> if (p.messageListClassHints.any { n.className.contains(it) }) 1 else 0 }),
         )
@@ -44,7 +44,7 @@ class ChatParser(
     private fun clean(s: String): String =
         s.replace(Regex("[\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]"), "").trim()
 
-    /** Pruefsummen des sichtbaren Listeninhalts, um Aenderungen nach einem Scroll zu erkennen. */
+    /** Checksums of the visible list content, to detect changes after a scroll. */
     data class PageSig(val content: Int, val layout: Int, val rows: Int)
 
     fun signature(root: UiNode): PageSig? {
@@ -61,7 +61,7 @@ class ChatParser(
         return PageSig(c, l, rows.size)
     }
 
-    /** true, wenn im Baum ein Ladehinweis (Text oder Fortschrittsanzeige) sichtbar ist. */
+    /** True when a loading hint (text or progress indicator) is visible in the tree. */
     fun hasLoadingHint(root: UiNode): Boolean = root.walk().any { n ->
         n.visible && n.bounds.area > 0 &&
             (n.className.contains("ProgressBar") ||
@@ -75,8 +75,8 @@ class ChatParser(
         val allNodes = row.walk().toList()
         val visibleNodes = allNodes.filter { it.visible || it === row }
 
-        // Randpruefung: Beruehrt die Zeile den oberen oder unteren Listenrand und reicht Inhalt (oder ausgeblendeter Text) an den Rand,
-        // gilt sie als angeschnitten. Der Text eines angeschnittenen Knotens ist meist vollstaendig, wird aber nur vorlaeufig genutzt.
+        // Edge check: if the row touches the top or bottom edge of the list and content (or hidden text) reaches the edge,
+        // it counts as cut off. The text of a cut-off node is usually complete, but it is used only provisionally.
         val rowTouchTop = row.bounds.t <= lt + tol
         val rowTouchBottom = row.bounds.b >= lb - tol
         val contentVisible = visibleNodes.filter { it !== row && it.bounds.area > 0 && (it.hasText() || isImageNode(it)) }
@@ -87,7 +87,7 @@ class ChatParser(
         val clipBottom = rowTouchBottom && (contentTouchBottom || hiddenText)
         val clipped = clipTop || clipBottom
 
-        // Bei angeschnittenen Zeilen auch ausgeblendete Textknoten lesen (Uhrzeit liegt oft im verdeckten Teil)
+        // On cut-off rows, also read hidden text nodes (the time often lies in the covered part)
         val nodes = if (clipped) allNodes else visibleNodes
         val allText = nodes.filter { it.hasText() && clean(it.text!!).isNotEmpty() }
         val readMoreNodes = allText.filter { p.isReadMore(clean(it.text!!)) }
@@ -110,7 +110,7 @@ class ChatParser(
             .filter { p.isTimeText(clean(it.text!!)) }
             .maxWithOrNull(compareBy({ it.bounds.b }, { it.bounds.r }))
 
-        // Datumstrenner: genau ein Text, passt auf ein Datumsmuster, keine Uhrzeit, kein Bild
+        // Date separator: exactly one text, matches a date pattern, no time, no image
         if (textNodes.size == 1 && timeNode == null && imageNode == null &&
             p.isDateLabel(clean(textNodes[0].text!!))
         ) {
@@ -123,7 +123,7 @@ class ChatParser(
             emptyList()
         }
         val bodyPool = (if (idBody.isNotEmpty()) idBody else textNodes.filter { it !== timeNode })
-        // Sichtbare Zeilen nach Position ordnen; bei angeschnittenen Zeilen (evtl. Knoten ohne brauchbare Bounds) Baumreihenfolge
+        // Order visible rows by position. For cut-off rows (nodes that may have no usable bounds), tree order.
         var bodyNodes = if (clipped) bodyPool else bodyPool.sortedWith(compareBy({ it.bounds.t }, { it.bounds.l }))
 
         val boxNodes = (bodyNodes + listOfNotNull(timeNode, imageNode, voiceNode)).filter { it.bounds.area > 0 }

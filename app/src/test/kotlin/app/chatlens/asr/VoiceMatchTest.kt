@@ -12,7 +12,7 @@ import java.time.ZonedDateTime
 
 class VoiceMatchTest {
     private val zone = ZoneId.of("Europe/Berlin")
-    private val today = LocalDate.of(2026, 10, 3) // Samstag
+    private val today = LocalDate.of(2026, 10, 3) // Saturday
 
     private fun ms(d: LocalDate, h: Int, m: Int, s: Int = 0) = ZonedDateTime.of(d, LocalTime.of(h, m, s), zone).toInstant().toEpochMilli()
     private fun file(id: String, d: LocalDate, h: Int, m: Int, s: Int = 0) = VoiceFile(id, "PTT-$id.opus", ms(d, h, m, s), 5000)
@@ -23,7 +23,7 @@ class VoiceMatchTest {
         assertEquals(today.minusDays(1), DateLabels.resolve("gestern", today))
         assertEquals(LocalDate.of(2026, 10, 2), DateLabels.resolve("Freitag", today))
         assertEquals(LocalDate.of(2026, 9, 27), DateLabels.resolve("Sonntag", today))
-        assertEquals(LocalDate.of(2026, 9, 26), DateLabels.resolve("Samstag", today)) // gleicher Wochentag heisst vor einer Woche
+        assertEquals(LocalDate.of(2026, 9, 26), DateLabels.resolve("Samstag", today)) // the same weekday means one week earlier
         assertEquals(LocalDate.of(2026, 3, 5), DateLabels.resolve("05.03.2026", today))
         assertEquals(LocalDate.of(2026, 3, 5), DateLabels.resolve("5. 3. 26", today))
         assertEquals(LocalDate.of(2026, 3, 25), DateLabels.resolve("25/03/2026", today))
@@ -66,7 +66,7 @@ class VoiceMatchTest {
         val same = VoiceMatcher.match(listOf(q), files, { 20.0 }, zone, 3)
         assertNull(same[0].file); assertTrue(same[0].reason, same[0].reason.startsWith("mehrdeutig"))
         val zeroTol = VoiceMatcher.match(listOf(q), files, { 20.0 }, zone, 0).single()
-        assertNull(zeroTol.file) // beide in der Minute, gleiche Dauer: mehrdeutig
+        assertNull(zeroTol.file) // both in the same minute, same duration: ambiguous
         val far = VoiceMatcher.match(listOf(q), listOf(file("z", today, 15, 10)), { 20.0 }, zone, 3).single()
         assertNull(far.file)
     }
@@ -107,10 +107,10 @@ class VoiceMatchTest {
         val files = listOf(file("old", yesterday, 14, 31), file("new", today, 14, 31))
         val withDate = VoiceMatcher.match(listOf(VoiceQuery(0, today, LocalTime.of(14, 31), 10)), files, { 10.0 }, zone, 3).single()
         assertEquals("new", withDate.file!!.id)
-        // ohne Datum: beide passen nach Tageszeit, gleiche Dauer -> mehrdeutig
+        // no date: both match by time of day, same duration, so ambiguous
         val noDate = VoiceMatcher.match(listOf(VoiceQuery(0, null, LocalTime.of(14, 31), 10)), files, { 10.0 }, zone, 3).single()
         assertNull(noDate.file)
-        // ohne Datum, aber unterschiedliche Dauer: eindeutig
+        // no date, but different durations: unambiguous
         val byDur = VoiceMatcher.match(listOf(VoiceQuery(0, null, LocalTime.of(14, 31), 10)), files, { if (it.id == "old") 30.0 else 10.0 }, zone, 3).single()
         assertEquals("new", byDur.file!!.id)
     }
@@ -121,7 +121,7 @@ class VoiceMatchTest {
         val f = file("a", today, 0, 1, 20)
         val q = VoiceQuery(0, d, LocalTime.of(23, 59), 12)
         assertEquals("a", VoiceMatcher.match(listOf(q), listOf(f), { 12.0 }, zone, 3).single().file!!.id)
-        // zwei Nachrichten, eine Datei: nur die bessere bekommt sie
+        // two messages, one file: only the better match gets it
         val q1 = VoiceQuery(1, today, LocalTime.of(10, 0), 10); val q2 = VoiceQuery(2, today, LocalTime.of(10, 0), 12)
         val r = VoiceMatcher.match(listOf(q1, q2), listOf(file("x", today, 10, 0)), { 10.0 }, zone, 3).associateBy { it.key }
         assertEquals("x", r[1]!!.file!!.id)

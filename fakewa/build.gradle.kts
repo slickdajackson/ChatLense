@@ -3,7 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Attrappe der WhatsApp-Oberflaeche fuer die Emulator-Regression. Eigener Paketname, kein Nachbau des Pakets com.whatsapp.
+// Stand-in for the WhatsApp UI, for the emulator regression. Its own package name, not a copy of the package com.whatsapp.
 android {
     namespace = "com.chatlens.fakewa"
     compileSdk = 36

@@ -21,8 +21,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Tests fuer Randnachrichten, Zusammenfuehren, Schrittweite und Abbruchregel auf synthetischen Daten.
- * Sie pruefen die Logik und die Geometrie, nicht das echte WhatsApp-Verhalten.
+ * Tests for edge messages, merging, step size, and the stop rule on synthetic data.
+ * They check the logic and the geometry, not real WhatsApp behavior.
  */
 class ScrollAndEdgeTest {
 
@@ -30,7 +30,7 @@ class ScrollAndEdgeTest {
     private val density = 3f
     private val parser = ChatParser(profile, density, false)
 
-    // ---------- Hilfen fuer Seiten ----------
+    // ---------- Helpers for pages ----------
 
     private fun m(text: String, time: String, incomplete: Boolean = false, dir: Direction = Direction.IN, kind: Kind = Kind.TEXT) =
         PageItem(ChatMessage(kind, dir, null, text, time).also { it.incomplete = incomplete })
@@ -40,11 +40,11 @@ class ScrollAndEdgeTest {
     @Test
     fun clippedVersionIsReplacedByCompleteVersionOnNextPage() {
         val merger = TranscriptMerger()
-        // Seite 0 (neueste): oberste Zeile ist am oberen Rand angeschnitten
+        // Page 0 (newest): the top row is clipped at the top edge
         val p0 = listOf(m("Das ist eine laengere Nachricht", "10:03", incomplete = true), m("d", "10:04"), m("e", "10:05"))
         merger.add(p0)
         assertEquals(1, merger.incompleteCount())
-        // Seite 1 (aelter): unterste Zeile ist unten angeschnitten ("d"), "c" jetzt vollstaendig
+        // Page 1 (older): the bottom row is clipped at the bottom ("d"), "c" is now complete
         val p1 = listOf(m("a", "10:01"), m("b", "10:02"), m("Das ist eine laengere Nachricht", "10:03"), m("d", "10:04", incomplete = true))
         val r = merger.add(p1)
         assertEquals(false, r.noOverlap)
@@ -63,15 +63,15 @@ class ScrollAndEdgeTest {
         assertTrue(TranscriptMerger.compatible(full, clipped))
         assertTrue(TranscriptMerger.compatible(clipped, full))
         assertTrue(TranscriptMerger.compatible(full, suffix))
-        // zwei vollstaendige Fassungen muessen exakt gleich sein
+        // two complete versions must be exactly the same
         val complete = ChatMessage(Kind.TEXT, Direction.IN, null, "Hallo wie ge", "09:00")
         assertFalse(TranscriptMerger.compatible(full, complete))
-        // andere Uhrzeit oder Richtung widerspricht auch bei angeschnittener Fassung
+        // a different time or direction conflicts even for a clipped version
         val otherTime = ChatMessage(Kind.TEXT, Direction.IN, null, "Hallo wie ge", "09:01").also { it.incomplete = true }
         assertFalse(TranscriptMerger.compatible(full, otherTime))
         val otherDir = ChatMessage(Kind.TEXT, Direction.OUT, null, "Hallo wie ge", "09:00").also { it.incomplete = true }
         assertFalse(TranscriptMerger.compatible(full, otherDir))
-        // fehlende Uhrzeit bei angeschnittener Fassung (Zeitknoten verdeckt) ist erlaubt
+        // a missing time on a clipped version (time node covered) is allowed
         val noTime = ChatMessage(Kind.SYSTEM, Direction.UNKNOWN, null, "Hallo wie ge", null).also { it.incomplete = true }
         assertTrue(TranscriptMerger.compatible(full, noTime))
     }
@@ -118,7 +118,7 @@ class ScrollAndEdgeTest {
         assertTrue(a.incomplete)
     }
 
-    // ---------- Parser: Rand und "Mehr lesen" ----------
+    // ---------- Parser: edge and "Mehr lesen" ----------
 
     private fun tv(text: String, l: Int, t: Int, r: Int, b: Int, visible: Boolean = true) =
         UiNode("android.widget.TextView", null, text, null, if (visible) Bounds(l, t, r, b) else Bounds(0, 0, 0, 0), visible = visible)
@@ -132,7 +132,7 @@ class ScrollAndEdgeTest {
 
     @Test
     fun rowCutAtBottomEdgeIsMarkedIncompleteAndHiddenTimeIsRecovered() {
-        // Zeile reicht von 1900 bis zum Listenende 2000; Text angeschnitten, Uhrzeit ausgeblendet
+        // The row runs from 1900 to the list end at 2000; text is clipped, time is hidden
         val row = UiNode(
             "android.view.ViewGroup", null, null, null, Bounds(0, 1900, 1080, 2000),
             children = listOf(tv("Ich komme gleich vorbei und bringe alles mit", 40, 1920, 560, 2000), tv("11:20", 0, 0, 0, 0, visible = false)),
@@ -146,7 +146,7 @@ class ScrollAndEdgeTest {
 
     @Test
     fun fullyVisibleRowIsNotIncompleteEvenIfRowTouchesEdge() {
-        // Zeilenrand liegt genau am Listenrand, der Inhalt hat aber Abstand: vollstaendig
+        // The row edge sits exactly on the list edge, but the content has a gap: complete
         val row = UiNode(
             "android.view.ViewGroup", null, null, null, Bounds(0, 1800, 1080, 2000),
             children = listOf(tv("Alles gut", 40, 1830, 400, 1890), tv("11:21", 460, 1920, 540, 1960)),
@@ -225,7 +225,7 @@ class ScrollAndEdgeTest {
         assertNotEquals(a.content, other.content)
     }
 
-    // ---------- Schrittweite ----------
+    // ---------- Step size ----------
 
     @Test
     fun swipeStepNeverExceedsSeventyPercentAndStaysInsideList() {
@@ -240,7 +240,7 @@ class ScrollAndEdgeTest {
         }
         val s = ScrollPlan.older(list, 0.6)
         assertEquals((1800 * 0.6).toInt(), s.distance)
-        assertTrue(s.toY > s.fromY) // Finger nach unten = aeltere Nachrichten
+        assertTrue(s.toY > s.fromY) // finger down means older messages
         assertTrue(ScrollPlan.newer(list, 0.6).toY < ScrollPlan.newer(list, 0.6).fromY)
     }
 
@@ -248,7 +248,7 @@ class ScrollAndEdgeTest {
     fun everyMessageUpToThirtyPercentOfListHeightIsFullyVisibleAtLeastOnce() {
         val h = 1800
         val step = (h * 0.70).toInt()
-        // Nachrichten mit Hoehen von 60 bis 540 (30 Prozent von 1800), lueckenlos gestapelt
+        // Messages with heights from 60 to 540 (30 percent of 1800), stacked with no gaps
         val heights = (0 until 80).map { 60 + (it * 37) % 481 }
         val tops = ArrayList<Int>()
         var y = 0
@@ -262,10 +262,10 @@ class ScrollAndEdgeTest {
             if (vt == 0) break
             viewTop -= step
         }
-        assertTrue("nicht komplett gesehen: " + seen.indices.filter { !seen[it] }, seen.all { it })
+        assertTrue("not fully seen: " + seen.indices.filter { !seen[it] }, seen.all { it })
     }
 
-    // ---------- Abbruchregel ----------
+    // ---------- Stop rule ----------
 
     @Test
     fun stopsOnlyAfterThreeFailuresAndAStartSignal() {
@@ -289,7 +289,7 @@ class ScrollAndEdgeTest {
         assertEquals(ScrollStopPolicy.Decision.STUCK, p.decide(false))
     }
 
-    // ---------- Gesamtablauf auf simuliertem Chat ----------
+    // ---------- Full run on a simulated chat ----------
 
     private class Msg(val text: String, val time: String, val out: Boolean, val h: Int)
 
@@ -299,7 +299,7 @@ class ScrollAndEdgeTest {
         return if (c > a) a to c else null
     }
 
-    /** Baut den Baum fuer einen Ausschnitt der Chat-Inhaltskoordinaten [viewTop, viewTop + H). Randknoten werden wie in Android auf die Liste beschnitten. */
+    /** Builds the tree for a slice of the chat content coordinates [viewTop, viewTop + H). Edge nodes are clipped to the list, as on Android. */
     private fun frame(msgs: List<Msg>, tops: List<Int>, viewTop: Int, prefixClip: Boolean): UiNode {
         val lt = 200
         val H = 1800
@@ -372,8 +372,8 @@ class ScrollAndEdgeTest {
 
     @Test
     fun fullPageStepKeepsOrderAndUnionOfOppositeClipsCompletesStraddlingMessages() {
-        // Bei 100 Prozent Schrittweite gibt es keine gemeinsame vollstaendige Sicht. Ab 0.1.3 ergeben aber die zwei Anschnitte
-        // (oben auf der einen, unten auf der anderen Seite) zusammen die ganze Nachricht, solange der Text gleich ist.
+        // At a 100 percent step there is no shared complete view. From 0.1.3 the two clips
+        // (the top on one page, the bottom on the other) together make the whole message, as long as the text is the same.
         val (msgs, merger, _) = simulate(1.0, false)
         assertEquals(msgs.map { it.text }, merger.messages.map { it.text })
         assertTrue(merger.messages.none { it.kind == Kind.GAP })
@@ -382,7 +382,7 @@ class ScrollAndEdgeTest {
 
     @Test
     fun fullPageStepWithPrefixClipLeavesStraddlingMessagesIncomplete() {
-        // Zeigt der Anschnitt nur einen Textanfang (Prefix), ist die Vereinigung nicht moeglich: Nachricht bleibt markiert.
+        // If a clip shows only the start of the text (a prefix), the union is not possible: the message stays marked.
         val (msgs, merger, _) = simulate(1.0, true)
         assertEquals(msgs.map { it.text }.size, merger.messages.size)
         assertTrue("erwartet angeschnittene Nachrichten", merger.incompleteCount() > 0)
