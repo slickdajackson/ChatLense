@@ -1,0 +1,788 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-03",
+  "source": "Hugging Face API und Modellkarten, abgerufen am 3. Oktober 2026. Mit tools/verify_catalog.py erneut prüfbar.",
+  "models": [
+    {
+      "id": "gemma-4-e4b",
+      "name": "Gemma 4 E4B (Standard)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/gemma-4-E4B-it-litert-lm",
+      "file": "gemma-4-E4B-it.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "standard",
+      "contextTokens": 32768,
+      "vision": true,
+      "ramCpuMb": 3283,
+      "ramGpuMb": 710,
+      "ramSource": "Herstellerkarte, Samsung Galaxy S26 Ultra (Spitzenwert, anderes Gerät), Kontext 2048",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 3,
+        "summary": 3,
+        "profile": 3
+      },
+      "notes": "Standardmodell der App. Datei 3,66 GB, Text-Decoder 2,24 GB plus 0,67 GB Einbettungen (Karte). Bild und Ton werden bei Bedarf geladen. Deutsch nicht gemessen.",
+      "pageUrl": "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm",
+      "links": [],
+      "sizeBytes": 3659530240,
+      "sha256": "0b2a8980ce155fd97673d8e820b4d29d9c7d99b8fa6806f425d969b145bd52e0",
+      "revision": "2eee7ac325f20eb8c9ac1d0e972f7c84663062da",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Mehrsprachig trainiert, Deutsch laut Karte unterstützt. Unsere Einschätzung."
+        },
+        "speed": {
+          "score": 3,
+          "why": "Etwa 4 Milliarden wirksame Parameter: spürbare Wartezeit bei langen Chats."
+        },
+        "ram": {
+          "score": 3,
+          "why": "Rund 3,3 GB im CPU-Pfad laut Herstellerangabe."
+        },
+        "analysis": {
+          "score": 4,
+          "why": "Größtes lokales Modell der Auswahl mit gutem Instruktionsverhalten."
+        },
+        "device": {
+          "score": 4,
+          "why": "Standard der App, passt in 16 GB Arbeitsspeicher. Auf dem Gerät noch nicht gemessen."
+        }
+      }
+    },
+    {
+      "id": "gemma-4-e2b",
+      "name": "Gemma 4 E2B",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/gemma-4-E2B-it-litert-lm",
+      "file": "gemma-4-E2B-it.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "stable",
+      "contextTokens": 32768,
+      "vision": true,
+      "ramCpuMb": 1733,
+      "ramGpuMb": 676,
+      "ramSource": "Herstellerkarte, Samsung Galaxy S26 Ultra (Spitzenwert, anderes Gerät), Kontext 2048",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 3,
+        "summary": 2,
+        "profile": 2
+      },
+      "notes": "Kleinere Gemma-4-Variante für Geräte mit wenig Arbeitsspeicher. Qualität bei Profilen schwächer als E4B (Einschätzung).",
+      "pageUrl": "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm",
+      "links": [],
+      "sizeBytes": 2588147712,
+      "sha256": "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
+      "revision": "b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 3,
+          "why": "Gleiche Familie, kleiner: Deutsch brauchbar, Formulierungen schlichter."
+        },
+        "speed": {
+          "score": 4,
+          "why": "Etwa halb so groß wie E4B, deshalb merklich schneller."
+        },
+        "ram": {
+          "score": 4,
+          "why": "Rund 1,7 GB im CPU-Pfad laut Herstellerangabe."
+        },
+        "analysis": {
+          "score": 3,
+          "why": "Fasst kürzere Chats gut zusammen, bei langen Verläufen weniger Tiefe."
+        },
+        "device": {
+          "score": 5,
+          "why": "Läuft auf dem Gerät mit viel Reserve."
+        }
+      }
+    },
+    {
+      "id": "qwen3-0.6b-int8",
+      "name": "Qwen3 0.6B (INT8)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-0.6B",
+      "file": "Qwen3-0.6B.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "stable",
+      "contextTokens": 4096,
+      "vision": false,
+      "ramCpuMb": 2697,
+      "ramGpuMb": 2940,
+      "ramSource": "Herstellerkarte, Samsung SM-S937U1, Kontext 4096",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 2,
+        "summary": 1,
+        "profile": 1
+      },
+      "notes": "Sehr klein und schnell, für Klassifikation und kurze Zusammenfassungen. Für Profile zu schwach (Einschätzung). Karte nennt nur Englisch; Deutsch am Gerät prüfen.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-0.6B",
+      "links": [],
+      "sizeBytes": 614236160,
+      "sha256": "555579ff2f4fd13379abe69c1c3ab5200f7338bc92471557f1d6614a6e5ab0b4",
+      "revision": "a3c5d805ae362dff7f580bc25f2dfb9a5a7eaa76",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 2,
+          "why": "Sehr klein: Deutsch holprig, Fehler bei Namen und Zeiten möglich."
+        },
+        "speed": {
+          "score": 5,
+          "why": "Kleinstes Modell, kürzeste Wartezeit."
+        },
+        "ram": {
+          "score": 3,
+          "why": "Datei etwa 0,6 GB, Laufzeitbedarf laut Quelle deutlich höher."
+        },
+        "analysis": {
+          "score": 1,
+          "why": "Für Zusammenfassungen zu schwach, eher für einfache Einordnung."
+        },
+        "device": {
+          "score": 4,
+          "why": "Läuft problemlos, bringt auf diesem Gerät aber wenig Qualität."
+        }
+      }
+    },
+    {
+      "id": "qwen3-0.6b-int4gpu",
+      "name": "Qwen3 0.6B (INT4, GPU-optimiert)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-0.6B",
+      "file": "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "experimental",
+      "contextTokens": 4096,
+      "vision": false,
+      "ramCpuMb": null,
+      "ramGpuMb": null,
+      "ramSource": "keine Messung auf der Karte",
+      "preferredAccel": "gpu",
+      "suit": {
+        "classify": 2,
+        "summary": 1,
+        "profile": 1
+      },
+      "notes": "Kleinste Datei. Für die GPU optimiert; laut Karte der Schwestermodelle auf der CPU deutlich langsamer. Rechenweg GPU ist auf diesem Gerät ungetestet.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-0.6B",
+      "links": [],
+      "sizeBytes": 344671744,
+      "sha256": "03e7da1eb1108b50dffaa9bb52cc7bcbad2eb0c66ca990267f480c1e545d2856",
+      "revision": "a3c5d805ae362dff7f580bc25f2dfb9a5a7eaa76",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 2,
+          "why": "Wie die INT8-Variante, durch INT4 zusätzlich etwas ungenauer."
+        },
+        "speed": {
+          "score": 5,
+          "why": "Klein und für die GPU gebaut."
+        },
+        "ram": {
+          "score": 5,
+          "why": "Kleinste Datei der Auswahl."
+        },
+        "analysis": {
+          "score": 1,
+          "why": "Für Zusammenfassungen zu schwach."
+        },
+        "device": {
+          "score": 3,
+          "why": "Experimentell: der GPU-Pfad ist auf diesem Gerät ungetestet."
+        }
+      }
+    },
+    {
+      "id": "qwen3-1.7b-int8",
+      "name": "Qwen3 1.7B (INT8)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-1.7B",
+      "file": "Qwen3_1.7B.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "stable",
+      "contextTokens": 0,
+      "vision": false,
+      "ramCpuMb": 3185,
+      "ramGpuMb": 854,
+      "ramSource": "Herstellerkarte, Samsung Galaxy S26 (Spitzenwert RSS)",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 3,
+        "summary": 2,
+        "profile": 2
+      },
+      "notes": "Mittelklasse. Laut Karte auf der CPU die schnellere der beiden 1.7B-Dateien. Karte nennt nur Englisch; Deutsch am Gerät prüfen.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-1.7B",
+      "links": [],
+      "sizeBytes": 2056729520,
+      "sha256": "66064a4e9269cb693e124c4e3040bcb8a446b10bca42663896329495add3861c",
+      "revision": "73fbc3fe8271c162a603ee66f6e7ed25b6211195",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 3,
+          "why": "Deutsch brauchbar, aber hörbar schwächer als die 4B-Modelle."
+        },
+        "speed": {
+          "score": 4,
+          "why": "Mittelgroß, flott."
+        },
+        "ram": {
+          "score": 3,
+          "why": "Rund 3,2 GB im CPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 2,
+          "why": "Kurze Zusammenfassungen gehen, Details gehen leicht verloren."
+        },
+        "device": {
+          "score": 4,
+          "why": "Passt gut, bringt gegenüber Gemma E2B aber keinen klaren Vorteil."
+        }
+      }
+    },
+    {
+      "id": "qwen3-1.7b-int4gpu",
+      "name": "Qwen3 1.7B (INT4, GPU-optimiert)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-1.7B",
+      "file": "Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "experimental",
+      "contextTokens": 4096,
+      "vision": false,
+      "ramCpuMb": 2523,
+      "ramGpuMb": 1036,
+      "ramSource": "Herstellerkarte, Samsung Galaxy S26 (Spitzenwert RSS)",
+      "preferredAccel": "gpu",
+      "suit": {
+        "classify": 3,
+        "summary": 2,
+        "profile": 2
+      },
+      "notes": "Laut Karte auf der GPU rund doppelt so schnell wie die INT8-Datei, auf der CPU nur etwa 8 Token pro Sekunde. GPU ist auf diesem Gerät ungetestet.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-1.7B",
+      "links": [],
+      "sizeBytes": 977184032,
+      "sha256": "2eeffef7b51bc3e1225ea69fe7aa5f417397934b56a5b6c20cc068d6fd2c918b",
+      "revision": "73fbc3fe8271c162a603ee66f6e7ed25b6211195",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 3,
+          "why": "Wie INT8, durch INT4 etwas ungenauer."
+        },
+        "speed": {
+          "score": 4,
+          "why": "Mittelgroß, für die GPU gebaut."
+        },
+        "ram": {
+          "score": 4,
+          "why": "Halb so große Datei wie INT8."
+        },
+        "analysis": {
+          "score": 2,
+          "why": "Wie INT8: für kurze Chats genug."
+        },
+        "device": {
+          "score": 3,
+          "why": "Experimentell: GPU-Pfad ungetestet."
+        }
+      }
+    },
+    {
+      "id": "qwen3-4b-int4",
+      "name": "Qwen3 4B (gemischt INT4)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-4B",
+      "file": "qwen3_4b_mixed_int4.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "stable",
+      "contextTokens": 2048,
+      "vision": false,
+      "ramCpuMb": null,
+      "ramGpuMb": 4722,
+      "ramSource": "Herstellerkarte, vivo V2502A (GPU, Spitzenwert); CPU nicht gemessen",
+      "preferredAccel": "gpu",
+      "suit": {
+        "classify": 3,
+        "summary": 3,
+        "profile": 2
+      },
+      "notes": "Größtes sinnvolles Qwen3 für das Handy. Kontext nur 2048 Token, daher kurze Verläufe. Denkt standardmäßig; die App schaltet das Denken aus. Karte nennt nur Englisch.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-4B",
+      "links": [],
+      "sizeBytes": 2659057664,
+      "sha256": "f0794bc77efeaaf4f7af815f04c483b19b8f2ae4a102cef1b7b760a25848a18e",
+      "revision": "84cc5a35c9c65cd18fcd65bb1f3a7d77a4acfe6e",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Starkes Deutsch für diese Größe, laut Modellkarte mehrsprachig."
+        },
+        "speed": {
+          "score": 3,
+          "why": "4 Milliarden Parameter: ähnliche Wartezeit wie Gemma E4B."
+        },
+        "ram": {
+          "score": 2,
+          "why": "Rund 4,7 GB im GPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 4,
+          "why": "Gutes Instruktionsverhalten, auch bei längeren Verläufen."
+        },
+        "device": {
+          "score": 4,
+          "why": "Passt in 16 GB, aber mit weniger Reserve als Gemma."
+        }
+      }
+    },
+    {
+      "id": "qwen3-4b-instruct-2507",
+      "name": "Qwen3 4B Instruct 2507 (gemischt INT4)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3-4B-Instruct-2507",
+      "file": "qwen3_4b_instruct_2507_mixed_int4.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "stable",
+      "contextTokens": 2048,
+      "vision": false,
+      "ramCpuMb": null,
+      "ramGpuMb": 4720,
+      "ramSource": "Herstellerkarte, vivo V2502A (GPU, Spitzenwert); CPU nicht gemessen",
+      "preferredAccel": "gpu",
+      "suit": {
+        "classify": 3,
+        "summary": 3,
+        "profile": 2
+      },
+      "notes": "Anweisungsmodell ohne Denkmodus, geeignet für Zusammenfassungen. Kontext 2048 Token. Karte nennt nur Englisch.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3-4B-Instruct-2507",
+      "links": [],
+      "sizeBytes": 2659057664,
+      "sha256": "9e48b165836256f5344d9d044930607b9c47f6ef34e27f82e96881664f3ba2fd",
+      "revision": "4d409771b414d86b270ca54d27ffc45032a81142",
+      "german": "Deutsch nicht belegt: Die Karte nennt nur Englisch (teils Chinesisch).",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Instruct-Variante ohne Denkmodus, Deutsch auf dem Niveau des 4B-Modells."
+        },
+        "speed": {
+          "score": 3,
+          "why": "Ohne Denkphase meist schneller zur Antwort als die Denk-Variante."
+        },
+        "ram": {
+          "score": 2,
+          "why": "Rund 4,7 GB im GPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 4,
+          "why": "Direkte Antworten, gut für Zusammenfassungen."
+        },
+        "device": {
+          "score": 4,
+          "why": "Passt in 16 GB, weniger Reserve als Gemma."
+        }
+      }
+    },
+    {
+      "id": "qwen35-2b-int8",
+      "name": "Qwen3.5 2B (INT8, hybrid)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Qwen3.5-2B",
+      "file": "Qwen3.5-2B_int8.litertlm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "experimental",
+      "contextTokens": 4096,
+      "vision": false,
+      "ramCpuMb": 3800,
+      "ramGpuMb": null,
+      "ramSource": "Herstellerkarte, Raspberry Pi 5 (CPU); GPU laut Karte auf 8-GB-Android nicht ladbar",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 3,
+        "summary": 2,
+        "profile": 2
+      },
+      "notes": "Neue Hybridarchitektur, braucht LiteRT-LM ab 0.15 (App nutzt 0.17.1). Experimentell: auf Android bisher nur wenig gemessen, CPU-Decode auf dem Pi 5 nur 4 Token pro Sekunde.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3.5-2B",
+      "links": [],
+      "sizeBytes": 2116592816,
+      "sha256": "8ae5027136e0b89039ed76eedfb61f0cf4b7277024d99bf765359264295b86b1",
+      "revision": "4327b7425533c26da2aec1d7b915e9742eead2cb",
+      "german": "Deutsch nicht belegt: Die Karte der Konvertierung nennt keine Sprachen. Die Karte des Basismodells wirbt mit 201 Sprachen, ob Deutsch nach der Quantisierung gut bleibt, ist ungeprüft.",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 3,
+          "why": "Neuere Familie, Deutsch brauchbar. Wenig erprobt."
+        },
+        "speed": {
+          "score": 3,
+          "why": "Hybrid-Aufbau, Tempo auf diesem Gerät unbekannt."
+        },
+        "ram": {
+          "score": 3,
+          "why": "Rund 3,8 GB im CPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 3,
+          "why": "Solide für kurze bis mittlere Chats, wenig erprobt."
+        },
+        "device": {
+          "score": 3,
+          "why": "Experimentell, Laufzeitpfad nicht getestet."
+        }
+      }
+    },
+    {
+      "kind": "llm",
+      "format": "litert-lm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "contextTokens": 4096,
+      "vision": false,
+      "preferredAccel": "cpu",
+      "links": [],
+      "german": "Deutsch nicht belegt: Die Karte der Konvertierung nennt keine Sprachen. Die Karte des Basismodells wirbt mit 201 Sprachen, ob Deutsch nach der Quantisierung gut bleibt, ist ungeprüft.",
+      "comparison": true,
+      "id": "qwen35-4b-int4",
+      "name": "Qwen3.5 4B (gemischt INT4, hybrid)",
+      "repo": "litert-community/Qwen3.5-4B",
+      "file": "Qwen3.5-4B_mixed_int4.litertlm",
+      "status": "stable",
+      "ramCpuMb": 4430,
+      "ramGpuMb": 5740,
+      "ramSource": "Herstellerkarte: CPU Pixel 8a (Spitzenwert 4,43 GB, 8 GB Telefon); GPU iPhone 17 Pro (Metal, 5,74 GB), GPU auf Qualcomm Adreno nicht geprüft",
+      "suit": {
+        "classify": 3,
+        "summary": 3,
+        "profile": 2
+      },
+      "notes": "Vergleichskandidat zu Gemma 4 E4B. Nur Text-Decoder (kein Bild), KV-Budget 4096 Token, daher kürzere Verläufe. Läuft laut Karte auf einem Pixel 8a mit CPU (6,3 Token pro Sekunde, erste Antwort bei 260 Token Prompt nach 12 s, Start 30 bis 50 s). Auf dem Xiaomi nicht gemessen. Nutze den CPU-Weg: GPU ist auf Adreno nicht geprüft. Beim ersten Start schreibt die Engine einen Cache von etwa 2,7 GB neben die Datei, rund 3 GB Speicher freihalten. GSM8K 93 von 100 (int8: 97). Denken ist im Modell abgeschaltet.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3.5-4B",
+      "sizeBytes": 2754365536,
+      "sha256": "50cbb13f782f4609ff11874ff15e79de5c1ee2e8856a21db72e7ef86f4acef35",
+      "revision": "2345e16c6e6e5a2db95d5bcfa3b4fc4dc2fc0394",
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Neuere Familie, Deutsch gut. Als Vergleich zu Gemma gedacht."
+        },
+        "speed": {
+          "score": 3,
+          "why": "4 Milliarden Parameter, hybrid: Tempo unbekannt."
+        },
+        "ram": {
+          "score": 2,
+          "why": "Rund 4,4 GB im CPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 4,
+          "why": "Gute Analyse bei mittleren Chats nach Modellkarte."
+        },
+        "device": {
+          "score": 4,
+          "why": "Passt in 16 GB, Vergleichskandidat zum Standard."
+        }
+      }
+    },
+    {
+      "kind": "llm",
+      "format": "litert-lm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "contextTokens": 4096,
+      "vision": false,
+      "preferredAccel": "cpu",
+      "links": [],
+      "german": "Deutsch nicht belegt: Die Karte der Konvertierung nennt keine Sprachen. Die Karte des Basismodells wirbt mit 201 Sprachen, ob Deutsch nach der Quantisierung gut bleibt, ist ungeprüft.",
+      "comparison": false,
+      "id": "qwen35-4b-int8",
+      "name": "Qwen3.5 4B (INT8, hybrid)",
+      "repo": "litert-community/Qwen3.5-4B",
+      "file": "Qwen3.5-4B_int8.litertlm",
+      "status": "experimental",
+      "ramCpuMb": 6200,
+      "ramGpuMb": 4980,
+      "ramSource": "Herstellerkarte: CPU Raspberry Pi 5 (Spitzenwert 6,2 GB); GPU iPhone 17 Pro (Metal, 4,98 GB); auf Android nicht gemessen",
+      "suit": {
+        "classify": 3,
+        "summary": 3,
+        "profile": 2
+      },
+      "notes": "Genauer als die INT4-Datei (GSM8K 97 von 100), aber 4,4 GB groß. Die Karte hält sie auf 8-GB-Telefonen für nicht lauffähig und nennt sie Apple-zuerst; auf Android mit 12 GB oder mehr ungemessen. Nur Text, KV-Budget 4096 Token. CPU-Decode auf dem Pi 5 nur 1,8 Token pro Sekunde.",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3.5-4B",
+      "sizeBytes": 4407428464,
+      "sha256": "74abbd14d83952be2638220f4e6df0a5661ec75e52386c6c88b40a1b0fbc8271",
+      "revision": "2345e16c6e6e5a2db95d5bcfa3b4fc4dc2fc0394",
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Wie INT4, etwas genauer."
+        },
+        "speed": {
+          "score": 2,
+          "why": "Große Datei, längere Wartezeit."
+        },
+        "ram": {
+          "score": 1,
+          "why": "Rund 6,2 GB im CPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 4,
+          "why": "Wie INT4, etwas genauer."
+        },
+        "device": {
+          "score": 3,
+          "why": "Experimentell und speicherhungrig."
+        }
+      }
+    },
+    {
+      "kind": "llm",
+      "format": "litert-lm",
+      "license": "Apache-2.0",
+      "licenseApi": "apache-2.0",
+      "gated": false,
+      "downloadable": true,
+      "contextTokens": 4096,
+      "vision": false,
+      "preferredAccel": "cpu",
+      "links": [],
+      "german": "Deutsch nicht belegt: Die Karte der Konvertierung nennt keine Sprachen. Die Karte des Basismodells wirbt mit 201 Sprachen, ob Deutsch nach der Quantisierung gut bleibt, ist ungeprüft.",
+      "comparison": false,
+      "id": "qwen35-0.8b-int8",
+      "name": "Qwen3.5 0.8B (INT8, hybrid, nur CPU)",
+      "repo": "litert-community/Qwen3.5-0.8B",
+      "file": "Qwen3.5-0.8B_int8.litertlm",
+      "status": "stable",
+      "ramCpuMb": 1210,
+      "ramGpuMb": 5480,
+      "ramSource": "Herstellerkarte: CPU iPhone 17 Pro (Spitzenwert 1,21 GB); GPU iPhone 17 Pro (5,48 GB), auf Android nicht praktikabel",
+      "suit": {
+        "classify": 2,
+        "summary": 1,
+        "profile": 1
+      },
+      "notes": "Kleinstes Modell des Katalogs mit schnellem CPU-Lauf: Pixel 8a 8 bis 14 Token pro Sekunde, erste Antwort nach 2 bis 5 s. Nur CPU nutzen: Auf dem Pixel 8a passt die GPU-Variante nicht in den Speicher, auf einem Galaxy S26 braucht sie 110 s zum Start und 5,4 GB. Nur Text-Decoder, KV-Budget 4096 Token. Für Klassifikation brauchbar, für Zusammenfassung und Profile voraussichtlich zu schwach (GSM8K 11 von 100).",
+      "pageUrl": "https://huggingface.co/litert-community/Qwen3.5-0.8B",
+      "sizeBytes": 963184864,
+      "sha256": "64ed396fcdae75e5158945c77a08142b1322ce1bbf1be4d2198783119a1169e8",
+      "revision": "03d910d3643b5ef29babed32327bdfad39fd1aef",
+      "ratings": {
+        "german": {
+          "score": 2,
+          "why": "Sehr klein: Deutsch einfach."
+        },
+        "speed": {
+          "score": 4,
+          "why": "Klein, aber nur auf der CPU."
+        },
+        "ram": {
+          "score": 4,
+          "why": "Rund 1,2 GB im CPU-Pfad laut Quelle."
+        },
+        "analysis": {
+          "score": 1,
+          "why": "Für Zusammenfassungen zu schwach."
+        },
+        "device": {
+          "score": 4,
+          "why": "Läuft problemlos, bringt wenig Qualität."
+        }
+      }
+    },
+    {
+      "id": "gemma-3-1b-it",
+      "name": "Gemma 3 1B IT (Token nötig)",
+      "kind": "llm",
+      "format": "litert-lm",
+      "repo": "litert-community/Gemma3-1B-IT",
+      "file": "gemma3-1b-it-int4.litertlm",
+      "license": "Gemma-Nutzungsbedingungen",
+      "licenseApi": "gemma",
+      "gated": true,
+      "downloadable": false,
+      "status": "stable",
+      "contextTokens": 4096,
+      "vision": false,
+      "ramCpuMb": null,
+      "ramGpuMb": null,
+      "ramSource": "keine Messung geprüft",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 2,
+        "summary": 2,
+        "profile": 1
+      },
+      "notes": "Gated: Hugging Face verlangt Anmeldung und Zustimmung zur Gemma-Lizenz. ChatLens lädt solche Dateien nicht selbst, nur Link. Danach die Datei manuell importieren.",
+      "pageUrl": "https://huggingface.co/litert-community/Gemma3-1B-IT",
+      "links": [],
+      "sizeBytes": 584417280,
+      "sha256": "",
+      "revision": "a6306a4e292016480083b73b8dc6f3f939ae04c3",
+      "comparison": false,
+      "ratings": {
+        "german": {
+          "score": 3,
+          "why": "Gemma-Familie, 1 Milliarde Parameter: einfaches Deutsch."
+        },
+        "speed": {
+          "score": 5,
+          "why": "Sehr klein und schnell."
+        },
+        "ram": {
+          "score": 4,
+          "why": "Kleine Datei, geringer Bedarf."
+        },
+        "analysis": {
+          "score": 2,
+          "why": "Nur für kurze Chats."
+        },
+        "device": {
+          "score": 2,
+          "why": "Hinter Token und Lizenzfreigabe, nur per Import nutzbar."
+        }
+      }
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "name": "Parakeet TDT 0.6B v3 (Sprache, INT8)",
+      "kind": "asr",
+      "format": "sherpa-onnx",
+      "repo": "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+      "file": null,
+      "license": "CC-BY-4.0 (NVIDIA, Ursprungsmodell)",
+      "licenseApi": "cc-by-4.0",
+      "gated": false,
+      "downloadable": true,
+      "status": "experimental",
+      "contextTokens": 0,
+      "vision": false,
+      "ramCpuMb": 1230,
+      "ramGpuMb": null,
+      "ramSource": "Berichte zu sherpa-onnx (iOS 1,23 GB) und Arm-LiteRT-Variante (1,46 GiB Spitze), anderes Gerät; in ChatLens nicht gemessen",
+      "preferredAccel": "cpu",
+      "suit": {
+        "classify": 0,
+        "summary": 0,
+        "profile": 0
+      },
+      "notes": "Spracherkennung für Sprachnachrichten, 25 europäische Sprachen inklusive Deutsch, Spracherkennung automatisch. Vier Dateien (Encoder, Decoder, Joiner, Tokens), zusammen etwa 670 MB, werden nacheinander geladen und einzeln per SHA-256 geprüft. Läuft komplett auf dem Gerät über sherpa-onnx, kein Upload. Lizenz CC-BY-4.0: Modell von NVIDIA (Namensnennung), ONNX-Umwandlung von csukuangfj. Wird nur während des Lesens geladen und danach wieder freigegeben. Auf dem Gerät noch nicht gemessen.",
+      "pageUrl": "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+      "links": [
+        {
+          "label": "Ursprungsmodell NVIDIA",
+          "url": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
+        },
+        {
+          "label": "sherpa-onnx Dokumentation",
+          "url": "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/offline-transducer/nemo-transducer-models.html"
+        }
+      ],
+      "sizeBytes": 670478772,
+      "sha256": "",
+      "revision": "2bda32ec70b097a55adaa07d9a7173915b43cc78",
+      "comparison": false,
+      "files": [
+        {
+          "name": "encoder.int8.onnx",
+          "sizeBytes": 652184281,
+          "sha256": "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"
+        },
+        {
+          "name": "decoder.int8.onnx",
+          "sizeBytes": 11845275,
+          "sha256": "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e"
+        },
+        {
+          "name": "joiner.int8.onnx",
+          "sizeBytes": 6355277,
+          "sha256": "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3"
+        },
+        {
+          "name": "tokens.txt",
+          "sizeBytes": 93939,
+          "sha256": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"
+        }
+      ],
+      "licenseOriginRepo": "nvidia/parakeet-tdt-0.6b-v3",
+      "ratings": {
+        "german": {
+          "score": 4,
+          "why": "Deutsch gehört zu den 25 unterstützten Sprachen der Modellkarte. Qualität auf eigenen Sprachnachrichten ungeprüft."
+        },
+        "speed": {
+          "score": 3,
+          "why": "0,6 Milliarden Parameter auf der CPU: Wartezeit je Sprachnachricht, nicht gemessen."
+        },
+        "ram": {
+          "score": 3,
+          "why": "Rund 1,2 GB beim Laden laut Quelle."
+        },
+        "device": {
+          "score": 4,
+          "why": "Läuft lokal über sherpa-onnx. Auf dem Gerät noch nicht getestet."
+        }
+      }
+    }
+  ],
+  "ratingsNote": "Punkte 1 bis 5 sind unsere Einschätzung nach Modellgröße, Modellkarte und Herstellerangaben, nicht auf dem Gerät gemessen. 5 ist am besten; bei Speicherbedarf bedeutet 5 wenig Bedarf. Gemessene Werte aus eigenen Läufen erscheinen getrennt in der Modellkarte."
+}

@@ -1,0 +1,28 @@
+# Gradle und Android Studio
+.gradle/
+build/
+*/build/
+.kotlin/
+.idea/
+*.iml
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signierung und Geheimnisse
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+
+# Modelle und Testdaten (nie einchecken)
+*.litertlm
+*.onnx
+asr-model/
+renders/
+runlogs/
+
+# APKs
+*.apk
+*.aab

@@ -1,0 +1,159 @@
+package app.chatlens.auto
+
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.json.JSONArray
+import org.json.JSONObject
+import kotlin.coroutines.coroutineContext
+
+enum class ItemStatus { WARTET, LAEUFT, FERTIG, FEHLER, UEBERSPRUNGEN }
+
+/** Art des Laufs: SETUP = erstmaliges Anlegen aller Profile (aus der Chatliste), AUTO = Liste von Namen, inkrementell. */
+enum class QueueKind { SETUP, AUTO, SELF }
+
+class QueueItem(
+    val title: String,
+    var status: ItemStatus = ItemStatus.WARTET,
+    var error: String = "",
+    var finishedAt: Long = 0L,
+    /** Kurzinfo zum Ergebnis (z. B. Anzahl gelesener Nachrichten), nur zur Anzeige. */
+    var info: String = "",
+)
+
+/** Warteschlange mit Zustand, der gespeichert und nach einem Abbruch wieder aufgenommen werden kann. */
+class AutoQueue(
+    val kind: QueueKind,
+    val items: MutableList<QueueItem>,
+    val targetPerChat: Int,
+    val createdAt: Long,
+    val fromList: Boolean,
+    /** Freier Schwerpunkt der Selbstanalyse (Text des Nutzers), sonst leer. */
+    var note: String = "",
+) {
+    fun nextPending(): QueueItem? = items.firstOrNull { it.status == ItemStatus.WARTET }
+    fun count(s: ItemStatus) = items.count { it.status == s }
+    val total: Int get() = items.size
+    val done: Int get() = items.count { it.status == ItemStatus.FERTIG || it.status == ItemStatus.FEHLER || it.status == ItemStatus.UEBERSPRUNGEN }
+    val finished: Boolean get() = items.none { it.status == ItemStatus.WARTET || it.status == ItemStatus.LAEUFT }
+
+    /** Fehlgeschlagene Eintraege wieder auf WARTET setzen (fuer "Fehler erneut versuchen"). */
+    fun retryFailed(): Int {
+        var n = 0
+        for (i in items) if (i.status == ItemStatus.FEHLER) { i.status = ItemStatus.WARTET; i.error = ""; n++ }
+        return n
+    }
+
+    fun toJson(): String = JSONObject().apply {
+        put("kind", kind.name)
+        put("target", targetPerChat)
+        put("created", createdAt)
+        put("fromList", fromList)
+        put("note", note)
+        put(
+            "items",
+            JSONArray(items.map {
+                JSONObject().put("t", it.title).put("s", it.status.name).put("e", it.error).put("f", it.finishedAt).put("i", it.info)
+            }),
+        )
+    }.toString()
+
+    companion object {
+        fun fromJson(s: String): AutoQueue {
+            val o = JSONObject(s)
+            val a = o.getJSONArray("items")
+            val items = (0 until a.length()).map {
+                val x = a.getJSONObject(it)
+                // Ein beim Abbruch laufender Eintrag wird beim Laden wieder zu "wartet"
+                val st = ItemStatus.valueOf(x.getString("s")).let { st -> if (st == ItemStatus.LAEUFT) ItemStatus.WARTET else st }
+                QueueItem(x.getString("t"), st, x.optString("e"), x.optLong("f"), x.optString("i"))
+            }.toMutableList()
+            return AutoQueue(QueueKind.valueOf(o.getString("kind")), items, o.optInt("target", 100), o.optLong("created"), o.optBoolean("fromList"), o.optString("note"))
+        }
+
+        fun of(kind: QueueKind, titles: List<String>, target: Int, now: Long, fromList: Boolean): AutoQueue =
+            AutoQueue(kind, titles.map { QueueItem(it) }.toMutableList(), target, now, fromList)
+    }
+}
+
+/**
+ * Art eines Fehlers eines Warteschlangeneintrags. Die Pause nach mehreren Fehlern in Folge gilt nur bei gleicher Art:
+ * "Chat nicht gefunden" (Name/Suche) und "Navigationsfehler" (WhatsApp nicht vorn, Systemoberflaeche) haben verschiedene Ursachen.
+ */
+interface KindedFailure {
+    val kindName: String
+}
+
+/** Fehler, nach dem die ganze Warteschlange nicht sinnvoll weiterlaufen kann (z. B. Bedienungshilfe aus). */
+class FatalAutoException(message: String) : Exception(message)
+
+/** Eine Sperre fuer alle Modellaufrufe: es laeuft hoechstens ein Aufruf gleichzeitig. */
+object LlmGate {
+    val mutex = Mutex()
+    suspend fun <T> exclusive(block: suspend () -> T): T = mutex.withLock { block() }
+}
+
+/** Warteschlange hat nach mehreren Fehlern in Folge angehalten (nicht verworfen): Rest bleibt "wartet", Fortsetzen ist moeglich. */
+class PausedAutoException(message: String) : Exception(message)
+
+object AutoQueueRunner {
+    /**
+     * Arbeitet die Warteschlange seriell ab. Fehler eines Eintrags werden vermerkt, der naechste laeuft weiter.
+     * Bei Abbruch (Coroutine-Cancellation) wird der laufende Eintrag wieder "wartet", der Zustand gespeichert und neu geworfen:
+     * so setzt ein erneuter Start genau dort fort. [onChange] wird nach jeder Zustandsaenderung aufgerufen (Anzeige, Speichern).
+     */
+    suspend fun run(
+        queue: AutoQueue,
+        now: () -> Long,
+        onChange: (AutoQueue) -> Unit,
+        maxConsecutiveFailures: Int = 2,
+        onFailure: (QueueItem, Int) -> Unit = { _, _ -> },
+        worker: suspend (QueueItem) -> String,
+    ) {
+        var consecutive = 0
+        var lastKind: String? = null
+        while (true) {
+            coroutineContext.ensureActive()
+            val item = queue.nextPending() ?: break
+            item.status = ItemStatus.LAEUFT
+            onChange(queue)
+            try {
+                val info = worker(item)
+                item.status = ItemStatus.FERTIG
+                item.info = info
+                item.error = ""
+                item.finishedAt = now()
+                consecutive = 0
+                lastKind = null
+            } catch (e: CancellationException) {
+                item.status = ItemStatus.WARTET
+                onChange(queue)
+                throw e
+            } catch (e: FatalAutoException) {
+                item.status = ItemStatus.WARTET
+                item.error = e.message.orEmpty()
+                onChange(queue)
+                throw e
+            } catch (e: Exception) {
+                item.status = ItemStatus.FEHLER
+                item.error = e.message ?: e.javaClass.simpleName
+                item.finishedAt = now()
+                val kind = (e as? KindedFailure)?.kindName ?: "Fehler"
+                // Nur gleichartige Fehler in Folge zaehlen: eine andere Ursache beginnt die Zaehlung neu
+                consecutive = if (kind == lastKind) consecutive + 1 else 1
+                lastKind = kind
+                onFailure(item, consecutive)
+                onChange(queue)
+                // Nach mehreren Fehlern in Folge anhalten statt weiterzuhetzen: Ursache beheben, dann Fortsetzen
+                if (maxConsecutiveFailures > 0 && consecutive >= maxConsecutiveFailures && queue.nextPending() != null) {
+                    throw PausedAutoException(
+                        "Setup pausiert nach $consecutive Fehlern in Folge mit gleicher Ursache ($kind; zuletzt \"${item.title}\": ${item.error.take(300)}). " +
+                            "${queue.count(ItemStatus.WARTET)} Chats warten noch. Ursache beheben (WhatsApp auf der Chatliste, Tab Chats), dann im Tab Start Fortsetzen waehlen.",
+                    )
+                }
+            }
+            onChange(queue)
+        }
+    }
+}

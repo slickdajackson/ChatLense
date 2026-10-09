@@ -1,0 +1,60 @@
+{
+  "profileVersion": 1,
+  "app": "WhatsApp",
+  "packageName": "com.whatsapp",
+  "launchPackage": "com.whatsapp",
+  "calibration": {
+    "status": "NOT_CALIBRATED",
+    "note": "Dieses Profil wurde ohne Zugriff auf ein Geraet mit WhatsApp erstellt. Nichts hier ist auf dem Xiaomi 15 Ultra / HyperOS 3 geprueft. Erst mit dem Debug-Baum-Export (Tab Debug) kalibrieren, dann dieses Profil anpassen (siehe INSTALL-XIAOMI.md, Abschnitt Kalibrierung)."
+  },
+  "knownIds": {
+    "status": "THIRD_PARTY_UNVERIFIED",
+    "evidence": [
+      "Appium-Testskript fuer WhatsApp unter Android 5.1.1: https://github.com/akhayapanigrahi/AndroidAutomation/blob/master/src/test/java/com/test/androidautomationtest/AndroidAutomation/WhatsApp_Message.java (menuitem_search, search_src_text, conversations_row_contact_name, entry, send; message_text steht dort in auskommentiertem Code)",
+      "Automate-Forum 2021: https://groups.google.com/g/automate-user/c/cypGo9aWsAA (conversations_row_contact_name) und https://groups.google.com/g/automate-user/c/Nxb1T1-GPQ8 (contactpicker_row_name, dort mit dem Paket com.whatsapp.w4b)",
+      "contact_row_container: Hinweis aus einem Geraetelog zu Version 0.2.2 (Chatliste), nicht selbst geprueft.",
+      "Alle Quellen sind alt und nicht auf aktuelle WhatsApp-Versionen bezogen. WhatsApp kann IDs aendern oder verschleiern. Die App benutzt die IDs nur als Zusatzsignal und faellt auf die Heuristik zurueck, wenn nichts passt."
+    ],
+    "searchButton": ["com.whatsapp:id/menuitem_search"],
+    "searchField": ["com.whatsapp:id/search_src_text"],
+    "chatListRowName": ["com.whatsapp:id/conversations_row_contact_name"],
+    "chatListRowContainer": ["com.whatsapp:id/contact_row_container"],
+    "chatListUnread": ["com.whatsapp:id/conversations_row_message_count"],
+    "contactPickerName": ["com.whatsapp:id/contactpicker_row_name"],
+    "messageText": ["com.whatsapp:id/message_text"],
+    "messageInput": ["com.whatsapp:id/entry"],
+    "sendButton": ["com.whatsapp:id/send"]
+  },
+  "heuristics": {
+    "note": "Alle Werte hier sind Annahmen und muessen kalibriert werden.",
+    "useKnownIds": true,
+    "messageListClassHints": ["RecyclerView", "ListView"],
+    "searchButtonDescriptions": ["Suchen", "Search"],
+    "searchFieldTopFraction": 0.25,
+    "messageInputBottomFraction": 0.65,
+    "headerTopFraction": 0.2,
+    "timeRegex": "^\\d{1,2}[:.]\\d{2}(\\s?([AaPp]\\.?[Mm]\\.?))?$",
+    "dateLabelRegexes": [
+      "(?i)^(heute|gestern|today|yesterday)$",
+      "(?i)^(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$",
+      "^\\d{1,2}\\.\\s?\\d{1,2}\\.\\s?\\d{2,4}$",
+      "^\\d{1,2}/\\d{1,2}/\\d{2,4}$",
+      "^\\d{4}-\\d{2}-\\d{2}$",
+      "(?i)^\\d{1,2}\\.?\\s+(jan|feb|m[aä]r|apr|mai|may|jun|jul|aug|sep|okt|oct|nov|dez|dec)[a-zäöü]*\\.?\\s+\\d{2,4}$",
+      "(?i)^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2},?\\s+\\d{2,4}$"
+    ],
+    "statusIconDescriptions": ["Gelesen", "Zugestellt", "Gesendet", "Read", "Delivered", "Sent", "Ausstehend", "Pending"],
+    "voiceClassHints": ["SeekBar"],
+    "imageClassHints": ["ImageView"],
+    "imageMinWidthFractionOfList": 0.25,
+    "imageMinHeightDp": 90,
+    "directionToleranceDp": 8,
+    "denyClickIdSubstrings": ["send", "entry", "voice", "camera", "attach", "emoji", "mic"],
+    "searchSectionsChats": ["Chats"],
+    "searchSectionsDenied": ["Gemeinsame Gruppen", "Gruppen", "Groups in common", "Common groups", "Groups"],
+    "searchSectionsOther": ["Kontakte", "Contacts", "Nachrichten", "Messages", "Weitere Kontakte", "Kanäle", "Channels", "Communities"],
+    "searchFallbackWithoutHeaders": true,
+    "readMoreTexts": ["Mehr lesen", "Read more"],
+    "chatStartPatterns": ["(?i)ende-zu-ende", "(?i)end-to-end", "(?i)verschl[uü]sselt", "(?i)encrypted"]
+  }
+}

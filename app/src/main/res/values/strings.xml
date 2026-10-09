@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ChatLens</string>
+    <string name="a11y_label">ChatLens Chat-Leser</string>
+    <string name="a11y_description">ChatLens liest auf Wunsch den Inhalt eines geöffneten WhatsApp-Chats, scrollt darin nach oben, tippt in der WhatsApp-Suche den gewählten Chat-Treffer an und kann Screenshots der Chatansicht aufnehmen. Es werden keine Nachrichten gesendet oder geschrieben. Der Dienst reagiert nur auf einen vom Nutzer gestarteten Auftrag.</string>
+</resources>

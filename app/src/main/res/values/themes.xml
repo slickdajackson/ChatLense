@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dunkles Fenstertheme (bis 0.2.2 hell): Systemelemente und Hintergrund passen zum dunklen Glas-Design. -->
+    <style name="Theme.ChatLens" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/chatlens_bg</item>
+        <item name="android:colorBackground">@color/chatlens_bg</item>
+        <item name="android:textColorPrimary">@color/chatlens_text</item>
+        <item name="android:textColorSecondary">@color/chatlens_text_dim</item>
+    </style>
+</resources>

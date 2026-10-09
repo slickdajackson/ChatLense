@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chatlens_bg">#0B1020</color>
+    <color name="chatlens_text">#EAF0FF</color>
+    <color name="chatlens_text_dim">#C3CCE6</color>
+</resources>

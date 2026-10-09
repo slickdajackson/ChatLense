@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="menuitem_search" type="id" />
+    <item name="search_src_text" type="id" />
+    <item name="conversations_row_contact_name" type="id" />
+    <item name="contact_row_container" type="id" />
+    <item name="conversations_row_message_count" type="id" />
+    <item name="conversations_row_message_preview" type="id" />
+    <item name="conversations_row_date" type="id" />
+    <item name="contactpicker_row_name" type="id" />
+    <item name="message_text" type="id" />
+    <item name="entry" type="id" />
+    <item name="send" type="id" />
+    <item name="conversation_title" type="id" />
+    <item name="voice_seekbar" type="id" />
+    <item name="date_separator" type="id" />
+    <item name="search_header" type="id" />
+</resources>

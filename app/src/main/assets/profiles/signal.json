@@ -1,0 +1,116 @@
+{
+ "profileVersion": 1,
+ "app": "Signal",
+ "packageName": "org.thoughtcrime.securesms",
+ "launchPackage": "org.thoughtcrime.securesms",
+ "calibration": {
+  "status": "NOT_CALIBRATED",
+  "note": "Vorlage, nicht kalibriert und nicht freigeschaltet (AdapterStatus.PREPARED). IDs stammen aus dem offenen Quelltext von Signal-Android v8.30.1 (app/src/main/res/layout), nicht aus einem Baumexport. Suchknopf, Suchfeld und Eingabefeld sind unbekannt und bleiben leer."
+ },
+ "knownIds": {
+  "status": "SOURCE_CODE_UNVERIFIED_ON_DEVICE",
+  "evidence": [
+   "https://github.com/signalapp/Signal-Android, Tag v8.30.1, Dateien conversation_list_item_view.xml, conversation_item_received_text_only.xml, conversation_item_footer.xml (Stand 2. Oktober 2026)",
+   "Gruppenabsender: group_sender_name_with_label; Zeit: footer_date; Audio: audio_view (in diesem Profil noch nicht belegt/verwendet)."
+  ],
+  "searchButton": [],
+  "searchField": [],
+  "chatListRowName": [
+   "org.thoughtcrime.securesms:id/conversation_list_item_name"
+  ],
+  "chatListRowContainer": [],
+  "chatListUnread": [
+   "org.thoughtcrime.securesms:id/conversation_list_item_unread_indicator"
+  ],
+  "contactPickerName": [],
+  "messageText": [
+   "org.thoughtcrime.securesms:id/conversation_item_body"
+  ],
+  "messageInput": [],
+  "sendButton": []
+ },
+ "heuristics": {
+  "note": "Alle Werte hier sind Annahmen und muessen kalibriert werden.",
+  "useKnownIds": true,
+  "messageListClassHints": [
+   "RecyclerView",
+   "ListView"
+  ],
+  "searchButtonDescriptions": [
+   "Suchen",
+   "Search"
+  ],
+  "searchFieldTopFraction": 0.25,
+  "messageInputBottomFraction": 0.65,
+  "headerTopFraction": 0.2,
+  "timeRegex": "^\\d{1,2}[:.]\\d{2}(\\s?([AaPp]\\.?[Mm]\\.?))?$",
+  "dateLabelRegexes": [
+   "(?i)^(heute|gestern|today|yesterday)$",
+   "(?i)^(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$",
+   "^\\d{1,2}\\.\\s?\\d{1,2}\\.\\s?\\d{2,4}$",
+   "^\\d{1,2}/\\d{1,2}/\\d{2,4}$",
+   "^\\d{4}-\\d{2}-\\d{2}$",
+   "(?i)^\\d{1,2}\\.?\\s+(jan|feb|m[aä]r|apr|mai|may|jun|jul|aug|sep|okt|oct|nov|dez|dec)[a-zäöü]*\\.?\\s+\\d{2,4}$",
+   "(?i)^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2},?\\s+\\d{2,4}$"
+  ],
+  "statusIconDescriptions": [
+   "Gelesen",
+   "Zugestellt",
+   "Gesendet",
+   "Read",
+   "Delivered",
+   "Sent",
+   "Ausstehend",
+   "Pending"
+  ],
+  "voiceClassHints": [
+   "SeekBar"
+  ],
+  "imageClassHints": [
+   "ImageView"
+  ],
+  "imageMinWidthFractionOfList": 0.25,
+  "imageMinHeightDp": 90,
+  "directionToleranceDp": 8,
+  "denyClickIdSubstrings": [
+   "send",
+   "entry",
+   "voice",
+   "camera",
+   "attach",
+   "emoji",
+   "mic"
+  ],
+  "searchSectionsChats": [
+   "Chats"
+  ],
+  "searchSectionsDenied": [
+   "Gemeinsame Gruppen",
+   "Gruppen",
+   "Groups in common",
+   "Common groups",
+   "Groups"
+  ],
+  "searchSectionsOther": [
+   "Kontakte",
+   "Contacts",
+   "Nachrichten",
+   "Messages",
+   "Weitere Kontakte",
+   "Kanäle",
+   "Channels",
+   "Communities"
+  ],
+  "searchFallbackWithoutHeaders": true,
+  "readMoreTexts": [
+   "Mehr lesen",
+   "Read more"
+  ],
+  "chatStartPatterns": [
+   "(?i)ende-zu-ende",
+   "(?i)end-to-end",
+   "(?i)verschl[uü]sselt",
+   "(?i)encrypted"
+  ]
+ }
+}
